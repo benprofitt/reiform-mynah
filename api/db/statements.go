@@ -11,6 +11,8 @@ const createUserTableSQL = `CREATE TABLE user (
 
 const createProjectTableSQL = ``
 
+//Note: we can't filter by org_id since it isn't known
+//when authenticating a user -- we rely on the uniqueness of uuids
 const getUserSQL = `SELECT
   uuid,
   org_id,
@@ -19,7 +21,7 @@ const getUserSQL = `SELECT
   is_admin,
   created_by
   FROM user
-  WHERE uuid = ? AND org_id = ?`
+  WHERE uuid = ?`
 
 const getProjectSQL = ``
 

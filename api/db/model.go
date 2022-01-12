@@ -9,6 +9,8 @@ import (
 //Defines the interface that database clients must implement
 type DBProvider interface {
 	//Get a user by uuid or return an error
+	GetUserForAuth(*string) (*model.MynahUser, error)
+	//Get a user other than self (must be admin)
 	GetUser(*string, *model.MynahUser) (*model.MynahUser, error)
 	//get a project by id or return an error
 	GetProject(*string, *model.MynahUser) (*model.MynahProject, error)

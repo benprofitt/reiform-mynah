@@ -6,10 +6,11 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Get a user by uuid or return an error
+//verify that the requestor is an admin
 func commonGetUser(user *model.MynahUser, requestor *model.MynahUser) error {
-	//a user can only make this request if they are an admin in the same org
-	if requestor.IsAdmin {
+	//Note: this is the only location where we need to compare org id (it isn't filtered in the query
+	//so that auth works with no knowledge of org)
+	if (user.OrgId == requestor.OrgId) && requestor.IsAdmin {
 		return nil
 	}
 	return errors.New(fmt.Sprintf("user %s does not have permission to request user %s", requestor.Uuid, user.Uuid))
@@ -57,7 +58,8 @@ func commonCreateUser(user *model.MynahUser, creator *model.MynahUser) error {
 
 //create a new project
 func commonCreateProject(project *model.MynahProject, creator *model.MynahUser) error {
-	project.AddPermissions(creator, model.Owner)
+	//give ownership permissions to the user
+	project.UserPermissions[creator.Uuid] = model.Owner
 	//inherit the org id
 	project.OrgId = creator.OrgId
 	return nil

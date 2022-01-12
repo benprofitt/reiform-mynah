@@ -30,8 +30,3 @@ func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 		return None
 	}
 }
-
-//Add permissions for a user
-func (p *MynahProject) AddPermissions(user *MynahUser, perm ProjectPermissions) {
-	p.UserPermissions[user.Uuid] = perm
-}

@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
+	"fmt"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -72,7 +73,7 @@ func createLocalDatabase(path *string, authProvider auth.AuthProvider) (*localDB
 		return nil, adminErr
 	}
 
-	log.Printf("TEMP: initial admin JWT: %s", jwt)
+	log.Printf("created initial admin JWT: %s", jwt)
 
 	//set as admin and assign a new organization id
 	admin.IsAdmin = true
@@ -111,10 +112,60 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 	}
 }
 
+//scan a SQL row into a user
+func scanRowUser(rows *sql.Rows) (*model.MynahUser, error) {
+	var u model.MynahUser
+	//need to parse string back to bool
+	var isAdmin string
+
+	//load the values from the row into the new user struct
+	if scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy); scanErr != nil {
+		return nil, scanErr
+	}
+
+	//parse the admin flag
+	if b, bErr := strconv.ParseBool(isAdmin); bErr == nil {
+		u.IsAdmin = b
+	} else {
+		log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
+		u.IsAdmin = false
+	}
+
+	return &u, nil
+}
+
 //Get a user by uuid or return an error
+func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
+	rows, err := d.db.Query(getUserSQL, *uuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if user, userErr := scanRowUser(rows); userErr == nil {
+			//there should only be one
+			return user, nil
+
+		} else {
+			return nil, userErr
+		}
+	}
+
+	return nil, errors.New(fmt.Sprintf("user %s not found", *uuid))
+}
+
+//Get a user other than self (must be admin)
 func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.MynahUser, error) {
-	//TODO call common impl after getting user
-	return nil, nil
+	if user, err := d.GetUserForAuth(uuid); err == nil {
+		//verify that this user has permission
+		if commonErr := commonGetUser(user, requestor); commonErr != nil {
+			return nil, commonErr
+		}
+		return user, nil
+	} else {
+		return nil, err
+	}
 }
 
 //get a project by id or return an error
@@ -136,22 +187,11 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 	defer rows.Close()
 
 	for rows.Next() {
-		var u model.MynahUser
-		var isAdmin string
-
-		//load the values from the row into the new user struct
-		scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy)
-		if scanErr != nil {
-			return users, scanErr
+		if user, userErr := scanRowUser(rows); userErr == nil {
+			users = append(users, user)
+		} else {
+			return users, userErr
 		}
-
-		b, bErr := strconv.ParseBool(isAdmin)
-		if bErr != nil {
-			log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
-			b = false
-		}
-		u.IsAdmin = b
-		users = append(users, &u)
 	}
 
 	return users, err

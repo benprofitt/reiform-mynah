@@ -78,6 +78,9 @@ func createLocalDatabase(path *string, authProvider auth.AuthProvider) (*localDB
 	admin.IsAdmin = true
 	admin.OrgId = uuid.New().String()
 
+	log.Printf("created organization %s", admin.OrgId)
+
+	//add the initial admin user into the database
 	if createAdminErr := ldb.CreateUser(admin, admin); createAdminErr != nil {
 		return nil, createAdminErr
 	}
@@ -121,12 +124,37 @@ func (d *localDB) GetProject(uuid *string, user *model.MynahUser) (*model.MynahP
 }
 
 //list all users
-func (d *localDB) ListUsers(requestor *model.MynahUser) ([]*model.MynahUser, error) {
+func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUser, err error) {
 	if commonErr := commonListUsers(requestor); commonErr != nil {
-		return nil, commonErr
+		return users, commonErr
 	}
-	//TODO
-	return nil, nil
+
+	rows, err := d.db.Query(listUsersSQL, requestor.OrgId)
+	if err != nil {
+		return users, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var u model.MynahUser
+		var isAdmin string
+
+		//load the values from the row into the new user struct
+		scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy)
+		if scanErr != nil {
+			return users, scanErr
+		}
+
+		b, bErr := strconv.ParseBool(isAdmin)
+		if bErr != nil {
+			log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
+			b = false
+		}
+		u.IsAdmin = b
+		users = append(users, &u)
+	}
+
+	return users, err
 }
 
 //list all projects

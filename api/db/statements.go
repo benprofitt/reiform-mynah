@@ -9,9 +9,38 @@ const createUserTableSQL = `CREATE TABLE user (
   "created_by" TEXT
   );`
 
+const createProjectTableSQL = ``
+
+const getUserSQL = `SELECT
+  uuid,
+  org_id,
+  name_first,
+  name_last,
+  is_admin,
+  created_by
+  FROM user
+  WHERE uuid = ? AND org_id = ?`
+
+const getProjectSQL = ``
+
+const listUsersSQL = `SELECT
+  uuid,
+  org_id,
+  name_first,
+  name_last,
+  is_admin,
+  created_by
+  FROM user
+  WHERE org_id = ?`
+
+//TODO only list in org
+const listProjectSQL = ``
+
 const createUserSQL = `INSERT INTO
   user(uuid, org_id, name_first, name_last, is_admin, created_by)
   VALUES (?, ?, ?, ?, ?, ?)`
+
+const createProjectSQL = ``
 
 //Note: created_by, org_id is never updated after creation
 const updateUserSQL = `UPDATE user SET
@@ -20,8 +49,9 @@ const updateUserSQL = `UPDATE user SET
   is_admin = ?,
   WHERE uuid = ? AND org_id = ?`
 
-//TODO only list in org
-const listUsersSQL = ``
+const updateProjectSQL = ``
 
-//TODO only list in org
-const listProjectSQL = ``
+const deleteUserSQL = `DELETE FROM user
+  WHERE uuid = ? AND org_id = ?`
+
+const deleteProjectSQL = ``

@@ -17,14 +17,14 @@ type MynahProject struct {
 	//the id of the organization this project is part of
 	OrgId string `json:"-"`
 	//permissions that various users have
-	userPermissions map[string]ProjectPermissions `json:"-"`
+	UserPermissions map[string]ProjectPermissions `json:"-"`
 	//the name of the project
 	ProjectName string `json:"project_name"`
 }
 
 //Get the permissions that a user has on a given project
 func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
-	if v, found := p.userPermissions[user.Uuid]; found {
+	if v, found := p.UserPermissions[user.Uuid]; found {
 		return v
 	} else {
 		return None
@@ -33,5 +33,5 @@ func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 
 //Add permissions for a user
 func (p *MynahProject) AddPermissions(user *MynahUser, perm ProjectPermissions) {
-	p.userPermissions[user.Uuid] = perm
+	p.UserPermissions[user.Uuid] = perm
 }

@@ -2,12 +2,25 @@
 
 ## Scope
 
+### Authentication
+Because we are offering a non-managed service to users, we should not make the assumption that all users will set up the service using https encryption. Therefore, prompting users for a password would create a security risk since users often reuse their password. Instead, we should use JWT authentication in an HTTP header. The JWT should be signed using a user-controlled (or pregenerated) key in a pem file.
+- In scope:
+  - Allow admins to create new users (amounts to generating a new JWT and creating a link that new users can navigate to)
+  - JWT storage in cookies
+- Currently out of scope:
+  - JWT rotation
+  - Password authentication
+
+When the application is first started, an admin user is created. Token recovery can only be performed by the admin.
+
+For the managed service, JWTs will be managed/rotated by Cognito/OAuth etc
 
 ### Storage of state
 - Users
-  - Defines permissions on projects
+  - Unique identifiers and optional identifying information (i.e. name)
 - Projects
-  - Defined by data, settings (i.e. repeated transformations on data), users allowed to view/edit project
+  - Project settings
+  - Users with permissions for project (including the owner)
 
 ### Processing of Data
 - Workflow

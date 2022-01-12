@@ -1,1 +1,4 @@
 mynah
+*.pem
+*.db
+mynah.json

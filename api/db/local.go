@@ -45,7 +45,7 @@ func (d *localDB) localPrepareExec(statement string, args ...interface{}) error 
 }
 
 //create the mynah local database
-func createLocalDatabase(path *string, authProvider auth.AuthProvider) (*localDB, error) {
+func createLocalDatabase(path *string) (*localDB, error) {
 	//create the path
 	if file, err := os.Create(*path); err == nil {
 		file.Close()
@@ -67,38 +67,48 @@ func createLocalDatabase(path *string, authProvider auth.AuthProvider) (*localDB
 		return nil, userTableErr
 	}
 
+	//TODO create the projects table
+	return &ldb, nil
+}
+
+//create a new organization in the database and a starting admin user
+func (d *localDB) createLocalOrg(authProvider auth.AuthProvider) error {
 	//create the initial admin user, organization id
 	admin, jwt, adminErr := authProvider.CreateUser()
 	if adminErr != nil {
-		return nil, adminErr
+		return adminErr
 	}
-
-	log.Printf("created initial admin JWT: %s", jwt)
 
 	//set as admin and assign a new organization id
 	admin.IsAdmin = true
 	admin.OrgId = uuid.New().String()
 
+	//log the initial information
 	log.Printf("created organization %s", admin.OrgId)
+	log.Printf("created initial admin JWT for org (%s): %s", admin.OrgId, jwt)
 
 	//add the initial admin user into the database
-	if createAdminErr := ldb.CreateUser(admin, admin); createAdminErr != nil {
-		return nil, createAdminErr
+	if createAdminErr := d.CreateUser(admin, admin); createAdminErr != nil {
+		return createAdminErr
 	}
-
-	//TODO create the projects table
-	return &ldb, nil
+	return nil
 }
 
 //create a new local db instance
 func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthProvider) (*localDB, error) {
 	//only create database if it doesn't exist
 	if !localDBExists(&mynahSettings.DBSettings.LocalPath) {
-		db, err := createLocalDatabase(&mynahSettings.DBSettings.LocalPath, authProvider)
+		db, err := createLocalDatabase(&mynahSettings.DBSettings.LocalPath)
 		if err != nil {
 			return nil, err
 		}
 		log.Printf("created local database %s", mynahSettings.DBSettings.LocalPath)
+
+		//create initial organization structure
+		for i:=0; i<mynahSettings.DBSettings.InitialOrgCount; i++ {
+			db.createLocalOrg(authProvider)
+		}
+
 		return db, nil
 	} else {
 		//open the database
@@ -223,6 +233,9 @@ func (d *localDB) CreateProject(project *model.MynahProject, creator *model.Myna
 	if commonErr := commonCreateProject(project, creator); commonErr != nil {
 		return commonErr
 	}
+
+	//TODO SQL
+
 	return nil
 }
 
@@ -263,5 +276,6 @@ func (d *localDB) DeleteProject(uuid *string, user *model.MynahUser) error {
 
 //close the client connection on shutdown
 func (d *localDB) Close() {
+	log.Printf("shutdown")
 	d.db.Close()
 }

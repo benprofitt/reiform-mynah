@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"context"
+	"time"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"
@@ -65,10 +67,13 @@ func main() {
 	//block until signal received
 	<-signalChan
 
+	//shutdown the server (wait 15 seconds for any requests to finish)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 15)
+	defer cancel()
+
 	//close various services
 	dbProvider.Close()
 	authProvider.Close()
-
-	log.Printf("shutting down")
+	router.Shutdown(ctx)
 	os.Exit(0)
 }

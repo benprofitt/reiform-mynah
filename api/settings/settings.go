@@ -9,7 +9,7 @@ import (
 type DBSetting string
 
 const (
-	Local DBSetting = "local"
+	Local    DBSetting = "local"
 	External DBSetting = "external"
 )
 
@@ -60,8 +60,8 @@ func GenerateSettings(path *string) {
 		UnauthReadAccess: false,
 		Port:             8080,
 		CORSAllowOrigin:  "*",
-		DBSettings:       MynahDBSettings{
-			Type: "local",
+		DBSettings: MynahDBSettings{
+			Type:      "local",
 			LocalPath: "mynah_local.db",
 		},
 		AuthSettings: MynahAuthSettings{

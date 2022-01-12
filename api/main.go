@@ -30,17 +30,18 @@ func main() {
 		log.Fatalf("failed to load settings: %s", settingsErr)
 	}
 
-	//initialize the database connection
-	dbProvider, dbErr := db.NewDBProvider(settings)
-	if dbErr != nil {
-		log.Fatalf("failed to initialize database connection %s", dbErr)
-	}
-
 	//initialize auth
 	authProvider, authErr := auth.NewAuthProvider(settings)
 	if authErr != nil {
 		log.Fatalf("failed to initialize auth %s", authErr)
 	}
+
+	//initialize the database connection
+	dbProvider, dbErr := db.NewDBProvider(settings, authProvider)
+	if dbErr != nil {
+		log.Fatalf("failed to initialize database connection %s", dbErr)
+	}
+	defer dbProvider.Close()
 
 	// //initialize storage
 	// storageProvider, storageErr := storage.NewStorageProvider(settings)

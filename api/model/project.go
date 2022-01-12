@@ -14,6 +14,8 @@ const (
 type MynahProject struct {
 	//the id of the project
 	Uuid string `json:"-"`
+	//the id of the organization this project is part of
+	OrgId string `json:"-"`
 	//permissions that various users have
 	userPermissions map[string]ProjectPermissions `json:"-"`
 	//the name of the project
@@ -27,4 +29,9 @@ func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 	} else {
 		return None
 	}
+}
+
+//Add permissions for a user
+func (p *MynahProject) AddPermissions(user *MynahUser, perm ProjectPermissions) {
+	p.userPermissions[user.Uuid] = perm
 }

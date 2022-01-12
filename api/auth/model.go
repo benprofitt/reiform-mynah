@@ -11,6 +11,8 @@ type AuthProvider interface {
 	//Takes a JWT token attached to a request and verifies that the token is
 	//valid. If valid, returns the user's uuid. If invalid, returns an error
 	IsValidToken(*string) (string, error)
+	//close the auth provider
+	Close()
 }
 
 //local auth client adheres to AuthProvider

@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"
@@ -41,9 +44,8 @@ func main() {
 	if dbErr != nil {
 		log.Fatalf("failed to initialize database connection %s", dbErr)
 	}
-	defer dbProvider.Close()
 
-	// //initialize storage
+	//initialize storage
 	// storageProvider, storageErr := storage.NewStorageProvider(settings)
 	// if storageErr != nil {
 	// 	log.Fatalf("failed to initialize storage %s", storageErr)
@@ -51,6 +53,22 @@ func main() {
 
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
 
-	//listen and serve
-	router.ListenAndServe()
+	//run the server in a go routine
+	go func() {
+		router.ListenAndServe()
+	}()
+
+	//handle signals gracefully
+	signalChan := make(chan os.Signal)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	//block until signal received
+	<-signalChan
+
+	//close various services
+	dbProvider.Close()
+	authProvider.Close()
+
+	log.Printf("shutting down")
+	os.Exit(0)
 }

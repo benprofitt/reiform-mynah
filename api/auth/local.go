@@ -21,3 +21,7 @@ func (a *localAuth) CreateUser() (*model.MynahUser, string, error) {
 func (a *localAuth) IsValidToken(jwt *string) (string, error) {
 	return "", nil
 }
+
+func (a *localAuth) Close() {
+	
+}

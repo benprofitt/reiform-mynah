@@ -5,6 +5,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"
+	"net/http"
 )
 
 //defines a mux which manages endpoint paths,
@@ -12,6 +13,8 @@ import (
 type MynahRouter struct {
 	//the gorilla mux
 	*mux.Router
+	//the underlying http server
+	server *http.Server
 	//the application settings
 	settings *settings.MynahSettings
 	//the authentication provider for verifying jwts

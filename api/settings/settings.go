@@ -9,7 +9,7 @@ import (
 type DBSetting string
 
 const (
-	Local DBSetting = "local"
+	Local    DBSetting = "local"
 	External DBSetting = "external"
 )
 
@@ -19,6 +19,8 @@ type MynahDBSettings struct {
 	Type DBSetting `json:"type"`
 	//path to store the local database
 	LocalPath string `json:"local_path"`
+	//the number of organizations to create on startup
+	InitialOrgCount int `json:"initial_org_count"`
 }
 
 //defines settings for authentication
@@ -60,9 +62,10 @@ func GenerateSettings(path *string) {
 		UnauthReadAccess: false,
 		Port:             8080,
 		CORSAllowOrigin:  "*",
-		DBSettings:       MynahDBSettings{
-			Type: "local",
+		DBSettings: MynahDBSettings{
+			Type:      "local",
 			LocalPath: "mynah_local.db",
+			InitialOrgCount: 1,
 		},
 		AuthSettings: MynahAuthSettings{
 			PemFilePath: "auth.pem",

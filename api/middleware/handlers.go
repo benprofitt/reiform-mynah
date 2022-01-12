@@ -12,6 +12,7 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"time"
+	"context"
 )
 
 type ctxKey string
@@ -39,6 +40,7 @@ func getProjectFromRequest(request *http.Request) *model.MynahProject {
 func NewRouter(mynahSettings *settings.MynahSettings, authProvider auth.AuthProvider, dbProvider db.DBProvider) *MynahRouter {
 	return &MynahRouter{
 		mux.NewRouter(),
+		nil,
 		mynahSettings,
 		authProvider,
 		dbProvider,
@@ -139,11 +141,17 @@ func (r *MynahRouter) HandleProjectRequest(method string, path string, handler M
 
 //start server
 func (r *MynahRouter) ListenAndServe() {
-	server := &http.Server{
+	r.server = &http.Server{
 		Handler:      r,
 		Addr:         fmt.Sprintf(":%d", r.settings.Port),
 		WriteTimeout: 15 * time.Second,
 		ReadTimeout:  15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
-	log.Fatal(server.ListenAndServe())
+	log.Fatal(r.server.ListenAndServe())
+}
+
+//Shutdown the server
+func (r *MynahRouter) Shutdown(ctx context.Context) {
+	r.server.Shutdown(ctx)
 }

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
@@ -105,23 +106,15 @@ func (r *MynahRouter) projectHandler(handler MynahProjectHandler) http.HandlerFu
 	})
 }
 
-//Handle a request
-func (r *MynahRouter) HandleRequest(method string, path string, handler MynahUserHandler) {
+//handle a basic http request (authenticated user passed in request context)
+func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
 		r.logMiddleware(
 			r.corsMiddleware(
-				r.authenticationMiddleware(r.userHandler(handler))))).Methods(method, http.MethodOptions)
+				r.authenticationMiddleware(handler)))).Methods("GET", "POST", http.MethodOptions)
 }
 
-//handle a basic http request (authenticated)
-func (r *MynahRouter) HandleHTTPRequest(method string, path string, handler http.HandlerFunc) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
-		r.logMiddleware(
-			r.corsMiddleware(
-				r.authenticationMiddleware(handler)))).Methods(method, http.MethodOptions)
-}
-
-//Handle an admin request
+//Handle an admin request (passes authenticated admin)
 func (r *MynahRouter) HandleAdminRequest(method string, path string, handler MynahUserHandler) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
 		r.logMiddleware(
@@ -130,7 +123,7 @@ func (r *MynahRouter) HandleAdminRequest(method string, path string, handler Myn
 					r.adminMiddleware(r.userHandler(handler)))))).Methods(method, http.MethodOptions)
 }
 
-//handle a project request (loads project, updates for POST requests)
+//handle a project request (loads project, passes to handler)
 func (r *MynahRouter) HandleProjectRequest(method string, path string, handler MynahProjectHandler) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, fmt.Sprintf("{%s}", projectKey), path),
 		r.logMiddleware(

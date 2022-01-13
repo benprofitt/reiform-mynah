@@ -264,7 +264,11 @@ func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.My
 
 //delete a user in the database
 func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
-	//TODO call common impl
+	if commonErr := commonDeleteUser(uuid, requestor); commonErr != nil {
+		return commonErr
+	}
+
+	//TODO delete in db
 	return nil
 }
 

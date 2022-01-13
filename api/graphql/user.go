@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"log"
 	"net/http"
@@ -13,19 +12,17 @@ import (
 	"reiform.com/mynah/model"
 )
 
-const contextUserKey = "user"
-
-//Handle new graphql requests for projects
-func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
-	//request projects (query, list)
-	var projectQueryType = graphql.NewObject(
+//Handle new graphql requests for users
+func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
+	//request users (query, list)
+	var userQueryType = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "ProjectQuery",
+			Name: "UserQuery",
 			Fields: graphql.Fields{
-				//Get ?query={project(uuid:""){project_name}}
-				"project": &graphql.Field{
-					Type:        projectType,
-					Description: "Get project by uuid",
+				//Get ?query={user(uuid:""){first_name,last_name}}
+				"user": &graphql.Field{
+					Type:        userType,
+					Description: "Get user by uuid",
 					Args: graphql.FieldConfigArgument{
 						"uuid": &graphql.ArgumentConfig{
 							Type: graphql.NewNonNull(graphql.String),
@@ -36,63 +33,42 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 						if ok {
 							//get the authenticated user from context
 							user := p.Context.Value(contextUserKey).(*model.MynahUser)
-							return dbProvider.GetProject(&uuid, user)
+							return dbProvider.GetUser(&uuid, user)
 						} else {
 							return nil, errors.New("graphql request missing uuid arg")
 						}
 					},
 				},
-				//Get list ?query={list{uuid,project_name}}
+				//Get list ?query={list{uuid,last_name,first_name}}
 				"list": &graphql.Field{
-					Type:        graphql.NewList(projectType),
-					Description: "Get project list",
+					Type:        graphql.NewList(userType),
+					Description: "Get user list",
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						//get the authenticated user from context
 						user := p.Context.Value(contextUserKey).(*model.MynahUser)
-						//request projects
-						return dbProvider.ListProjects(user)
+						//request users
+						return dbProvider.ListUsers(user)
 					},
 				},
 			},
 		})
 
-	//update projects (create, update)
-	var projectMutationType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "ProjectMutation",
+	//update users (create, update)
+	var userMutationType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "UserMutation",
 		Fields: graphql.Fields{
-			//Create a project ?query=mutation+_{create(project_name:"example name"){project_name}}
-			"create": &graphql.Field{
-				Type:        projectType,
-				Description: "Create a new project",
-				Args: graphql.FieldConfigArgument{
-					"project_name": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-
-					//create a new project
-					project := model.MynahProject{
-						Uuid:            uuid.New().String(),
-						UserPermissions: make(map[string]model.ProjectPermissions),
-						ProjectName:     p.Args["project_name"].(string),
-					}
-
-					//return the project and add to the database
-					return project, dbProvider.CreateProject(&project, user)
-				},
-			},
-
-			//Update a project by uuid ?query=mutation+_{update(uuid:"",project_name:"update"){uuid,project_name}}
+			//Update a user by uuid ?query=mutation+_{update(uuid:"",name_first:"update",name_last:"name last"){uuid,name_first,name_last}}
 			"update": &graphql.Field{
-				Type:        projectType,
-				Description: "Update a project by uuid",
+				Type:        userType,
+				Description: "Update a user by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
 						Type: graphql.NewNonNull(graphql.String),
 					},
-					"project_name": &graphql.ArgumentConfig{
+					"name_first": &graphql.ArgumentConfig{
+						Type: graphql.String,
+					},
+					"name_last": &graphql.ArgumentConfig{
 						Type: graphql.String,
 					},
 				},
@@ -102,31 +78,35 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 
 					uuid, ok := p.Args["uuid"].(string)
 					if !ok {
-						return nil, errors.New("graphql update query missing project uuid")
+						return nil, errors.New("graphql update query missing user uuid")
 					}
 
 					//new name to use
-					projectName, projectNameOk := p.Args["project_name"].(string)
+					nameFirst, nameFirstOk := p.Args["name_first"].(string)
+					nameLast, nameLastOk := p.Args["name_last"].(string)
 
-					//request the project
-					if project, err := dbProvider.GetProject(&uuid, user); err == nil {
-						//update project
-						if projectNameOk {
-							project.ProjectName = projectName
+					//request the user
+					if updateUser, err := dbProvider.GetUser(&uuid, user); err == nil {
+						//update user
+						if nameFirstOk {
+							updateUser.NameFirst = nameFirst
+						}
+						if nameLastOk {
+							updateUser.NameLast = nameLast
 						}
 
-						//update the project
-						return project, dbProvider.UpdateProject(project, user)
+						//update the user
+						return updateUser, dbProvider.UpdateUser(updateUser, user)
 
 					} else {
 						return nil, err
 					}
 				},
 			},
-			//Delete a project by uuid ?query=mutation+_{delete(uuid:""){uuid,project_name}}
+			//Delete a user by uuid ?query=mutation+_{delete(uuid:""){uuid}}
 			"delete": &graphql.Field{
-				Type:        projectType,
-				Description: "Delete project by uuid",
+				Type:        userType,
+				Description: "Delete user by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
 						Type: graphql.NewNonNull(graphql.String),
@@ -137,9 +117,9 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
 					uuid, ok := p.Args["uuid"].(string)
 					if ok {
-						return nil, dbProvider.DeleteProject(&uuid, user)
+						return nil, dbProvider.DeleteUser(&uuid, user)
 					}
-					return nil, errors.New("project delete request missing uuid")
+					return nil, errors.New("user delete request missing uuid")
 				},
 			},
 		},
@@ -148,8 +128,8 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	//create the schema
 	schema, schemaErr := graphql.NewSchema(
 		graphql.SchemaConfig{
-			Query:    projectQueryType,
-			Mutation: projectMutationType,
+			Query:    userQueryType,
+			Mutation: userMutationType,
 		},
 	)
 

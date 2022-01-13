@@ -27,19 +27,18 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		res := logResponse{
 			ResponseWriter: writer,
-			status:         500,
+			status:         200, //success by default
 		}
 
 		//handle the request
 		handler.ServeHTTP(&res, request)
 
 		//log the result
-		log.Printf("%s %s %s %d (%s)",
+		log.Printf("%s %s %s %d",
 			request.Method,
 			request.URL.Path,
 			request.Proto,
-			res.status,
-			GetUserFromRequest(request).Uuid)
+			res.status)
 	})
 }
 
@@ -61,6 +60,7 @@ func (r *MynahRouter) authenticationMiddleware(handler http.HandlerFunc) http.Ha
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//TODO check auth token, get user from db
 		u := model.MynahUser{}
+		u.OrgId = "(TEMP: no org assigned, auth disabled)"
 
 		//call the handler, pass the authenticated user
 		handler.ServeHTTP(writer, request.WithContext(

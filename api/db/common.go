@@ -1,10 +1,26 @@
 package db
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reiform.com/mynah/model"
 )
+
+//serialize some structure into a string
+func serializeJson(jsonStruct interface{}) (*string, error) {
+	if b, err := json.Marshal(jsonStruct); err == nil {
+		s := string(b)
+		return &s, nil
+	} else {
+		return nil, err
+	}
+}
+
+//deserialize a string back into some json structure
+func deserializeJson(jsonRep *string, target interface{}) error {
+	return json.Unmarshal([]byte(*jsonRep), target)
+}
 
 //verify that the requestor is an admin
 func commonGetUser(user *model.MynahUser, requestor *model.MynahUser) error {
@@ -34,7 +50,7 @@ func commonListUsers(requestor *model.MynahUser) error {
 }
 
 //get the projects that the user can view
-func commonListProjects(requestor *model.MynahUser, projects []*model.MynahProject) (filtered []*model.MynahProject) {
+func commonListProjects(projects []*model.MynahProject, requestor *model.MynahUser) (filtered []*model.MynahProject) {
 	//filter for projects that this user has permission to view
 	for _, p := range projects {
 		if e := commonGetProject(p, requestor); e == nil {

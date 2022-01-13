@@ -22,3 +22,15 @@ This repository combines the frontend interface and the backend api for Mynah.
 
 ### Testing
 - We will do our best to maintain test coverage for the api and frontend. In particular, when defects are identified, these should be added as new test cases.
+
+## Setup
+
+### Running the API
+- **Important Note**: Running `make clean` will clear the default sqlite database location. If you want to persist your local database, change the name of the database localpath in `mynah.json`. The Makefile is set to delete `mynah_local.db`.
+- **Important Note**: Running `make clean` will delete the default configuration file `mynah.json`. To persist a configuration file, rename the file and pass the new path using the `-settings` flag (i.e. `./mynah -settings new_name.json`). The Makefile is set to delete `mynah.json`.
+- **Important Note**: Running `./mynah -generate-settings` will write a new default configuration file to `mynah.json` (or whatever the path has been overriden with using the `-settings` flag). If you want to persist the settings file, rename it and use the `-settings` flag to pass the overriden location.
+
+To run the api with a fresh database:
+```
+make clean && make mynah && ./mynah -generate-settings
+```

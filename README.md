@@ -4,7 +4,7 @@
 This repository combines the frontend interface and the backend api for Mynah.
 
 ### Links
-- [API Design Document](docs/api_design_doc.png)
+- [API Design Document](docs/api_design_doc.md)
 - [API Endpoint Specification](docs/endpoints.md)
 
 ### Development

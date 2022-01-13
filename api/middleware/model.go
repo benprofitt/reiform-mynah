@@ -6,6 +6,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"
+	"net/http"
 )
 
 //defines a mux which manages endpoint paths,

@@ -63,8 +63,8 @@ func GenerateSettings(path *string) {
 		Port:             8080,
 		CORSAllowOrigin:  "*",
 		DBSettings: MynahDBSettings{
-			Type:      "local",
-			LocalPath: "mynah_local.db",
+			Type:            "local",
+			LocalPath:       "mynah_local.db",
 			InitialOrgCount: 1,
 		},
 		AuthSettings: MynahAuthSettings{
@@ -78,7 +78,7 @@ func GenerateSettings(path *string) {
 	}
 
 	//write to file
-	if json, jsonErr := json.MarshalIndent(m, "", " "); jsonErr == nil {
+	if json, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {
 		if ioErr := ioutil.WriteFile(*path, json, 0644); ioErr != nil {
 			log.Printf("failed to write default settings: %s", ioErr)
 		}

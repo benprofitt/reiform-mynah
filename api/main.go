@@ -1,16 +1,16 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"os"
 	"os/signal"
-	"syscall"
-	"context"
-	"time"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"
+	"syscall"
+	"time"
 	//"reiform.com/mynah/api"
 	"reiform.com/mynah/middleware"
 	//"reiform.com/mynah/storage"
@@ -68,7 +68,7 @@ func main() {
 	<-signalChan
 
 	//shutdown the server (wait 15 seconds for any requests to finish)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second * 15)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 	defer cancel()
 
 	//close various services

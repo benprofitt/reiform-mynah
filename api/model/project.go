@@ -13,7 +13,7 @@ const (
 //Defines a mynah project
 type MynahProject struct {
 	//the id of the project
-	Uuid string `json:"-"`
+	Uuid string `json:"uuid"`
 	//the id of the organization this project is part of
 	OrgId string `json:"-"`
 	//permissions that various users have

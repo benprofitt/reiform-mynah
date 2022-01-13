@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
-	"fmt"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -105,7 +105,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 		log.Printf("created local database %s", mynahSettings.DBSettings.LocalPath)
 
 		//create initial organization structure
-		for i:=0; i<mynahSettings.DBSettings.InitialOrgCount; i++ {
+		for i := 0; i < mynahSettings.DBSettings.InitialOrgCount; i++ {
 			db.createLocalOrg(authProvider)
 		}
 

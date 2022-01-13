@@ -105,11 +105,11 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 						return nil, errors.New("graphql update query missing project uuid")
 					}
 
-					//new name to use
-					projectName, projectNameOk := p.Args["project_name"].(string)
-
 					//request the project
 					if project, err := dbProvider.GetProject(&uuid, user); err == nil {
+						//new name to use
+						projectName, projectNameOk := p.Args["project_name"].(string)
+
 						//update project
 						if projectNameOk {
 							project.ProjectName = projectName

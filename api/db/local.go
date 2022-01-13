@@ -67,7 +67,10 @@ func createLocalDatabase(path *string) (*localDB, error) {
 		return nil, userTableErr
 	}
 
-	//TODO create the projects table
+	//create the projects table
+	if projectTableErr := ldb.localPrepareExec(createProjectTableSQL); projectTableErr != nil {
+		return nil, projectTableErr
+	}
 	return &ldb, nil
 }
 
@@ -144,6 +147,27 @@ func scanRowUser(rows *sql.Rows) (*model.MynahUser, error) {
 	return &u, nil
 }
 
+//scan a SQL result row into a Mynah project struct
+func scanRowProject(rows *sql.Rows) (*model.MynahProject, error) {
+	var p model.MynahProject
+	p.UserPermissions = make(map[string]model.ProjectPermissions)
+
+	//need to parse string back to map
+	var projectPermissions string
+
+	//load the values from the row into the new project struct
+	if scanErr := rows.Scan(&p.Uuid, &p.OrgId, &projectPermissions, &p.ProjectName); scanErr != nil {
+		return nil, scanErr
+	}
+
+	//parse the permissions
+	if err := deserializeJson(&projectPermissions, &p.UserPermissions); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
 //Get a user by uuid or return an error
 func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 	rows, err := d.db.Query(getUserSQL, *uuid)
@@ -179,9 +203,28 @@ func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.Myna
 }
 
 //get a project by id or return an error
-func (d *localDB) GetProject(uuid *string, user *model.MynahUser) (*model.MynahProject, error) {
-	//TODO call common after requesting project
-	return nil, nil
+func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.MynahProject, error) {
+	rows, err := d.db.Query(getProjectSQL, *uuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if project, projectErr := scanRowProject(rows); projectErr == nil {
+			//verify that this user has permission
+			if commonErr := commonGetProject(project, requestor); commonErr != nil {
+				return nil, commonErr
+			}
+			//there should only be one
+			return project, nil
+
+		} else {
+			return nil, projectErr
+		}
+	}
+
+	return nil, errors.New(fmt.Sprintf("project %s not found", *uuid))
 }
 
 //list all users
@@ -190,9 +233,9 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 		return users, commonErr
 	}
 
-	rows, err := d.db.Query(listUsersSQL, requestor.OrgId)
-	if err != nil {
-		return users, err
+	rows, queryErr := d.db.Query(listUsersSQL, requestor.OrgId)
+	if queryErr != nil {
+		return users, queryErr
 	}
 	defer rows.Close()
 
@@ -208,9 +251,28 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 }
 
 //list all projects
-func (d *localDB) ListProjects(requestor *model.MynahUser) ([]*model.MynahProject, error) {
-	//TODO filter after request
-	return nil, nil
+func (d *localDB) ListProjects(requestor *model.MynahUser) (projects []*model.MynahProject, err error) {
+	//request projects in org
+	rows, queryErr := d.db.Query(listProjectsSQL, requestor.OrgId)
+	if queryErr != nil {
+		return projects, queryErr
+	}
+	defer rows.Close()
+
+	//temporary list (not filtered by permissions the user has for each)
+	tempProjects := make([]*model.MynahProject, 0)
+
+	//scan projects into structs
+	for rows.Next() {
+		if project, projectErr := scanRowProject(rows); projectErr == nil {
+			tempProjects = append(tempProjects, project)
+		} else {
+			return projects, projectErr
+		}
+	}
+
+	//filter for the projects that this user can view
+	return commonListProjects(tempProjects, requestor), nil
 }
 
 //create a new user
@@ -234,9 +296,18 @@ func (d *localDB) CreateProject(project *model.MynahProject, creator *model.Myna
 		return commonErr
 	}
 
-	//TODO SQL
+	//serialize the project permissions
+	stringProjectPerm, jsonErr := serializeJson(&project.UserPermissions)
+	if jsonErr != nil {
+		return jsonErr
+	}
 
-	return nil
+	//add a project to the table
+	return d.localPrepareExec(createProjectSQL,
+		project.Uuid,
+		project.OrgId,
+		stringProjectPerm,
+		project.ProjectName)
 }
 
 //update a user in the database
@@ -259,7 +330,19 @@ func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.My
 	if commonErr := commonUpdateProject(project, requestor); commonErr != nil {
 		return commonErr
 	}
-	return nil
+
+	//serialize the project permissions
+	stringProjectPerm, jsonErr := serializeJson(&project.UserPermissions)
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	//execute the sql update
+	return d.localPrepareExec(updateProjectSQL,
+		stringProjectPerm,
+		project.ProjectName,
+		project.Uuid,
+		project.OrgId)
 }
 
 //delete a user in the database
@@ -268,14 +351,28 @@ func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
 		return commonErr
 	}
 
-	//TODO delete in db
-	return nil
+	//execute the request (uses requestor's org id to verify)
+	return d.localPrepareExec(deleteUserSQL,
+		*uuid,
+		requestor.OrgId)
 }
 
 //delete a project in the database
-func (d *localDB) DeleteProject(uuid *string, user *model.MynahUser) error {
-	//TODO call common impl after loading project
-	return nil
+func (d *localDB) DeleteProject(uuid *string, requestor *model.MynahUser) error {
+	//need to first load the project to check if the user has permission
+	if project, projectErr := d.GetProject(uuid, requestor); projectErr == nil {
+		//validate that this user has permission to delete this project
+		if commonErr := commonDeleteProject(project, requestor); commonErr != nil {
+			return commonErr
+		}
+		//can delete
+		return d.localPrepareExec(deleteProjectSQL,
+			*uuid,
+			project.OrgId)
+
+	} else {
+		return projectErr
+	}
 }
 
 //close the client connection on shutdown

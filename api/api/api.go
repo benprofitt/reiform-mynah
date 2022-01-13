@@ -12,9 +12,13 @@ import (
 func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	storageProvider storage.StorageProvider,
-	settings *settings.MynahSettings) {
+	settings *settings.MynahSettings) error {
 	//TODO
 
 	//register graphql routes
-	registerGQLRoutes(router, dbProvider)
+	if gqlErr := registerGQLRoutes(router, dbProvider); gqlErr != nil {
+		return gqlErr
+	}
+
+	return nil
 }

@@ -82,11 +82,11 @@ func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser
 }
 
 //check that the requestor has permission
-func commonDeleteUser(user *model.MynahUser, requestor *model.MynahUser) error {
+func commonDeleteUser(uuid *string, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
 		return nil
 	}
-	return errors.New(fmt.Sprintf("user %s does not have permission to update user %s", requestor.Uuid, user.Uuid))
+	return errors.New(fmt.Sprintf("user %s does not have permission to update user %s", requestor.Uuid, *uuid))
 }
 
 //check that the requestor has permission to delete the project

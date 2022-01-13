@@ -6,14 +6,14 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"reiform.com/mynah/api"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/settings"
+	"reiform.com/mynah/storage"
 	"syscall"
 	"time"
-	//"reiform.com/mynah/api"
-	"reiform.com/mynah/middleware"
-	//"reiform.com/mynah/storage"
 )
 
 //entrypoint
@@ -48,12 +48,18 @@ func main() {
 	}
 
 	//initialize storage
-	// storageProvider, storageErr := storage.NewStorageProvider(settings)
-	// if storageErr != nil {
-	// 	log.Fatalf("failed to initialize storage %s", storageErr)
-	// }
+	storageProvider, storageErr := storage.NewStorageProvider(settings)
+	if storageErr != nil {
+		log.Fatalf("failed to initialize storage %s", storageErr)
+	}
 
+	//create the router and middleware
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
+
+	//register api endpoints
+	if err := api.RegisterRoutes(router, dbProvider, storageProvider, settings); err != nil {
+		log.Fatalf("failed to initialize api routes: %s", err)
+	}
 
 	//run the server in a go routine
 	go func() {

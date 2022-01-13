@@ -27,19 +27,18 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		res := logResponse{
 			ResponseWriter: writer,
-			status:         500,
+			status:         200, //success by default
 		}
 
 		//handle the request
 		handler.ServeHTTP(&res, request)
 
 		//log the result
-		log.Printf("%s %s %s %d (%s)",
+		log.Printf("%s %s %s %d",
 			request.Method,
 			request.URL.Path,
 			request.Proto,
-			res.status,
-			GetUserFromRequest(request).Uuid)
+			res.status)
 	})
 }
 

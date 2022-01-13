@@ -23,5 +23,5 @@ func (a *localAuth) IsValidToken(jwt *string) (string, error) {
 }
 
 func (a *localAuth) Close() {
-	
+
 }

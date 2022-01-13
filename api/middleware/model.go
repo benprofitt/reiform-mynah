@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/gorilla/mux"
+	"net/http"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/settings"

@@ -24,9 +24,6 @@ Vagrant.configure("2") do |config|
 		sudo apt-get install -y pkg-config
     sudo apt-get install -y python3-pip
     python3.7 -m pip install Cython
-    python3.7 -m pip install numpy
-    python3.7 -m pip install pandas
-    python3.7 -m pip install scikit-learn
   SHELL
 
 end

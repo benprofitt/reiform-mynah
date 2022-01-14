@@ -2,9 +2,9 @@ package settings
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
-	"errors"
 	"os"
 )
 

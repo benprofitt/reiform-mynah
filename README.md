@@ -33,3 +33,22 @@ To run the api with a fresh database and configuration file:
 ```
 make clean && make mynah && ./mynah
 ```
+
+### Using Docker (for frontend development)
+- Install Docker on your machine and run
+```
+docker build -t mynah:latest .
+docker run -p 8080:8080 mynah:latest
+```
+
+### Using Vagrant (for backend development)
+- Install Vagrant on your machine and run
+```
+vagrant up && vagrant ssh
+```
+- Once in the VM, run (optionally add to your bash config)
+```
+export PATH=$PATH:/usr/local/go/bin
+export PKG_CONFIG_PATH=/vagrant/python
+cd /vagrant
+```

@@ -4,3 +4,4 @@ mynah
 mynah.json
 tmp/*
 *.log
+.vagrant

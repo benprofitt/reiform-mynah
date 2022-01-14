@@ -3,3 +3,4 @@ mynah
 *.db
 mynah.json
 tmp/*
+*.log

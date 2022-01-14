@@ -20,9 +20,9 @@ COPY Makefile Makefile
 COPY api/ api/
 COPY run.sh run.sh
 
-ENV PKG_CONFIG_PATH=/mynah/src/pkg-config
+ENV PKG_CONFIG_PATH=/mynah/python
 RUN make GO=/usr/local/go/bin/go mynah
 
 EXPOSE 8080
 
-CMD ["./mynah"]
+CMD ["./run.sh"]

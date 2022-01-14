@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"errors"
+	"os"
 )
 
 type DBSetting string
@@ -58,7 +60,7 @@ type MynahSettings struct {
 }
 
 //write the default settings to a file
-func GenerateSettings(path *string) {
+func generateSettings(path *string) {
 	m := MynahSettings{
 		ApiPrefix:        "/api/v1",
 		UnauthReadAccess: false,
@@ -90,10 +92,27 @@ func GenerateSettings(path *string) {
 	}
 }
 
+//check whether a settings file exists
+func settingsExist(path *string) bool {
+	if _, err := os.Stat(*path); err == nil {
+		return true
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false
+	} else {
+		log.Fatalf("failed to identify whether settings file already exists: %s", err)
+		return false
+	}
+}
+
 //Load Mynah settings from a file
 func LoadSettings(path *string) (*MynahSettings, error) {
-	if file, fileErr := ioutil.ReadFile(*path); fileErr == nil {
+	if !settingsExist(path) {
+		//generate default settings
+		generateSettings(path)
+	}
 
+	//read in the settings file from the local path
+	if file, fileErr := ioutil.ReadFile(*path); fileErr == nil {
 		var settings MynahSettings
 		if jsonErr := json.Unmarshal([]byte(file), &settings); jsonErr == nil {
 			return &settings, nil

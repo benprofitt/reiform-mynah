@@ -12,6 +12,7 @@ import (
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
+	"reiform.com/mynah/python"
 	"syscall"
 	"time"
 )
@@ -47,11 +48,14 @@ func main() {
 		log.Fatalf("failed to initialize storage %s", storageErr)
 	}
 
+	//initialize python
+	pythonProvider := python.NewPythonProvider(settings)
+
 	//create the router and middleware
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
 
 	//register api endpoints
-	if err := api.RegisterRoutes(router, dbProvider, storageProvider, settings); err != nil {
+	if err := api.RegisterRoutes(router, dbProvider, storageProvider, pythonProvider, settings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}
 
@@ -74,6 +78,7 @@ func main() {
 	//close various services
 	dbProvider.Close()
 	authProvider.Close()
+	pythonProvider.Close()
 	router.Shutdown(ctx)
 	os.Exit(0)
 }

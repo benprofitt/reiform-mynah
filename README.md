@@ -4,7 +4,7 @@
 This repository combines the frontend interface and the backend api for Mynah.
 
 ### Links
-- [API Design Document](docs/api_design_doc.png)
+- [API Design Document](docs/api_design_doc.md)
 - [API Endpoint Specification](docs/endpoints.md)
 
 ### Development
@@ -28,9 +28,27 @@ This repository combines the frontend interface and the backend api for Mynah.
 ### Running the API
 - **Important Note**: Running `make clean` will clear the default sqlite database location. If you want to persist your local database, change the name of the database local path in `mynah.json`. The Makefile is set to delete `mynah_local.db`.
 - **Important Note**: Running `make clean` will delete the default configuration file `mynah.json`. To persist a configuration file, rename the file and pass the new path using the `-settings` flag (i.e. `./mynah -settings new_name.json`). The Makefile is set to delete `mynah.json`.
-- **Important Note**: Running `./mynah -generate-settings` will write a new default configuration file to `mynah.json` (or whatever the path has been overridden with using the `-settings` flag). If you want to persist the settings file, rename it and use the `-settings` flag to pass the overridden location.
 
-To run the api with a fresh database:
+To run the api with a fresh database and configuration file:
 ```
-make clean && make mynah && ./mynah -generate-settings
+make clean && make mynah && ./mynah
+```
+
+### Using Docker (for frontend development)
+- Install Docker on your machine and run
+```
+docker build -t mynah:latest .
+docker run -p 8080:8080 mynah:latest
+```
+
+### Using Vagrant (for backend development)
+- Install Vagrant on your machine and run
+```
+vagrant up && vagrant ssh
+```
+- Once in the VM, run (optionally add to your bash config)
+```
+export PATH=$PATH:/usr/local/go/bin
+export PKG_CONFIG_PATH=/vagrant/python
+cd /vagrant
 ```

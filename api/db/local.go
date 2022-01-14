@@ -71,6 +71,12 @@ func createLocalDatabase(path *string) (*localDB, error) {
 	if projectTableErr := ldb.localPrepareExec(createProjectTableSQL); projectTableErr != nil {
 		return nil, projectTableErr
 	}
+
+	//create the files table
+	if fileTableErr := ldb.localPrepareExec(createFileTableSQL); fileTableErr != nil {
+		return nil, fileTableErr
+	}
+
 	return &ldb, nil
 }
 
@@ -168,6 +174,17 @@ func scanRowProject(rows *sql.Rows) (*model.MynahProject, error) {
 	return &p, nil
 }
 
+//scan a SQL result row into a Mynah file struct
+func scanRowFile(rows *sql.Rows) (*model.MynahFile, error) {
+	var f model.MynahFile
+
+	//load the values from the row into the new file struct
+	if scanErr := rows.Scan(&f.Uuid, &f.OrgId, &f.OwnerUuid, &f.Name, &f.Location, &f.Path); scanErr != nil {
+		return nil, scanErr
+	}
+	return &f, nil
+}
+
 //Get a user by uuid or return an error
 func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 	rows, err := d.db.Query(getUserSQL, *uuid)
@@ -227,6 +244,31 @@ func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.M
 	return nil, errors.New(fmt.Sprintf("project %s not found", *uuid))
 }
 
+//get a file from the database
+func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.MynahFile, error) {
+	rows, err := d.db.Query(getFileSQL, *uuid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		if file, fileErr := scanRowFile(rows); fileErr == nil {
+			//verify that this user has permission
+			if commonErr := commonGetFile(file, requestor); commonErr != nil {
+				return nil, commonErr
+			}
+			//there should only be one
+			return file, nil
+
+		} else {
+			return nil, fileErr
+		}
+	}
+
+	return nil, errors.New(fmt.Sprintf("file %s not found", *uuid))
+}
+
 //list all users
 func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUser, err error) {
 	if commonErr := commonListUsers(requestor); commonErr != nil {
@@ -275,6 +317,32 @@ func (d *localDB) ListProjects(requestor *model.MynahUser) (projects []*model.My
 	return commonListProjects(tempProjects, requestor), nil
 }
 
+//list all files, arg is requestor
+func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
+	//request files in org
+	rows, queryErr := d.db.Query(listFilesSQL, requestor.OrgId)
+	if queryErr != nil {
+		return files, queryErr
+	}
+	defer rows.Close()
+
+	//temporary list (not filtered by permissions the user has for each)
+	tempFiles := make([]*model.MynahFile, 0)
+
+	//scan files into structs
+	for rows.Next() {
+		if file, fileErr := scanRowFile(rows); fileErr == nil {
+			tempFiles = append(tempFiles, file)
+		} else {
+			//empty
+			return files, fileErr
+		}
+	}
+
+	//filter for the files that this user can view (must be admin or file owner)
+	return commonListFiles(tempFiles, requestor), nil
+}
+
 //create a new user
 func (d *localDB) CreateUser(user *model.MynahUser, creator *model.MynahUser) error {
 	if commonErr := commonCreateUser(user, creator); commonErr != nil {
@@ -308,6 +376,22 @@ func (d *localDB) CreateProject(project *model.MynahProject, creator *model.Myna
 		project.OrgId,
 		stringProjectPerm,
 		project.ProjectName)
+}
+
+//create a new file, second arg is creator
+func (d *localDB) CreateFile(file *model.MynahFile, creator *model.MynahUser) error {
+	if commonErr := commonCreateFile(file, creator); commonErr != nil {
+		return commonErr
+	}
+
+	//add a project to the table
+	return d.localPrepareExec(createFileSQL,
+		file.Uuid,
+		file.OrgId,
+		file.OwnerUuid,
+		file.Name,
+		file.Location,
+		file.Path)
 }
 
 //update a user in the database
@@ -345,6 +429,22 @@ func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.My
 		project.OrgId)
 }
 
+//update a file in the database, second arg is requestor
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser) error {
+	if commonErr := commonUpdateFile(file, requestor); commonErr != nil {
+		return commonErr
+	}
+
+	//execute the sql update
+	return d.localPrepareExec(updateFileSQL,
+		file.OwnerUuid,
+		file.Name,
+		file.Location,
+		file.Path,
+		file.Uuid,
+		file.OrgId)
+}
+
 //delete a user in the database
 func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
 	if commonErr := commonDeleteUser(uuid, requestor); commonErr != nil {
@@ -372,6 +472,24 @@ func (d *localDB) DeleteProject(uuid *string, requestor *model.MynahUser) error 
 
 	} else {
 		return projectErr
+	}
+}
+
+//delete a file in the database, second arg is requestor
+func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
+	//need to first load the file to check if the user has permission
+	if file, fileErr := d.GetFile(uuid, requestor); fileErr == nil {
+		//validate that this user has permission to delete this file
+		if commonErr := commonDeleteFile(file, requestor); commonErr != nil {
+			return commonErr
+		}
+		//can delete
+		return d.localPrepareExec(deleteFileSQL,
+			*uuid,
+			file.OrgId)
+
+	} else {
+		return fileErr
 	}
 }
 

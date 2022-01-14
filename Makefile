@@ -1,4 +1,4 @@
-.PHONY: site mynah format all clean
+.PHONY: site mynah format all clean install docker
 GO=go
 
 all: site mynah
@@ -12,3 +12,4 @@ clean:
 	rm mynah || true
 	rm mynah_local.db || true
 	rm mynah.json || true
+	rm -r tmp || true

@@ -6,5 +6,6 @@ import (
 
 //Create a new storage provider based on the Mynah settings
 func NewStorageProvider(mynahSettings *settings.MynahSettings) (StorageProvider, error) {
-	return nil, nil
+	//for now just return local provider
+	return newLocalStorage(mynahSettings)
 }

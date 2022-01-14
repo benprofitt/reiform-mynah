@@ -2,3 +2,6 @@ mynah
 *.pem
 *.db
 mynah.json
+tmp/*
+*.log
+.vagrant

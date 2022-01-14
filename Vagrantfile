@@ -17,16 +17,13 @@ Vagrant.configure("2") do |config|
 		sudo apt-get install -y make
 		apt-get install -y git
 		apt-get install -y curl wget
-		wget https://golang.org/dl/go1.16.5.linux-amd64.tar.gz
-		rm -rf /usr/local/go && tar -C /usr/local -xzf go1.16.5.linux-amd64.tar.gz
+		wget https://golang.org/dl/go1.17.6.linux-amd64.tar.gz
+		rm -rf /usr/local/go && tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz
 		sudo apt-get install -y python3.7-dev
 		sudo apt-get install -y python3.7
 		sudo apt-get install -y pkg-config
     sudo apt-get install -y python3-pip
     python3.7 -m pip install Cython
-    python3.7 -m pip install numpy
-    python3.7 -m pip install pandas
-    python3.7 -m pip install scikit-learn
   SHELL
 
 end

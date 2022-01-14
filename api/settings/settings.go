@@ -2,8 +2,10 @@ package settings
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
+	"os"
 )
 
 type DBSetting string
@@ -37,6 +39,8 @@ type MynahStorageSettings struct {
 	S3Storage bool `json:"s3_storage"`
 	//the path to store data to locally
 	LocalPath string `json:"local_path"`
+	//the max upload size
+	MaxUpload int64 `json:"max_upload"`
 }
 
 //Defines various settings for the application
@@ -56,7 +60,7 @@ type MynahSettings struct {
 }
 
 //write the default settings to a file
-func GenerateSettings(path *string) {
+func generateSettings(path *string) {
 	m := MynahSettings{
 		ApiPrefix:        "/api/v1",
 		UnauthReadAccess: false,
@@ -73,7 +77,8 @@ func GenerateSettings(path *string) {
 		},
 		StorageSettings: MynahStorageSettings{
 			S3Storage: true,
-			LocalPath: `/tmp`,
+			LocalPath: `tmp`,
+			MaxUpload: 100 * 1024 * 1024 * 1024,
 		},
 	}
 
@@ -87,10 +92,27 @@ func GenerateSettings(path *string) {
 	}
 }
 
+//check whether a settings file exists
+func settingsExist(path *string) bool {
+	if _, err := os.Stat(*path); err == nil {
+		return true
+	} else if errors.Is(err, os.ErrNotExist) {
+		return false
+	} else {
+		log.Fatalf("failed to identify whether settings file already exists: %s", err)
+		return false
+	}
+}
+
 //Load Mynah settings from a file
 func LoadSettings(path *string) (*MynahSettings, error) {
-	if file, fileErr := ioutil.ReadFile(*path); fileErr == nil {
+	if !settingsExist(path) {
+		//generate default settings
+		generateSettings(path)
+	}
 
+	//read in the settings file from the local path
+	if file, fileErr := ioutil.ReadFile(*path); fileErr == nil {
 		var settings MynahSettings
 		if jsonErr := json.Unmarshal([]byte(file), &settings); jsonErr == nil {
 			return &settings, nil

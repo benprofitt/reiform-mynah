@@ -20,14 +20,8 @@ import (
 func main() {
 	log.SetPrefix("mynah ")
 
-	genPtr := flag.Bool("generate-settings", false, "just generate a settings file and then exit")
 	settingsPtr := flag.String("settings", "mynah.json", "settings file path")
 	flag.Parse()
-
-	if *genPtr {
-		settings.GenerateSettings(settingsPtr)
-		log.Printf("generated settings file: %s", *settingsPtr)
-	}
 
 	//load settings
 	settings, settingsErr := settings.LoadSettings(settingsPtr)

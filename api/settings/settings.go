@@ -43,6 +43,12 @@ type MynahStorageSettings struct {
 	MaxUpload int64 `json:"max_upload"`
 }
 
+//defines configuration settings for python
+type MynahPythonSettings struct {
+	//the path where python modules are stored
+	ModulePath string `json:"module_path"`
+}
+
 //Defines various settings for the application
 type MynahSettings struct {
 	//the prefix for api paths
@@ -57,6 +63,7 @@ type MynahSettings struct {
 	DBSettings      MynahDBSettings      `json:"db_settings"`
 	AuthSettings    MynahAuthSettings    `json:"auth_settings"`
 	StorageSettings MynahStorageSettings `json:"storage_settings"`
+	PythonSettings  MynahPythonSettings  `json:"python_settings"`
 }
 
 //write the default settings to a file
@@ -79,6 +86,9 @@ func generateSettings(path *string) {
 			S3Storage: true,
 			LocalPath: `tmp`,
 			MaxUpload: 100 * 1024 * 1024 * 1024,
+		},
+		PythonSettings: MynahPythonSettings{
+			ModulePath: "./python",
 		},
 	}
 
@@ -109,6 +119,7 @@ func LoadSettings(path *string) (*MynahSettings, error) {
 	if !settingsExist(path) {
 		//generate default settings
 		generateSettings(path)
+		log.Printf("wrote new settings file to %s", *path)
 	}
 
 	//read in the settings file from the local path

@@ -5,12 +5,14 @@ import (
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
+	"reiform.com/mynah/python"
 )
 
 //Register all api routes
 func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	storageProvider storage.StorageProvider,
+	pythonProvider python.PythonProvider,
 	settings *settings.MynahSettings) error {
 	//TODO
 

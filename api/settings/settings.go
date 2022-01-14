@@ -37,6 +37,8 @@ type MynahStorageSettings struct {
 	S3Storage bool `json:"s3_storage"`
 	//the path to store data to locally
 	LocalPath string `json:"local_path"`
+	//the max upload size
+	MaxUpload int64 `json:"max_upload"`
 }
 
 //Defines various settings for the application
@@ -73,7 +75,8 @@ func GenerateSettings(path *string) {
 		},
 		StorageSettings: MynahStorageSettings{
 			S3Storage: true,
-			LocalPath: `/tmp`,
+			LocalPath: `tmp`,
+			MaxUpload: 100 * 1024 * 1024 * 1024,
 		},
 	}
 

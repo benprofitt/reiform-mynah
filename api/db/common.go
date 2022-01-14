@@ -41,6 +41,15 @@ func commonGetProject(project *model.MynahProject, requestor *model.MynahUser) e
 	return errors.New(fmt.Sprintf("user %s does not have permission to request project %s", requestor.Uuid, project.Uuid))
 }
 
+//get a project by id or return an error
+func commonGetFile(file *model.MynahFile, requestor *model.MynahUser) error {
+	//check that the user is the file owner (or admin)
+	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
+		return nil
+	}
+	return errors.New(fmt.Sprintf("user %s does not have permission to request file %s", requestor.Uuid, file.Uuid))
+}
+
 //check that the user is an admin (org checked in query)
 func commonListUsers(requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
@@ -55,6 +64,17 @@ func commonListProjects(projects []*model.MynahProject, requestor *model.MynahUs
 	for _, p := range projects {
 		if e := commonGetProject(p, requestor); e == nil {
 			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
+//get the files that the user can view
+func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filtered []*model.MynahFile) {
+	//filter for files that this user has permission to view
+	for _, f := range files {
+		if e := commonGetFile(f, requestor); e == nil {
+			filtered = append(filtered, f)
 		}
 	}
 	return filtered
@@ -81,6 +101,15 @@ func commonCreateProject(project *model.MynahProject, creator *model.MynahUser) 
 	return nil
 }
 
+//create a new file
+func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
+	//give ownership to the user
+	file.OwnerUuid = creator.Uuid
+	//inherit the org id
+	file.OrgId = creator.OrgId
+	return nil
+}
+
 //update a user in the database
 func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser) error {
 	if requestor.IsAdmin || requestor.Uuid == user.Uuid {
@@ -97,6 +126,14 @@ func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser
 	return errors.New(fmt.Sprintf("user %s does not have permission to update project %s", requestor.Uuid, project.Uuid))
 }
 
+//update a file in the database
+func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser) error {
+	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
+		return nil
+	}
+	return errors.New(fmt.Sprintf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid))
+}
+
 //check that the requestor has permission
 func commonDeleteUser(uuid *string, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
@@ -111,4 +148,12 @@ func commonDeleteProject(project *model.MynahProject, requestor *model.MynahUser
 		return nil
 	}
 	return errors.New(fmt.Sprintf("user %s does not have permission to delete project %s", requestor.Uuid, project.Uuid))
+}
+
+//check that the requestor has permission to delete the file
+func commonDeleteFile(file *model.MynahFile, requestor *model.MynahUser) error {
+	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
+		return nil
+	}
+	return errors.New(fmt.Sprintf("user %s does not have permission to delete file %s", requestor.Uuid, file.Uuid))
 }

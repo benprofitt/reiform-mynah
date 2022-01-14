@@ -12,3 +12,4 @@ clean:
 	rm mynah || true
 	rm mynah_local.db || true
 	rm mynah.json || true
+	rm -r tmp || true

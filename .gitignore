@@ -2,3 +2,4 @@ mynah
 *.pem
 *.db
 mynah.json
+tmp/*

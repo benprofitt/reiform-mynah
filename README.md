@@ -23,6 +23,11 @@ This repository combines the frontend interface and the backend api for Mynah.
 ### Testing
 - We will do our best to maintain test coverage for the api and frontend. In particular, when defects are identified, these should be added as new test cases.
 
+- To run tests:
+```
+make test
+```
+
 ## Setup
 
 ### Running the API

@@ -66,9 +66,9 @@ type MynahSettings struct {
 	PythonSettings  MynahPythonSettings  `json:"python_settings"`
 }
 
-//write the default settings to a file
-func generateSettings(path *string) {
-	m := MynahSettings{
+//get the default settings
+func DefaultSettings() *MynahSettings {
+	return &MynahSettings{
 		ApiPrefix:        "/api/v1",
 		UnauthReadAccess: false,
 		Port:             8080,
@@ -91,6 +91,11 @@ func generateSettings(path *string) {
 			ModulePath: "./python",
 		},
 	}
+}
+
+//write the default settings to a file
+func generateSettings(path *string) {
+	m := DefaultSettings()
 
 	//write to file
 	if json, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {

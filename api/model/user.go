@@ -15,3 +15,13 @@ type MynahUser struct {
 	//who created this user
 	CreatedBy string `json:"-"`
 }
+
+//get the user's uuid
+func (u *MynahUser) GetUuid() string {
+	return u.Uuid
+}
+
+//get the user's orgid
+func (u *MynahUser) GetOrgId() string {
+	return u.OrgId
+}

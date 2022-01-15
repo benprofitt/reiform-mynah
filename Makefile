@@ -1,4 +1,4 @@
-.PHONY: site mynah format all clean install docker
+.PHONY: site mynah format test clean all
 GO=go
 
 all: site mynah
@@ -8,6 +8,8 @@ site:
 	echo "TODO"
 format:
 	cd api ; $(GO) fmt ./...
+test:
+	cd api ; $(GO) test -count=1 -v ./... && rm db/mynah_local.db || true
 clean:
 	rm mynah || true
 	rm mynah_local.db || true

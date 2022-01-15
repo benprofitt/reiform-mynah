@@ -1,11 +1,103 @@
 package db
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"reiform.com/mynah/model"
+	"strconv"
 )
+
+//create a sql statement and convert values to sql types
+func commonCreateSQLUpdateStmt(s model.Identity, tableName string, keys []string) (stmt *string, vals []interface{}, e error) {
+	//create the update statement
+	updateStmt := fmt.Sprintf("UPDATE %s SET ", tableName)
+	for i, k := range keys {
+		//perform orm mapping
+		if sqlVal, ormErr := sqlORM(s, k); ormErr == nil {
+			//add to update statement
+			if i < (len(keys) - 1) {
+				updateStmt += fmt.Sprintf("%s = ?, ", k)
+			} else {
+				updateStmt += fmt.Sprintf("%s = ? ", k)
+			}
+
+			vals = append(vals, sqlVal)
+		} else {
+			return nil, nil, ormErr
+		}
+	}
+
+	updateStmt += " WHERE Uuid = ? AND OrgId = ?"
+	vals = append(vals, s.GetUuid(), s.GetOrgId())
+	return &updateStmt, vals, nil
+}
+
+//check if any of the update keys are restricted
+func restrictedKeys(keys []string) bool {
+	for _, s := range keys {
+		if (s == "org_id") || (s == "uuid") {
+			return true
+		}
+	}
+	return false
+}
+
+//scan a SQL row into a user
+func scanRowUser(rows *sql.Rows) (*model.MynahUser, error) {
+	var u model.MynahUser
+	//need to parse string back to bool
+	var isAdmin string
+
+	//load the values from the row into the new user struct
+	if scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy); scanErr != nil {
+		return nil, scanErr
+	}
+
+	//parse the admin flag
+	if b, bErr := strconv.ParseBool(isAdmin); bErr == nil {
+		u.IsAdmin = b
+	} else {
+		log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
+		u.IsAdmin = false
+	}
+
+	return &u, nil
+}
+
+//scan a SQL result row into a Mynah project struct
+func scanRowProject(rows *sql.Rows) (*model.MynahProject, error) {
+	var p model.MynahProject
+	p.UserPermissions = make(map[string]model.ProjectPermissions)
+
+	//need to parse string back to map
+	var projectPermissions string
+
+	//load the values from the row into the new project struct
+	if scanErr := rows.Scan(&p.Uuid, &p.OrgId, &projectPermissions, &p.ProjectName); scanErr != nil {
+		return nil, scanErr
+	}
+
+	//parse the permissions
+	if err := deserializeJson(&projectPermissions, &p.UserPermissions); err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
+
+//scan a SQL result row into a Mynah file struct
+func scanRowFile(rows *sql.Rows) (*model.MynahFile, error) {
+	var f model.MynahFile
+
+	//load the values from the row into the new file struct
+	if scanErr := rows.Scan(&f.Uuid, &f.OrgId, &f.OwnerUuid, &f.Name, &f.Location, &f.Path); scanErr != nil {
+		return nil, scanErr
+	}
+	return &f, nil
+}
 
 //serialize some structure into a string
 func serializeJson(jsonStruct interface{}) (*string, error) {
@@ -85,6 +177,10 @@ func commonCreateUser(user *model.MynahUser, creator *model.MynahUser) error {
 	if !creator.IsAdmin {
 		return errors.New(fmt.Sprintf("unable to create new user, user %s is not an admin", creator.Uuid))
 	}
+	if user.Uuid == creator.Uuid {
+		return errors.New("user must have a distinct creator")
+	}
+
 	//set the creator uuid
 	user.CreatedBy = creator.Uuid
 	//inherit the org id
@@ -111,7 +207,12 @@ func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
 }
 
 //update a user in the database
-func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser) error {
+func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys []string) error {
+	//check that keys are not restricted
+	if restrictedKeys(keys) {
+		return errors.New("user update contained restricted keys")
+	}
+
 	if requestor.IsAdmin || requestor.Uuid == user.Uuid {
 		return nil
 	}
@@ -119,7 +220,12 @@ func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser) error {
 }
 
 //update a project in the database
-func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser) error {
+func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser, keys []string) error {
+	//check that keys are not restricted
+	if restrictedKeys(keys) {
+		return errors.New("project update contained restricted keys")
+	}
+
 	if requestor.IsAdmin || project.GetPermissions(requestor) >= model.Read {
 		return nil
 	}
@@ -127,7 +233,12 @@ func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser
 }
 
 //update a file in the database
-func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser) error {
+func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys []string) error {
+	//check that keys are not restricted
+	if restrictedKeys(keys) {
+		return errors.New("file update contained restricted keys")
+	}
+
 	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
 		return nil
 	}

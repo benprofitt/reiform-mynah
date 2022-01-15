@@ -30,3 +30,13 @@ func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 		return None
 	}
 }
+
+//get the project's uuid
+func (p *MynahProject) GetUuid() string {
+	return p.Uuid
+}
+
+//get the project's orgid
+func (p *MynahProject) GetOrgId() string {
+	return p.OrgId
+}

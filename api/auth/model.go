@@ -17,6 +17,8 @@ type AuthProvider interface {
 
 //local auth client adheres to AuthProvider
 type localAuth struct {
+	//the jwt key loaded from file
+	jwtKey string
 }
 
 //external auth client adheres to AuthProvider

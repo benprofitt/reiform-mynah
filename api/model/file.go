@@ -23,3 +23,13 @@ type MynahFile struct {
 	//the path to the file
 	Path string `json:"-"`
 }
+
+//get the file's uuid
+func (f *MynahFile) GetUuid() string {
+	return f.Uuid
+}
+
+//get the file's orgid
+func (f *MynahFile) GetOrgId() string {
+	return f.OrgId
+}

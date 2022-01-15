@@ -131,60 +131,6 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 	}
 }
 
-//scan a SQL row into a user
-func scanRowUser(rows *sql.Rows) (*model.MynahUser, error) {
-	var u model.MynahUser
-	//need to parse string back to bool
-	var isAdmin string
-
-	//load the values from the row into the new user struct
-	if scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy); scanErr != nil {
-		return nil, scanErr
-	}
-
-	//parse the admin flag
-	if b, bErr := strconv.ParseBool(isAdmin); bErr == nil {
-		u.IsAdmin = b
-	} else {
-		log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
-		u.IsAdmin = false
-	}
-
-	return &u, nil
-}
-
-//scan a SQL result row into a Mynah project struct
-func scanRowProject(rows *sql.Rows) (*model.MynahProject, error) {
-	var p model.MynahProject
-	p.UserPermissions = make(map[string]model.ProjectPermissions)
-
-	//need to parse string back to map
-	var projectPermissions string
-
-	//load the values from the row into the new project struct
-	if scanErr := rows.Scan(&p.Uuid, &p.OrgId, &projectPermissions, &p.ProjectName); scanErr != nil {
-		return nil, scanErr
-	}
-
-	//parse the permissions
-	if err := deserializeJson(&projectPermissions, &p.UserPermissions); err != nil {
-		return nil, err
-	}
-
-	return &p, nil
-}
-
-//scan a SQL result row into a Mynah file struct
-func scanRowFile(rows *sql.Rows) (*model.MynahFile, error) {
-	var f model.MynahFile
-
-	//load the values from the row into the new file struct
-	if scanErr := rows.Scan(&f.Uuid, &f.OrgId, &f.OwnerUuid, &f.Name, &f.Location, &f.Path); scanErr != nil {
-		return nil, scanErr
-	}
-	return &f, nil
-}
-
 //Get a user by uuid or return an error
 func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 	rows, err := d.db.Query(getUserSQL, *uuid)
@@ -395,54 +341,45 @@ func (d *localDB) CreateFile(file *model.MynahFile, creator *model.MynahUser) er
 }
 
 //update a user in the database
-func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser) error {
-	if commonErr := commonUpdateUser(user, requestor); commonErr != nil {
+func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys ...string) error {
+	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
 	}
 
-	//execute the update statement
-	return d.localPrepareExec(updateUserSQL,
-		user.NameFirst,
-		user.NameLast,
-		strconv.FormatBool(user.IsAdmin),
-		user.Uuid,
-		user.OrgId)
+	//create the update statement
+	if stmt, vals, err := commonCreateSQLUpdateStmt(user, "user", keys); err == nil {
+		return d.localPrepareExec(*stmt, vals...)
+	} else {
+		return err
+	}
 }
 
 //update a project in the database
-func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.MynahUser) error {
-	if commonErr := commonUpdateProject(project, requestor); commonErr != nil {
+func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.MynahUser, keys ...string) error {
+	if commonErr := commonUpdateProject(project, requestor, keys); commonErr != nil {
 		return commonErr
 	}
 
-	//serialize the project permissions
-	stringProjectPerm, jsonErr := serializeJson(&project.UserPermissions)
-	if jsonErr != nil {
-		return jsonErr
+	//create the update statement
+	if stmt, vals, err := commonCreateSQLUpdateStmt(project, "project", keys); err == nil {
+		return d.localPrepareExec(*stmt, vals...)
+	} else {
+		return err
 	}
-
-	//execute the sql update
-	return d.localPrepareExec(updateProjectSQL,
-		stringProjectPerm,
-		project.ProjectName,
-		project.Uuid,
-		project.OrgId)
 }
 
 //update a file in the database, second arg is requestor
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser) error {
-	if commonErr := commonUpdateFile(file, requestor); commonErr != nil {
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys ...string) error {
+	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}
 
-	//execute the sql update
-	return d.localPrepareExec(updateFileSQL,
-		file.OwnerUuid,
-		file.Name,
-		file.Location,
-		file.Path,
-		file.Uuid,
-		file.OrgId)
+	//create the update statement
+	if stmt, vals, err := commonCreateSQLUpdateStmt(file, "file", keys); err == nil {
+		return d.localPrepareExec(*stmt, vals...)
+	} else {
+		return err
+	}
 }
 
 //delete a user in the database

@@ -5,3 +5,4 @@ mynah.json
 tmp/*
 *.log
 .vagrant
+__pycache__

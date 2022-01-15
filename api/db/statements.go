@@ -1,126 +1,107 @@
 package db
 
 const createUserTableSQL = `CREATE TABLE user (
-  "uuid" TEXT NOT NULL PRIMARY KEY,
-  "org_id" TEXT,
-  "name_first" TEXT,
-  "name_last" TEXT,
-  "is_admin" TEXT,
-  "created_by" TEXT
+  "Uuid" TEXT NOT NULL PRIMARY KEY,
+  "OrgId" TEXT,
+  "NameFirst" TEXT,
+  "NameLast" TEXT,
+  "IsAdmin" TEXT,
+  "CreatedBy" TEXT
   );`
 
 const createProjectTableSQL = `CREATE TABLE project (
-  "uuid" TEXT NOT NULL PRIMARY KEY,
-  "org_id" TEXT,
-  "user_permissions" TEXT,
-  "project_name" TEXT
+  "Uuid" TEXT NOT NULL PRIMARY KEY,
+  "OrgId" TEXT,
+  "UserPermissions" TEXT,
+  "ProjectName" TEXT
   );`
 
 const createFileTableSQL = `CREATE TABLE file (
-  "uuid" TEXT NOT NULL PRIMARY KEY,
-  "org_id" TEXT,
-  "owner_uuid" TEXT,
-  "name" TEXT,
-  "location" TEXT,
-  "path" TEXT
+  "Uuid" TEXT NOT NULL PRIMARY KEY,
+  "OrgId" TEXT,
+  "OwnerUuid" TEXT,
+  "Name" TEXT,
+  "Location" TEXT,
+  "Path" TEXT
   );`
 
-//Note: we can't filter by org_id since it isn't known
-//when authenticating a user -- we rely on the uniqueness of uuids
+//Note: we can't filter by OrgId since it isn't known
+//when authenticating a user -- we rely on the uniqueness of Uuids
 const getUserSQL = `SELECT
-  uuid,
-  org_id,
-  name_first,
-  name_last,
-  is_admin,
-  created_by
+  Uuid,
+  OrgId,
+  NameFirst,
+  NameLast,
+  IsAdmin,
+  CreatedBy
   FROM user
-  WHERE uuid = ?`
+  WHERE Uuid = ?`
 
-//filter by both uuid and org id (although both _should_ be unique)
+//filter by both Uuid and org id (although both _should_ be unique)
 const getProjectSQL = `SELECT
-  uuid,
-  org_id,
-  user_permissions,
-  project_name
+  Uuid,
+  OrgId,
+  UserPermissions,
+  ProjectName
   FROM project
-  WHERE uuid = ? AND org_id = ?`
+  WHERE Uuid = ? AND OrgId = ?`
 
-//filter by both uuid and org id (although both _should_ be unique)
+//filter by both Uuid and org id (although both _should_ be unique)
 const getFileSQL = `SELECT
-  uuid
-  org_id,
-  owner_uuid,
-  name,
-  location,
-  path
+  Uuid
+  OrgId,
+  OwnerUuid,
+  Name,
+  Location,
+  Path
   FROM file
-  WHERE uuid = ? AND org_id = ?`
+  WHERE Uuid = ? AND OrgId = ?`
 
 const listUsersSQL = `SELECT
-  uuid,
-  org_id,
-  name_first,
-  name_last,
-  is_admin,
-  created_by
+  Uuid,
+  OrgId,
+  NameFirst,
+  NameLast,
+  IsAdmin,
+  CreatedBy
   FROM user
-  WHERE org_id = ?`
+  WHERE OrgId = ?`
 
 const listProjectsSQL = `SELECT
-  uuid,
-  org_id,
-  user_permissions,
-  project_name
+  Uuid,
+  OrgId,
+  UserPermissions,
+  ProjectName
   FROM project
-  WHERE org_id = ?`
+  WHERE OrgId = ?`
 
 const listFilesSQL = `SELECT
-  uuid
-  org_id,
-  owner_uuid,
-  name,
-  location,
-  path
+  Uuid
+  OrgId,
+  OwnerUuid,
+  Name,
+  Location,
+  Path
   FROM file
-  WHERE org_id = ?`
+  WHERE OrgId = ?`
 
 const createUserSQL = `INSERT INTO
-  user(uuid, org_id, name_first, name_last, is_admin, created_by)
+  user(Uuid, OrgId, NameFirst, NameLast, IsAdmin, CreatedBy)
   VALUES (?, ?, ?, ?, ?, ?)`
 
 const createProjectSQL = `INSERT INTO
-  project(uuid, org_id, user_permissions, project_name)
+  project(Uuid, OrgId, UserPermissions, ProjectName)
   VALUES (?, ?, ?, ?)`
 
 const createFileSQL = `INSERT INTO
-  file(uuid, org_id, owner_uuid, name, location, path)
+  file(Uuid, OrgId, OwnerUuid, Name, Location, Path)
   VALUES (?, ?, ?, ?, ?, ?)`
 
-//Note: created_by, org_id is never updated after creation
-const updateUserSQL = `UPDATE user SET
-  name_first = ?,
-  name_last = ?,
-  is_admin = ?,
-  WHERE uuid = ? AND org_id = ?`
-
-const updateProjectSQL = `UPDATE project SET
-  user_permissions = ?,
-  project_name = ?
-  WHERE uuid = ? AND org_id = ?`
-
-const updateFileSQL = `UPDATE file SET
-  owner_uuid = ?,
-  name = ?,
-  location = ?,
-  path = ?
-  WHERE uuid = ? AND org_id = ?`
-
 const deleteUserSQL = `DELETE FROM user
-  WHERE uuid = ? AND org_id = ?`
+  WHERE Uuid = ? AND OrgId = ?`
 
 const deleteProjectSQL = `DELETE FROM project
-  WHERE uuid = ? AND org_id = ?`
+  WHERE Uuid = ? AND OrgId = ?`
 
 const deleteFileSQL = `DELETE FROM file
-  WHERE uuid = ? AND org_id = ?`
+  WHERE Uuid = ? AND OrgId = ?`

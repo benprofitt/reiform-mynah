@@ -28,12 +28,15 @@ type DBProvider interface {
 	CreateProject(*model.MynahProject, *model.MynahUser) error
 	//create a new file, second arg is creator
 	CreateFile(*model.MynahFile, *model.MynahUser) error
-	//update a user in the database, second arg is requestor
-	UpdateUser(*model.MynahUser, *model.MynahUser) error
-	//update a project in the database, second arg is requestor
-	UpdateProject(*model.MynahProject, *model.MynahUser) error
-	//update a file in the database, second arg is requestor
-	UpdateFile(*model.MynahFile, *model.MynahUser) error
+	//update a user in the database. First arg is user to update, second is requestor, remaining
+	//are keys to update.
+	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error
+	//update a project in the database. First arg is uuid of project to update, second is requestor, remaining
+	//are keys to update
+	UpdateProject(*model.MynahProject, *model.MynahUser, ...string) error
+	//update a file in the database. First arg is uuid, second is requestor, remaining
+	//are keys to update. Then use .Values()
+	UpdateFile(*model.MynahFile, *model.MynahUser, ...string) error
 	//delete a user in the database, second arg is requestor
 	DeleteUser(*string, *model.MynahUser) error
 	//delete a project in the database, second arg is requestor

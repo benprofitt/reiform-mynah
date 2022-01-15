@@ -10,9 +10,9 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/middleware"
+	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
-	"reiform.com/mynah/python"
 	"syscall"
 	"time"
 )

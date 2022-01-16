@@ -13,6 +13,7 @@ import (
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
+	"reiform.com/mynah/websockets"
 	"syscall"
 	"time"
 )
@@ -51,11 +52,14 @@ func main() {
 	//initialize python
 	pythonProvider := python.NewPythonProvider(settings)
 
+	//initialize websockets
+	wsProvider := websockets.NewWebSocketProvider(settings)
+
 	//create the router and middleware
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
 
 	//register api endpoints
-	if err := api.RegisterRoutes(router, dbProvider, storageProvider, pythonProvider, settings); err != nil {
+	if err := api.RegisterRoutes(router, dbProvider, storageProvider, pythonProvider, wsProvider, settings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}
 

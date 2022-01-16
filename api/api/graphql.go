@@ -18,7 +18,6 @@ func registerGQLRoutes(router *middleware.MynahRouter, dbProvider db.DBProvider)
 		return userErr
 	}
 
-	//register the route
 	router.HandleHTTPRequest("graphql/project", projectHandler)
 	router.HandleHTTPRequest("graphql/user", userHandler)
 

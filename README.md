@@ -3,6 +3,8 @@
 ## Intro
 This repository combines the frontend interface and the backend api for Mynah.
 
+- ![Arch Diagram](docs/mynah_arch_1-13-21.drawio.png)
+
 ### Links
 - [API Design Document](docs/api_design_doc.md)
 - [API Endpoint Specification](docs/endpoints.md)

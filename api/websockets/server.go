@@ -3,10 +3,21 @@ package websockets
 import (
 	//"github.com/gorilla/websocket"
 	"net/http"
+	"reiform.com/mynah/settings"
 )
 
+//create a new websocket provider
+func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
+	return &webSocketServer{
+
+	}
+}
+
 //return a handler used in a rest endpoint
-func (w *WebSocketProvider) ServerHandler() http.HandlerFunc {
+func (w *webSocketServer) ServerHandler() http.HandlerFunc {
+
+	//TODO create a goroutine that listens for new data to send to clients
+
 	//standard websocket upgrader
 	//upgrader := websocket.Upgrader{}
 
@@ -22,4 +33,9 @@ func (w *WebSocketProvider) ServerHandler() http.HandlerFunc {
 		//
 		// //TODO broadcast messages to this client
 	})
+}
+
+//accept data to send to a connected client
+func (w *webSocketServer) Send(uuid *string, msg []byte) error {
+	return nil
 }

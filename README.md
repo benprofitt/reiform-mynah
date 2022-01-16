@@ -3,7 +3,7 @@
 ## Intro
 This repository combines the frontend interface and the backend api for Mynah.
 
-- ![Arch Diagram](docs/mynah_arch_1-13-21.drawio.png)
+![Arch Diagram](docs/mynah_arch_1-13-21.drawio.png)
 
 ### Links
 - [API Design Document](docs/api_design_doc.md)
@@ -35,6 +35,7 @@ make test
 ### Running the API
 - **Important Note**: Running `make clean` will clear the default sqlite database location. If you want to persist your local database, change the name of the database local path in `mynah.json`. The Makefile is set to delete `mynah_local.db`.
 - **Important Note**: Running `make clean` will delete the default configuration file `mynah.json`. To persist a configuration file, rename the file and pass the new path using the `-settings` flag (i.e. `./mynah -settings new_name.json`). The Makefile is set to delete `mynah.json`.
+- **Important Note**: Running `make clean` will delete the default JWT private key `auth.pem`. To persist a JWT private key, change the name of the PEM file local path in `mynah.json`. The Makefile is set to delete `auth.pem`.
 
 To run the api with a fresh database and configuration file:
 ```

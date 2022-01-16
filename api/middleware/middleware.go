@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"reiform.com/mynah/model"
 )
 
 const projectKey string = "project"
@@ -58,13 +57,23 @@ func (r *MynahRouter) corsMiddleware(handler http.HandlerFunc) http.HandlerFunc 
 //authenticate requests
 func (r *MynahRouter) authenticationMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//TODO check auth token, get user from db
-		u := model.MynahUser{}
-		u.OrgId = "(TEMP: no org assigned, auth disabled)"
+		//check authentication
+		if uuid, authErr := r.authProvider.IsAuthReq(request); authErr == nil {
+			//get the user from the database
+			if user, getErr := r.dbProvider.GetUserForAuth(&uuid); getErr == nil {
+				//call the handler, pass the authenticated user
+				handler.ServeHTTP(writer, request.WithContext(
+					context.WithValue(request.Context(), contextUserKey, &user)))
 
-		//call the handler, pass the authenticated user
-		handler.ServeHTTP(writer, request.WithContext(
-			context.WithValue(request.Context(), contextUserKey, &u)))
+			} else {
+				log.Printf("auth middleware failed to get user from database: %s", getErr)
+				writer.WriteHeader(http.StatusUnauthorized)
+			}
+
+		} else {
+			log.Printf("invalid user authentication: %s", authErr)
+			writer.WriteHeader(http.StatusUnauthorized)
+		}
 	})
 }
 

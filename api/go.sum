@@ -3,6 +3,8 @@ github.com/DataDog/go-python3 v0.0.0-20211102160307-40adc605f1fe h1:bNMi0HArOQY4
 github.com/DataDog/go-python3 v0.0.0-20211102160307-40adc605f1fe/go.mod h1:7ctnOCLiUlwKO9GvAjusUF68edSbiHqC18gVPQF0ojA=
 github.com/go-python/cpy3 v0.0.0-20211127141159-9ab339a58efd h1:4t+oQCnTMlDp59rJ1mA82/ybZALkH/ysURRMHCM+t+k=
 github.com/go-python/cpy3 v0.0.0-20211127141159-9ab339a58efd/go.mod h1:RFymvLNwTOImoU1Cw7HruGQ7yb6AdwimJ+YQVRRYp0E=
+github.com/golang-jwt/jwt v3.2.2+incompatible h1:IfV12K8xAKAnZqdXVzCZ+TOjboZ2keLg81eXfW3O+oY=
+github.com/golang-jwt/jwt v3.2.2+incompatible/go.mod h1:8pz2t5EyA70fFQQSrl6XZXzqecmYZeUEB8OUGHkxJ+I=
 github.com/google/uuid v1.3.0 h1:t6JiXgmwXMjEs8VusXIJk2BXHsn+wx8BZdTaoZ5fu7I=
 github.com/google/uuid v1.3.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=

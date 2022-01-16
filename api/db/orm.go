@@ -52,6 +52,6 @@ func sqlORM(s model.Identity, key string) (interface{}, error) {
 		return nil, jsonErr
 
 	default:
-		return nil, errors.New(fmt.Sprintf("invalid ORM type conversion or key %s does not exist", key))
+		return nil, fmt.Errorf("invalid ORM type conversion or key %s does not exist", key)
 	}
 }

@@ -30,7 +30,7 @@ func (p *python3_7) InitModule(module string) error {
 		return nil
 	} else {
 		python3.PyErr_Print()
-		return errors.New(fmt.Sprintf("failed to load python module %s", module))
+		return fmt.Errorf("failed to load python module %s", module)
 	}
 }
 
@@ -43,11 +43,11 @@ func (p *python3_7) InitFunction(module string, function string) error {
 			return nil
 		} else {
 			python3.PyErr_Print()
-			return errors.New(fmt.Sprintf("failed to load python function %s in module %s", function, module))
+			return fmt.Errorf("failed to load python function %s in module %s", function, module)
 		}
 
 	} else {
-		return errors.New(fmt.Sprintf("module %s has not been loaded", module))
+		return fmt.Errorf("module %s has not been loaded", module)
 	}
 }
 
@@ -155,7 +155,7 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 			pyArgs := rcg.append(python3.PyTuple_New(len(args)))
 			if (pyArgs == nil) || (python3.PyErr_Occurred() != nil) {
 				python3.PyErr_Print()
-				return nil, errors.New(fmt.Sprintf("failed to create python args tuple for function %s in module %s", function, module))
+				return nil, fmt.Errorf("failed to create python args tuple for function %s in module %s", function, module)
 			}
 
 			//pack the args
@@ -173,17 +173,17 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 
 			if (callRes == nil) || (python3.PyErr_Occurred() != nil) {
 				python3.PyErr_Print()
-				return nil, errors.New(fmt.Sprintf("failed to call function %s in module %s", function, module))
+				return nil, fmt.Errorf("failed to call function %s in module %s", function, module)
 			}
 
 			//convert the return type to a go type
 			return rcg.toGoType(callRes)
 
 		} else {
-			return nil, errors.New(fmt.Sprintf("function %s in module %s not loaded", function, module))
+			return nil, fmt.Errorf("function %s in module %s not loaded", function, module)
 		}
 	} else {
-		return nil, errors.New(fmt.Sprintf("module %s not loaded", module))
+		return nil, fmt.Errorf("module %s not loaded", module)
 	}
 }
 

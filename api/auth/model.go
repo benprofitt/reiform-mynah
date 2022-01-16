@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"reiform.com/mynah/model"
 )
 
@@ -8,9 +9,9 @@ import (
 type AuthProvider interface {
 	//Create a new user, returns the user and initial jwt
 	CreateUser() (*model.MynahUser, string, error)
-	//Takes a JWT token attached to a request and verifies that the token is
-	//valid. If valid, returns the user's uuid. If invalid, returns an error
-	IsValidToken(*string) (string, error)
+	//Takes an http request and checks whether the request is correctly
+	//authenticated
+	IsAuthReq(*http.Request) (string, error)
 	//close the auth provider
 	Close()
 }
@@ -18,7 +19,9 @@ type AuthProvider interface {
 //local auth client adheres to AuthProvider
 type localAuth struct {
 	//the jwt key loaded from file
-	jwtKey string
+	secret []byte
+	//the header user to pass the jwt
+	jwtHeader string
 }
 
 //external auth client adheres to AuthProvider

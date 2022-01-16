@@ -6,6 +6,6 @@ import (
 
 //Create a new auth provider based on the Mynah settings
 func NewAuthProvider(mynahSettings *settings.MynahSettings) (AuthProvider, error) {
-	//temp
-	return &localAuth{}, nil
+	//Currently only supports local auth
+	return newLocalAuth(mynahSettings)
 }

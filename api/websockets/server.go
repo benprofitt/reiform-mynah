@@ -8,9 +8,7 @@ import (
 
 //create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
-	return &webSocketServer{
-
-	}
+	return &webSocketServer{}
 }
 
 //return a handler used in a rest endpoint

@@ -149,7 +149,7 @@ func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("user %s not found", *uuid))
+	return nil, fmt.Errorf("user %s not found", *uuid)
 }
 
 //Get a user other than self (must be admin)
@@ -187,7 +187,7 @@ func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.M
 		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("project %s not found", *uuid))
+	return nil, fmt.Errorf("project %s not found", *uuid)
 }
 
 //get a file from the database
@@ -212,7 +212,7 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 		}
 	}
 
-	return nil, errors.New(fmt.Sprintf("file %s not found", *uuid))
+	return nil, fmt.Errorf("file %s not found", *uuid)
 }
 
 //list all users

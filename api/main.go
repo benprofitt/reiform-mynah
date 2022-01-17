@@ -59,7 +59,13 @@ func main() {
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
 
 	//register api endpoints
-	if err := api.RegisterRoutes(router, dbProvider, storageProvider, pythonProvider, wsProvider, settings); err != nil {
+	if err := api.RegisterRoutes(router,
+		dbProvider,
+		authProvider,
+		storageProvider,
+		pythonProvider,
+		wsProvider,
+		settings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}
 

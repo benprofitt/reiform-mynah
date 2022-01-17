@@ -47,33 +47,6 @@ func NewRouter(mynahSettings *settings.MynahSettings, authProvider auth.AuthProv
 	}
 }
 
-//handler that passes user to the mynah handler
-func (r *MynahRouter) userHandler(handler MynahUserHandler) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
-		//call the handler
-		if res, err := handler(GetUserFromRequest(request)); err == nil {
-			//write the status
-			writer.WriteHeader(res.Status)
-
-			if res.Body != nil {
-				//serialize as json
-				if jsonResp, jsonErr := json.Marshal(res.Body); jsonErr == nil {
-					writer.Write(jsonResp)
-					//respond with json
-					writer.Header().Set("Content-Type", "application/json")
-				} else {
-					log.Printf("failed to generate json response %s", jsonErr)
-					writer.WriteHeader(http.StatusInternalServerError)
-				}
-			}
-		} else {
-			log.Printf("handler returned error %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-		}
-	})
-}
-
 //handler that passes the user to the mynah handler as well as the project
 func (r *MynahRouter) projectHandler(handler MynahProjectHandler) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -114,12 +87,12 @@ func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
 }
 
 //Handle an admin request (passes authenticated admin)
-func (r *MynahRouter) HandleAdminRequest(method string, path string, handler MynahUserHandler) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
+func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) {
+	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
 		r.logMiddleware(
 			r.corsMiddleware(
 				r.authenticationMiddleware(
-					r.adminMiddleware(r.userHandler(handler)))))).Methods(method, http.MethodOptions)
+					r.adminMiddleware(handler))))).Methods(method, http.MethodOptions)
 }
 
 //handle a project request (loads project, passes to handler)

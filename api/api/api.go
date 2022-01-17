@@ -1,6 +1,7 @@
 package api
 
 import (
+	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/python"
@@ -12,6 +13,7 @@ import (
 //Register all api routes
 func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
+	authProvider auth.AuthProvider,
 	storageProvider storage.StorageProvider,
 	pythonProvider python.PythonProvider,
 	wsProvider websockets.WebSocketProvider,
@@ -28,6 +30,9 @@ func RegisterRoutes(router *middleware.MynahRouter,
 
 	//register the file upload endpoint
 	router.HandleHTTPRequest("upload", handleFileUpload(settings, dbProvider, storageProvider))
+
+	//register admin endpoints
+	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
 
 	return nil
 }

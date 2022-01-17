@@ -3,7 +3,7 @@ package model
 //Defines a mynah user
 type MynahUser struct {
 	//the id of the user
-	Uuid string `json:"-"`
+	Uuid string `json:"uuid"`
 	//the id of the organization this user is part of
 	OrgId string `json:"-"`
 	//the first name of the user

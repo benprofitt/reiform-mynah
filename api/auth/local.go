@@ -1,19 +1,19 @@
 package auth
 
 import (
-	"github.com/google/uuid"
-	"net/http"
-	"os"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
 	"log"
+	"net/http"
+	"os"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
-	"github.com/golang-jwt/jwt"
-	"encoding/pem"
-	"crypto/rsa"
-	"crypto/rand"
-	"crypto/x509"
 )
 
 //check if the path to the key file exists
@@ -39,8 +39,8 @@ func generateJWTKeyFile(path string) error {
 	//generate key bytes
 	var pkBytes []byte = x509.MarshalPKCS1PrivateKey(privatekey)
 	pkBlock := &pem.Block{
-			Type:  "RSA PRIVATE KEY",
-			Bytes: pkBytes,
+		Type:  "RSA PRIVATE KEY",
+		Bytes: pkBytes,
 	}
 
 	//write the private key to a file
@@ -73,7 +73,7 @@ func newLocalAuth(mynahSettings *settings.MynahSettings) (*localAuth, error) {
 	if data, fileErr := os.ReadFile(mynahSettings.AuthSettings.PemFilePath); fileErr == nil {
 		//create the local auth provider with the loaded secret
 		return &localAuth{
-			secret: data,
+			secret:    data,
 			jwtHeader: mynahSettings.AuthSettings.JwtHeader,
 		}, nil
 	} else {
@@ -97,11 +97,8 @@ func (a *localAuth) CreateUser() (*model.MynahUser, string, error) {
 	//create a jwt and a new user
 	if jwt, err := a.createSignedJWT(uuid); err == nil {
 		return &model.MynahUser{
-			Uuid:      uuid,
-			OrgId:     "",
-			NameFirst: "",
-			NameLast:  "",
-			IsAdmin:   false,
+			Uuid:    uuid,
+			IsAdmin: false,
 		}, jwt, nil
 	} else {
 		return nil, "", err

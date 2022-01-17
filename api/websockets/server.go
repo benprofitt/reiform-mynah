@@ -1,20 +1,64 @@
 package websockets
 
 import (
-	//"github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
+	"log"
 	"net/http"
 	"reiform.com/mynah/settings"
+	"time"
 )
 
 //create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
-	return &webSocketServer{}
+	return &webSocketServer{
+		dataChan: make(chan queueEntry),
+		clients:  make(map[string]connectedClient),
+	}
 }
 
 //return a handler used in a rest endpoint
 func (w *webSocketServer) ServerHandler() http.HandlerFunc {
+	//when to send ping messages
+	ticker := time.NewTicker(45 * time.Second)
 
-	//TODO create a goroutine that listens for new data to send to clients
+	//listen for new client data to distribute
+	go func() {
+		for {
+			select {
+			case newMsg := <-w.dataChan:
+				//find the client in the lookup
+				if client, found := w.clients[newMsg.uuid]; found {
+					//allow ten seconds for writing to client
+					client.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+
+					//get the next websocket writer
+					writer, writerErr := client.conn.NextWriter(websocket.TextMessage)
+					if writerErr != nil {
+						log.Printf("error sending message to websocket client %s", writerErr)
+
+					} else {
+						writer.Write(newMsg.msg)
+						writer.Close()
+					}
+
+				} else {
+					log.Printf("user %s is not connected as a websocket client", newMsg.uuid)
+				}
+
+			case <-ticker.C:
+				//send a ping to each client
+				for uuid, client := range w.clients {
+					//allow ten seconds for writing to client
+					client.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+
+					//send a ping message
+					if pingErr := client.conn.WriteMessage(websocket.PingMessage, nil); pingErr != nil {
+						log.Printf("error sending ping to client %s", uuid)
+					}
+				}
+			}
+		}
+	}()
 
 	//standard websocket upgrader
 	//upgrader := websocket.Upgrader{}
@@ -34,6 +78,9 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 }
 
 //accept data to send to a connected client
-func (w *webSocketServer) Send(uuid *string, msg []byte) error {
-	return nil
+func (w *webSocketServer) Send(uuid *string, msg []byte) {
+	w.dataChan <- queueEntry{
+		uuid: *uuid,
+		msg:  msg,
+	}
 }

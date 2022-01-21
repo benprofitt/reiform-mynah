@@ -1,8 +1,6 @@
 package db
 
 import (
-	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
 	"reiform.com/mynah/model"
 )
 
@@ -16,18 +14,24 @@ type DBProvider interface {
 	GetProject(*string, *model.MynahUser) (*model.MynahProject, error)
 	//get a file from the database
 	GetFile(*string, *model.MynahUser) (*model.MynahFile, error)
+	//get a dataset from the database
+	GetDataset(*string, *model.MynahUser) (*model.MynahDataset, error)
 	//list all users, arg is requestor
 	ListUsers(*model.MynahUser) ([]*model.MynahUser, error)
 	//list all projects, arg is requestor
 	ListProjects(*model.MynahUser) ([]*model.MynahProject, error)
 	//list all files, arg is requestor
 	ListFiles(*model.MynahUser) ([]*model.MynahFile, error)
+	//list all datasets, arg is requestor
+	ListDatasets(*model.MynahUser) ([]*model.MynahDataset, error)
 	//create a new user (second argument is the creator --must be admin)
 	CreateUser(*model.MynahUser, *model.MynahUser) error
 	//create a new project, second arg is creator
 	CreateProject(*model.MynahProject, *model.MynahUser) error
 	//create a new file, second arg is creator
 	CreateFile(*model.MynahFile, *model.MynahUser) error
+	//create a new dataset
+	CreateDataset(*model.MynahDataset, *model.MynahUser) error
 	//update a user in the database. First arg is user to update, second is requestor, remaining
 	//are keys to update.
 	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error
@@ -37,22 +41,16 @@ type DBProvider interface {
 	//update a file in the database. First arg is uuid, second is requestor, remaining
 	//are keys to update. Then use .Values()
 	UpdateFile(*model.MynahFile, *model.MynahUser, ...string) error
+	//update a dataset
+	UpdateDataset(*model.MynahDataset, *model.MynahUser, ...string) error
 	//delete a user in the database, second arg is requestor
 	DeleteUser(*string, *model.MynahUser) error
 	//delete a project in the database, second arg is requestor
 	DeleteProject(*string, *model.MynahUser) error
 	//delete a file in the database, second arg is requestor
 	DeleteFile(*string, *model.MynahUser) error
+	//delete a dataset
+	DeleteDataset(*string, *model.MynahUser) error
 	//close the client connection on shutdown
 	Close()
-}
-
-//local database client adheres to DBProvider
-type localDB struct {
-	//the sqlite database client
-	db *sql.DB
-}
-
-//external database client adheres to DBProvider
-type externalDB struct {
 }

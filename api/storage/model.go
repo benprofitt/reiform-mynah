@@ -15,13 +15,3 @@ type StorageProvider interface {
 	//delete a stored file
 	DeleteFile(*model.MynahFile) error
 }
-
-//local storage client adheres to StorageProvider
-type localStorage struct {
-	//the local path to store files
-	localPath string
-}
-
-//external storage client adheres to StorageProvider
-type externalStorage struct {
-}

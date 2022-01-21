@@ -18,8 +18,14 @@ func registerGQLRoutes(router *middleware.MynahRouter, dbProvider db.DBProvider)
 		return userErr
 	}
 
+	datasetHandler, datasetErr := graphql.DatasetQueryResolver(dbProvider)
+	if datasetErr != nil {
+		return datasetErr
+	}
+
 	router.HandleHTTPRequest("graphql/project", projectHandler)
 	router.HandleHTTPRequest("graphql/user", userHandler)
+	router.HandleHTTPRequest("graphql/dataset", datasetHandler)
 
 	return nil
 }

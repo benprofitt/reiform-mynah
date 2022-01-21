@@ -36,3 +36,22 @@ var projectType = graphql.NewObject(
 		},
 	},
 )
+
+//Mynah Datasets (model.MynahDataset)
+var datasetType = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "MynahDataset",
+		Fields: graphql.Fields{
+			"uuid": &graphql.Field{
+				Type: graphql.String,
+			},
+			"dataset_name": &graphql.Field{
+				Type: graphql.String,
+			},
+			//TODO
+			// "referenced_files": &graphql.Field{
+			// 	Type: graphql.List,
+			// },
+		},
+	},
+)

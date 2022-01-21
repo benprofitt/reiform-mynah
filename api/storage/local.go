@@ -7,6 +7,12 @@ import (
 	"reiform.com/mynah/settings"
 )
 
+//local storage client adheres to StorageProvider
+type localStorage struct {
+	//the local path to store files
+	localPath string
+}
+
 //create a new local storage provider
 func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, error) {
 	//create the storage directory if it doesn't exist

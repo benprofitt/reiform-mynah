@@ -9,7 +9,7 @@ import (
 )
 
 //Test basic database behavior
-func TestBasicDBActions(t *testing.T) {
+func TestBasicDBActionsUser(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
 	if authPErr != nil {
@@ -53,6 +53,9 @@ func TestBasicDBActions(t *testing.T) {
 		if *userList[0] != localUser {
 			t.Errorf("user in list (%v) not identical to local (%v)", *userList[0], localUser)
 			return
+		} else if len(userList) > 1 {
+			t.Errorf("more than one user in list (%d)", len(userList))
+			return
 		}
 	} else {
 		t.Errorf("failed to list users %s", listErr)
@@ -76,7 +79,7 @@ func TestBasicDBActions(t *testing.T) {
 	localUser.NameLast = "new_name_last"
 
 	//update the user
-	if updateErr := dbProvider.UpdateUser(&localUser, &admin, "NameFirst", "NameLast"); updateErr == nil {
+	if updateErr := dbProvider.UpdateUser(&localUser, &admin, "name_first", "name_last"); updateErr == nil {
 		//get the user and verify same
 		if dbUser, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
 			//look through list

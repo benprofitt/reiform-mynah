@@ -1,39 +1,12 @@
 package db
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"reiform.com/mynah/model"
-	"strconv"
+	"github.com/google/uuid"
 )
-
-//create a sql statement and convert values to sql types
-func commonCreateSQLUpdateStmt(s model.Identity, tableName string, keys []string) (stmt *string, vals []interface{}, e error) {
-	//create the update statement
-	updateStmt := fmt.Sprintf("UPDATE %s SET ", tableName)
-	for i, k := range keys {
-		//perform orm mapping
-		if sqlVal, ormErr := sqlORM(s, k); ormErr == nil {
-			//add to update statement
-			if i < (len(keys) - 1) {
-				updateStmt += fmt.Sprintf("%s = ?, ", k)
-			} else {
-				updateStmt += fmt.Sprintf("%s = ? ", k)
-			}
-
-			vals = append(vals, sqlVal)
-		} else {
-			return nil, nil, ormErr
-		}
-	}
-
-	updateStmt += " WHERE Uuid = ? AND OrgId = ?"
-	vals = append(vals, s.GetUuid(), s.GetOrgId())
-	return &updateStmt, vals, nil
-}
 
 //check if any of the update keys are restricted
 func restrictedKeys(keys []string) bool {
@@ -43,60 +16,6 @@ func restrictedKeys(keys []string) bool {
 		}
 	}
 	return false
-}
-
-//scan a SQL row into a user
-func scanRowUser(rows *sql.Rows) (*model.MynahUser, error) {
-	var u model.MynahUser
-	//need to parse string back to bool
-	var isAdmin string
-
-	//load the values from the row into the new user struct
-	if scanErr := rows.Scan(&u.Uuid, &u.OrgId, &u.NameFirst, &u.NameLast, &isAdmin, &u.CreatedBy); scanErr != nil {
-		return nil, scanErr
-	}
-
-	//parse the admin flag
-	if b, bErr := strconv.ParseBool(isAdmin); bErr == nil {
-		u.IsAdmin = b
-	} else {
-		log.Printf("incorrectly parsed admin flag (%s) for user %s", isAdmin, u.Uuid)
-		u.IsAdmin = false
-	}
-
-	return &u, nil
-}
-
-//scan a SQL result row into a Mynah project struct
-func scanRowProject(rows *sql.Rows) (*model.MynahProject, error) {
-	var p model.MynahProject
-	p.UserPermissions = make(map[string]model.ProjectPermissions)
-
-	//need to parse string back to map
-	var projectPermissions string
-
-	//load the values from the row into the new project struct
-	if scanErr := rows.Scan(&p.Uuid, &p.OrgId, &projectPermissions, &p.ProjectName); scanErr != nil {
-		return nil, scanErr
-	}
-
-	//parse the permissions
-	if err := deserializeJson(&projectPermissions, &p.UserPermissions); err != nil {
-		return nil, err
-	}
-
-	return &p, nil
-}
-
-//scan a SQL result row into a Mynah file struct
-func scanRowFile(rows *sql.Rows) (*model.MynahFile, error) {
-	var f model.MynahFile
-
-	//load the values from the row into the new file struct
-	if scanErr := rows.Scan(&f.Uuid, &f.OrgId, &f.OwnerUuid, &f.Name, &f.Location, &f.Path); scanErr != nil {
-		return nil, scanErr
-	}
-	return &f, nil
 }
 
 //serialize some structure into a string
@@ -133,13 +52,22 @@ func commonGetProject(project *model.MynahProject, requestor *model.MynahUser) e
 	return fmt.Errorf("user %s does not have permission to request project %s", requestor.Uuid, project.Uuid)
 }
 
-//get a project by id or return an error
+//get a file by id or return an error
 func commonGetFile(file *model.MynahFile, requestor *model.MynahUser) error {
 	//check that the user is the file owner (or admin)
 	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to request file %s", requestor.Uuid, file.Uuid)
+}
+
+//get a dataset by id or return an error
+func commonGetDataset(dataset *model.MynahDataset, requestor *model.MynahUser) error {
+	//check that the user is the dataset owner (or admin)
+	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+		return nil
+	}
+	return fmt.Errorf("user %s does not have permission to request dataset %s", requestor.Uuid, dataset.Uuid)
 }
 
 //check that the user is an admin (org checked in query)
@@ -172,8 +100,20 @@ func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filt
 	return filtered
 }
 
+//get the datasets that the user can view
+func commonListDatasets(datasets []*model.MynahDataset, requestor *model.MynahUser) (filtered []*model.MynahDataset) {
+	//filter for files that this user has permission to view
+	for _, d := range datasets {
+		if e := commonGetDataset(d, requestor); e == nil {
+			filtered = append(filtered, d)
+		}
+	}
+	return filtered
+}
+
 //check that the creator is an admin
 func commonCreateUser(user *model.MynahUser, creator *model.MynahUser) error {
+	//Note: uuid created by auth provider
 	if !creator.IsAdmin {
 		return fmt.Errorf("unable to create new user, user %s is not an admin", creator.Uuid)
 	}
@@ -194,6 +134,7 @@ func commonCreateProject(project *model.MynahProject, creator *model.MynahUser) 
 	project.UserPermissions[creator.Uuid] = model.Owner
 	//inherit the org id
 	project.OrgId = creator.OrgId
+	project.Uuid = uuid.New().String()
 	return nil
 }
 
@@ -203,6 +144,17 @@ func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
 	file.OwnerUuid = creator.Uuid
 	//inherit the org id
 	file.OrgId = creator.OrgId
+	file.Uuid = uuid.New().String()
+	return nil
+}
+
+//create a new dataset
+func commonCreateDataset(dataset *model.MynahDataset, creator *model.MynahUser) error {
+	//give ownership to the user
+	dataset.OwnerUuid = creator.Uuid
+	//inherit the org id
+	dataset.OrgId = creator.OrgId
+	dataset.Uuid = uuid.New().String()
 	return nil
 }
 
@@ -245,6 +197,19 @@ func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys []
 	return fmt.Errorf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid)
 }
 
+//update a dataset in the database
+func commonUpdateDataset(dataset *model.MynahDataset, requestor *model.MynahUser, keys []string) error {
+	//check that keys are not restricted
+	if restrictedKeys(keys) {
+		return errors.New("dataset update contained restricted keys")
+	}
+
+	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+		return nil
+	}
+	return fmt.Errorf("user %s does not have permission to update dataset %s", requestor.Uuid, dataset.Uuid)
+}
+
 //check that the requestor has permission
 func commonDeleteUser(uuid *string, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
@@ -263,8 +228,17 @@ func commonDeleteProject(project *model.MynahProject, requestor *model.MynahUser
 
 //check that the requestor has permission to delete the file
 func commonDeleteFile(file *model.MynahFile, requestor *model.MynahUser) error {
+	//TODO check if file is part of dataset
 	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to delete file %s", requestor.Uuid, file.Uuid)
+}
+
+//check that the requestor has permission to delete the dataset
+func commonDeleteDataset(dataset *model.MynahDataset, requestor *model.MynahUser) error {
+	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+		return nil
+	}
+	return fmt.Errorf("user %s does not have permission to delete dataset %s", requestor.Uuid, dataset.Uuid)
 }

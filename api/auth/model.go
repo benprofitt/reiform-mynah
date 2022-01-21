@@ -15,15 +15,3 @@ type AuthProvider interface {
 	//close the auth provider
 	Close()
 }
-
-//local auth client adheres to AuthProvider
-type localAuth struct {
-	//the jwt key loaded from file
-	secret []byte
-	//the header user to pass the jwt
-	jwtHeader string
-}
-
-//external auth client adheres to AuthProvider
-type externalAuth struct {
-}

@@ -3,25 +3,15 @@ package model
 //Defines a mynah user
 type MynahUser struct {
 	//the id of the user
-	Uuid string `json:"uuid"`
+	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the id of the organization this user is part of
-	OrgId string `json:"-"`
+	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//the first name of the user
-	NameFirst string `json:"name_first"`
+	NameFirst string `json:"name_first" xorm:"TEXT 'name_first'"`
 	//the last name of the user
-	NameLast string `json:"name_last"`
+	NameLast string `json:"name_last" xorm:"TEXT 'name_last'"`
 	//whether the user is an admin
-	IsAdmin bool `json:"-"`
+	IsAdmin bool `json:"-" xorm:"TEXT not null 'is_admin'"`
 	//who created this user
-	CreatedBy string `json:"-"`
-}
-
-//get the user's uuid
-func (u *MynahUser) GetUuid() string {
-	return u.Uuid
-}
-
-//get the user's orgid
-func (u *MynahUser) GetOrgId() string {
-	return u.OrgId
+	CreatedBy string `json:"-" xorm:"TEXT 'created_by'"`
 }

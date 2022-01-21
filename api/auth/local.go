@@ -16,6 +16,14 @@ import (
 	"reiform.com/mynah/settings"
 )
 
+//local auth client adheres to AuthProvider
+type localAuth struct {
+	//the jwt key loaded from file
+	secret []byte
+	//the header user to pass the jwt
+	jwtHeader string
+}
+
 //check if the path to the key file exists
 func privateKeyExists(path string) bool {
 	if _, err := os.Stat(path); err == nil {

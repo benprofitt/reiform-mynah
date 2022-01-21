@@ -13,13 +13,13 @@ const (
 //Defines a mynah project
 type MynahProject struct {
 	//the id of the project
-	Uuid string `json:"uuid"`
+	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the id of the organization this project is part of
-	OrgId string `json:"-"`
+	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//permissions that various users have
-	UserPermissions map[string]ProjectPermissions `json:"-"`
+	UserPermissions map[string]ProjectPermissions `json:"-" xorm:"TEXT 'user_permissions'"`
 	//the name of the project
-	ProjectName string `json:"project_name"`
+	ProjectName string `json:"project_name" xorm:"TEXT 'project_name'"`
 }
 
 //Get the permissions that a user has on a given project
@@ -29,14 +29,4 @@ func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 	} else {
 		return None
 	}
-}
-
-//get the project's uuid
-func (p *MynahProject) GetUuid() string {
-	return p.Uuid
-}
-
-//get the project's orgid
-func (p *MynahProject) GetOrgId() string {
-	return p.OrgId
 }

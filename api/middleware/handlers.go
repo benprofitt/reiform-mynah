@@ -113,10 +113,12 @@ func (r *MynahRouter) ListenAndServe() {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	log.Fatal(r.server.ListenAndServe())
+	log.Printf("server exit: %s", r.server.ListenAndServe())
 }
 
 //Shutdown the server
-func (r *MynahRouter) Shutdown(ctx context.Context) {
+func (r *MynahRouter) Close() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
 	r.server.Shutdown(ctx)
 }

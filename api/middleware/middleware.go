@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"bufio"
 	"context"
+	"errors"
 	"github.com/gorilla/mux"
 	"log"
+	"net"
 	"net/http"
 )
 
@@ -19,6 +22,15 @@ type logResponse struct {
 func (r *logResponse) WriteHeader(stat int) {
 	r.status = stat
 	r.ResponseWriter.WriteHeader(stat)
+}
+
+//implement the hijacker interface for websocket connection upgrade
+func (r *logResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := r.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return h.Hijack()
 }
 
 //Log all requests
@@ -63,7 +75,7 @@ func (r *MynahRouter) authenticationMiddleware(handler http.HandlerFunc) http.Ha
 			if user, getErr := r.dbProvider.GetUserForAuth(&uuid); getErr == nil {
 				//call the handler, pass the authenticated user
 				handler.ServeHTTP(writer, request.WithContext(
-					context.WithValue(request.Context(), contextUserKey, &user)))
+					context.WithValue(request.Context(), contextUserKey, user)))
 
 			} else {
 				log.Printf("auth middleware failed to get user from database: %s", getErr)

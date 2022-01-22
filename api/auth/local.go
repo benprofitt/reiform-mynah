@@ -16,7 +16,7 @@ import (
 	"reiform.com/mynah/settings"
 )
 
-//local auth client adheres to AuthProvider
+//local auth client implements AuthProvider
 type localAuth struct {
 	//the jwt key loaded from file
 	secret []byte
@@ -145,5 +145,5 @@ func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
 
 //close the auth provider
 func (a *localAuth) Close() {
-
+	log.Printf("local authentication shutdown")
 }

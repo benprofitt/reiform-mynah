@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+//TODO run tests for both auth providers by changing the settings and passing in
+
 //Test the behavior of authentication
 func TestJWTAuth(t *testing.T) {
 	testSettings := settings.DefaultSettings()

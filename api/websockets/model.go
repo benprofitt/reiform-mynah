@@ -10,4 +10,6 @@ type WebSocketProvider interface {
 	ServerHandler() http.HandlerFunc
 	//accept data to send to a connected client
 	Send(uuid *string, msg []byte)
+	//close connections
+	Close()
 }

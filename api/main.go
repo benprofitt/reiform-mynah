@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"os"
@@ -15,7 +14,6 @@ import (
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
 	"syscall"
-	"time"
 )
 
 //entrypoint
@@ -81,14 +79,12 @@ func main() {
 	//block until signal received
 	<-signalChan
 
-	//shutdown the server (wait 15 seconds for any requests to finish)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-	defer cancel()
-
 	//close various services
+	router.Close()
 	dbProvider.Close()
 	authProvider.Close()
 	pythonProvider.Close()
-	router.Shutdown(ctx)
+	storageProvider.Close()
+
 	os.Exit(0)
 }

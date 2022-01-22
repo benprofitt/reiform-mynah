@@ -13,7 +13,7 @@ import (
 	"xorm.io/xorm"
 )
 
-//local database client adheres to DBProvider
+//local database client implements DBProvider
 type localDB struct {
 	//the XORM engine
 	engine *xorm.Engine
@@ -369,6 +369,6 @@ func (d *localDB) DeleteDataset(uuid *string, requestor *model.MynahUser) error 
 
 //close the client connection on shutdown
 func (d *localDB) Close() {
-	log.Printf("db engine shutdown")
+	log.Printf("local database engine shutdown")
 	d.engine.Close()
 }

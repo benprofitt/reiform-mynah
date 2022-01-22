@@ -8,6 +8,28 @@ import (
 	"time"
 )
 
+//dataqueue entry
+type queueEntry struct {
+	uuid string
+	msg  []byte
+}
+
+//an authenticated client connected
+type connectedClient struct {
+	//the websocket connection
+	conn *websocket.Conn
+	//channel for outgoing messages
+	outgoing chan []byte
+}
+
+//websocket server adheres to WebSocketProvider
+type webSocketServer struct {
+	//data to be distributed to clients
+	dataChan chan queueEntry
+	//lookup mapping connected client uuids to connections
+	clients map[string]connectedClient
+}
+
 //create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
 	return &webSocketServer{

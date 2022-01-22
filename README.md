@@ -54,7 +54,7 @@ docker run -p 8080:8080 mynah:latest
 ```
 vagrant up && vagrant ssh
 ```
-- Once in the VM, run (optionally add to your bash config)
+- Once in the VM, run (optionally add to your bash config `~/.bashrc`)
 ```
 export PATH=$PATH:/usr/local/go/bin
 export PKG_CONFIG_PATH=/vagrant/python

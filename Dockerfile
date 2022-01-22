@@ -14,6 +14,7 @@ RUN mkdir mynah
 WORKDIR /mynah
 
 COPY api/ api/
+COPY python/ python/
 COPY Makefile Makefile
 COPY run.sh run.sh
 

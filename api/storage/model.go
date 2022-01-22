@@ -14,4 +14,6 @@ type StorageProvider interface {
 	GetStoredFile(*model.MynahFile, func(*string) error) error
 	//delete a stored file
 	DeleteFile(*model.MynahFile) error
+	//close the provider
+	Close()
 }

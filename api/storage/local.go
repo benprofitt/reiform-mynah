@@ -1,13 +1,14 @@
 package storage
 
 import (
+	"log"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 )
 
-//local storage client adheres to StorageProvider
+//local storage client implements StorageProvider
 type localStorage struct {
 	//the local path to store files
 	localPath string
@@ -41,10 +42,19 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 //get the contents of a stored file
 func (s *localStorage) GetStoredFile(file *model.MynahFile, handler func(*string) error) error {
+	//verify that the file exists
+	_, err := os.Stat(file.Path)
+	if err != nil {
+		return err
+	}
 	return handler(&file.Path)
 }
 
 //delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
 	return os.Remove(file.Path)
+}
+
+func (s *localStorage) Close() {
+	log.Printf("local storage shutdown")
 }

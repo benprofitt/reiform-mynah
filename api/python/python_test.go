@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestArgs(t *testing.T) {
+func TestPythonArgs(t *testing.T) {
 	settings := settings.DefaultSettings()
 	settings.PythonSettings.ModulePath = "../../python"
 

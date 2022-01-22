@@ -4,7 +4,6 @@ go 1.17
 
 require (
 	github.com/go-python/cpy3 v0.0.0-20211127141159-9ab339a58efd // indirect
-	github.com/go-xorm/xorm v0.7.9 // indirect
 	github.com/goccy/go-json v0.7.4 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect

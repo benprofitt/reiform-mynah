@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reiform.com/mynah/model"
 	"github.com/google/uuid"
+	"reiform.com/mynah/model"
 )
 
 //check if any of the update keys are restricted

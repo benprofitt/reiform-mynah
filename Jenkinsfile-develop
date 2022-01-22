@@ -1,0 +1,55 @@
+#!groovy
+/*
+ * (C) Reiform
+ *
+ * Jack Hay, Jan 2022
+ * jack@reiform.com
+ */
+
+def message = ""
+
+def getLastCommitMessage = {
+  message = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
+}
+
+pipeline {
+  environment {
+    PROJECT = "mynah"
+    VERSION = "latest"
+    IMAGE = "$PROJECT:$VERSION"
+  }
+  agent any
+  stages {
+    stage('Prepare') {
+      steps {
+        script {
+          getLastCommitMessage()
+        }
+        slackSend message: "Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} starting from commit:\n${message}\n"
+        checkout scm
+      }
+    }
+    stage('Build') {
+      steps {
+        script {
+          docker.build(IMAGE)
+        }
+      }
+    }
+    stage('Test') {
+      steps {
+        script {
+          docker.image(IMAGE).inside {
+            sh('cd /mynah && make GO=/usr/local/go/bin/go test')
+          }
+        }
+      }
+    }
+  }
+  post {
+    always {
+      slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n"
+      sh "docker rmi $IMAGE | true"
+    }
+  }
+}

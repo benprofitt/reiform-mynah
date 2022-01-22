@@ -40,7 +40,9 @@ pipeline {
       steps {
         script {
           docker.image(IMAGE).inside {
-            sh('cd /mynah && make GO=/usr/local/go/bin/go test')
+            withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin", "GOBIN=${root}/bin", "GOPATH=${root}/go"]) {
+              sh('cd /mynah && make GO=/usr/local/go/bin/go test')
+            }
           }
         }
       }

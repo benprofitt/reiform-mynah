@@ -10,6 +10,16 @@ This repository combines the frontend interface and the backend api for Mynah.
 - [API Endpoint Specification](docs/endpoints.md)
 
 ### Development
+#### Merging and Issues
+- When creating a PR/merge request, make sure to reference the issue that it closes. You can do this in the Gitlab UI by typing `#<issue id>` in the merge request description. This will automatically close the issue and makes it easier for us to maintain the connection between the issue and the code to fix it.
+
+#### Branching
+- Name your feature branches using the following format:
+  - `initials/(fix/feat)-description` where `fix` is for a bug fix and `feat` is for a new feature.
+  - For example, if I created a branch to fix a websockets issue I would name that branch:
+    ```
+    jh/fix-websocket-connections
+    ```
 - There are two permanent branches:
   - _Production_
     - This branch should always be stable and working

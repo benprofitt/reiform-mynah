@@ -39,8 +39,8 @@ pipeline {
     stage('Test') {
       steps {
         script {
-          docker.image(IMAGE).inside {
-            withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin", "GOBIN=${root}/bin", "GOPATH=${root}/go"]) {
+          withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin", "GOBIN=${root}/bin", "GOPATH=${root}/go"]) {
+            docker.image(IMAGE).inside {
               sh('make GO=/usr/local/go/bin/go test')
             }
           }

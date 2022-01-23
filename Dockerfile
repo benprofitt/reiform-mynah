@@ -1,6 +1,6 @@
 FROM ubuntu:bionic
 
-MAINTAINER Jack Hay "jack@reiform.com
+MAINTAINER Jack Hay jack@reiform.com
 
 WORKDIR /
 RUN apt-get update -y --fix-missing

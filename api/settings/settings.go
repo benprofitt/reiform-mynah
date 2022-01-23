@@ -49,6 +49,14 @@ type MynahPythonSettings struct {
 	ModulePath string `json:"module_path"`
 }
 
+//defines configuration settings for async task engine
+type MynahAsyncSettings struct {
+	//how many async workers to use
+	Workers int `json:"workers"`
+	//The size of the async buffer
+	BufferSize int `json:"buffer_size"`
+}
+
 //Defines various settings for the application
 type MynahSettings struct {
 	//the prefix for api paths
@@ -64,6 +72,7 @@ type MynahSettings struct {
 	AuthSettings    MynahAuthSettings    `json:"auth_settings"`
 	StorageSettings MynahStorageSettings `json:"storage_settings"`
 	PythonSettings  MynahPythonSettings  `json:"python_settings"`
+	AsyncSettings   MynahAsyncSettings   `json:"async_settings"`
 }
 
 //get the default settings
@@ -89,6 +98,10 @@ func DefaultSettings() *MynahSettings {
 		},
 		PythonSettings: MynahPythonSettings{
 			ModulePath: "./python",
+		},
+		AsyncSettings: MynahAsyncSettings{
+			Workers: 3,
+			BufferSize: 256,
 		},
 	}
 }

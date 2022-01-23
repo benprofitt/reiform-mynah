@@ -118,7 +118,7 @@ func (r *MynahRouter) ListenAndServe() {
 
 //Shutdown the server
 func (r *MynahRouter) Close() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	r.server.Shutdown(ctx)
 }

@@ -64,7 +64,7 @@ func testHarnessE2E(path string,
 		wsProvider.Send(uuid, []byte(fmt.Sprintf("message-%d", i)))
 	}
 
-  //wait for all messages to arrive
+	//wait for all messages to arrive
 	<-doneChan
 
 	if clientErr != nil {

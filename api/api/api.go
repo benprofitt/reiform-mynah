@@ -1,6 +1,7 @@
 package api
 
 import (
+	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/middleware"
@@ -17,6 +18,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	storageProvider storage.StorageProvider,
 	pythonProvider python.PythonProvider,
 	wsProvider websockets.WebSocketProvider,
+	asyncProvider async.AsyncProvider,
 	settings *settings.MynahSettings) error {
 	//TODO
 

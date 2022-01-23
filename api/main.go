@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"reiform.com/mynah/api"
+	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/middleware"
@@ -53,6 +54,9 @@ func main() {
 	//initialize websockets
 	wsProvider := websockets.NewWebSocketProvider(settings)
 
+	//initialize async workers
+	asyncProvider := async.NewAsyncProvider(settings, wsProvider)
+
 	//create the router and middleware
 	router := middleware.NewRouter(settings, authProvider, dbProvider)
 
@@ -63,6 +67,7 @@ func main() {
 		storageProvider,
 		pythonProvider,
 		wsProvider,
+		asyncProvider,
 		settings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}
@@ -85,6 +90,6 @@ func main() {
 	authProvider.Close()
 	pythonProvider.Close()
 	storageProvider.Close()
-
+	asyncProvider.Close()
 	os.Exit(0)
 }

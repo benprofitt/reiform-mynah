@@ -42,7 +42,7 @@ type connectedClient struct {
 //create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
 	return &webSocketServer{
-		dataChan:             make(chan queueEntry),
+		dataChan:             make(chan queueEntry, 256),
 		clients:              make(map[string]*connectedClient),
 		registerClientChan:   make(chan *connectedClient),
 		deregisterClientChan: make(chan *connectedClient),
@@ -150,7 +150,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 		//create a client
 		client := connectedClient{
 			conn:        clientConn,
-			outgoing:    make(chan []byte),
+			outgoing:    make(chan []byte, 256),
 			uuid:        user.Uuid,
 			connManager: w,
 		}

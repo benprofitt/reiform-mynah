@@ -7,6 +7,7 @@
  */
 
 def message = ""
+def test_results = "tests didn't run"
 
 def getLastCommitMessage = {
   message = sh(returnStdout: true, script: 'git log -1 --pretty=%B').trim()
@@ -39,10 +40,11 @@ pipeline {
     stage('Test') {
       steps {
         script {
-          withEnv(["GOROOT=${root}", "PATH+GO=${root}/bin", "GOBIN=${root}/bin", "GOPATH=${root}/go"]) {
-            docker.image(IMAGE).inside {
-              sh('make GO=/usr/local/go/bin/go test')
-            }
+          docker.image(IMAGE).inside {
+            test_results = sh(
+              script: "make GO=/usr/local/go/bin/go test | grep -e FAIL -e '--- PASS'",
+              returnStdout: true
+            ).trim()
           }
         }
       }
@@ -50,8 +52,8 @@ pipeline {
   }
   post {
     always {
-      slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n"
-      sh "docker rmi $IMAGE | true"
+      slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n${test_results}\n"
+      //sh "docker rmi -f $IMAGE | true"
     }
   }
 }

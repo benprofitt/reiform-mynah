@@ -53,7 +53,7 @@ pipeline {
   post {
     always {
       slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n${test_results}\n"
-      //sh "docker rmi -f $IMAGE | true"
+      sh "docker rmi -f $IMAGE | true"
     }
   }
 }

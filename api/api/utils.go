@@ -13,7 +13,7 @@ const maxBodySize1MB = 1048576
 
 //verify that the content type of a request is json
 func jsonContentType(request *http.Request) bool {
-	return request.Header.Get("Content-Type") != "application/json"
+	return request.Header.Get("Content-Type") == "application/json"
 }
 
 //parse the contents of a request into a structure
@@ -21,6 +21,11 @@ func requestParseJson(writer http.ResponseWriter, request *http.Request, target 
 	//verify the content type
 	if !jsonContentType(request) {
 		return errors.New("invalid content type (not application/json)")
+	}
+
+	//check for an empty/nil body
+	if (request.Body == nil) || (request.Body == http.NoBody) {
+		return errors.New("no body to decode")
 	}
 
 	//max size is 1MB

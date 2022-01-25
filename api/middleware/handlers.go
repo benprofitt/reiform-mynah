@@ -106,6 +106,9 @@ func (r *MynahRouter) HandleProjectRequest(method string, path string, handler M
 
 //start server
 func (r *MynahRouter) ListenAndServe() {
+	//serve static resources
+	r.serveStaticSite()
+
 	r.server = &http.Server{
 		Handler:      r,
 		Addr:         fmt.Sprintf(":%d", r.settings.Port),

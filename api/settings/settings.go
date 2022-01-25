@@ -61,6 +61,10 @@ type MynahAsyncSettings struct {
 type MynahSettings struct {
 	//the prefix for api paths
 	ApiPrefix string `json:"api_prefix"`
+	//prefix for static resources
+	StaticPrefix string `json:"static_prefix"`
+	//the folder containing static web resources
+	StaticResourcesPath string `json:"static_resources_path"`
 	//whether read access can be unauthenticated
 	UnauthReadAccess bool `json:"unauth_read_access"`
 	//the port to listen for requests on
@@ -79,6 +83,8 @@ type MynahSettings struct {
 func DefaultSettings() *MynahSettings {
 	return &MynahSettings{
 		ApiPrefix:        "/api/v1",
+		StaticPrefix:			"/static/",
+		StaticResourcesPath: "./static/",
 		UnauthReadAccess: false,
 		Port:             8080,
 		CORSAllowOrigin:  "*",
@@ -100,7 +106,7 @@ func DefaultSettings() *MynahSettings {
 			ModulePath: "./python",
 		},
 		AsyncSettings: MynahAsyncSettings{
-			Workers: 3,
+			Workers:    3,
 			BufferSize: 256,
 		},
 	}

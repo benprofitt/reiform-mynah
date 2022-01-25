@@ -25,40 +25,40 @@ func main() {
 	flag.Parse()
 
 	//load settings
-	settings, settingsErr := settings.LoadSettings(settingsPtr)
+	mynahSettings, settingsErr := settings.LoadSettings(settingsPtr)
 	if settingsErr != nil {
 		log.Fatalf("failed to load settings: %s", settingsErr)
 	}
 
 	//initialize auth
-	authProvider, authErr := auth.NewAuthProvider(settings)
+	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
 	if authErr != nil {
 		log.Fatalf("failed to initialize auth %s", authErr)
 	}
 
 	//initialize the database connection
-	dbProvider, dbErr := db.NewDBProvider(settings, authProvider)
+	dbProvider, dbErr := db.NewDBProvider(mynahSettings, authProvider)
 	if dbErr != nil {
 		log.Fatalf("failed to initialize database connection %s", dbErr)
 	}
 
 	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(settings)
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
 	if storageErr != nil {
 		log.Fatalf("failed to initialize storage %s", storageErr)
 	}
 
 	//initialize python
-	pythonProvider := python.NewPythonProvider(settings)
+	pythonProvider := python.NewPythonProvider(mynahSettings)
 
 	//initialize websockets
-	wsProvider := websockets.NewWebSocketProvider(settings)
+	wsProvider := websockets.NewWebSocketProvider(mynahSettings)
 
 	//initialize async workers
-	asyncProvider := async.NewAsyncProvider(settings, wsProvider)
+	asyncProvider := async.NewAsyncProvider(mynahSettings, wsProvider)
 
 	//create the router and middleware
-	router := middleware.NewRouter(settings, authProvider, dbProvider)
+	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider)
 
 	//register api endpoints
 	if err := api.RegisterRoutes(router,
@@ -68,7 +68,7 @@ func main() {
 		pythonProvider,
 		wsProvider,
 		asyncProvider,
-		settings); err != nil {
+		mynahSettings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}
 

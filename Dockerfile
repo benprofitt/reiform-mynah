@@ -15,6 +15,7 @@ WORKDIR /mynah
 
 COPY api/ api/
 COPY python/ python/
+COPY static/ static/
 COPY Makefile Makefile
 COPY run.sh run.sh
 

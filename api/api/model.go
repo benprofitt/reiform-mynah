@@ -7,14 +7,14 @@ import (
 //request type for an admin creating a user
 type adminCreateUserRequest struct {
 	//the first and last name to assign the user
-	nameFirst string `json:"name_first"`
-	nameLast  string `json:"name_last"`
+	NameFirst string `json:"name_first"`
+	NameLast  string `json:"name_last"`
 }
 
 //response type for an admin creating a user
 type adminCreateUserResponse struct {
 	//the generated jwt
-	jwt string `json:"jwt"`
+	Jwt string `json:"jwt"`
 	//the user itself
-	user model.MynahUser `json:"user"`
+	User model.MynahUser `json:"user"`
 }

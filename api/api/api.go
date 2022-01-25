@@ -20,7 +20,6 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	wsProvider websockets.WebSocketProvider,
 	asyncProvider async.AsyncProvider,
 	settings *settings.MynahSettings) error {
-	//TODO
 
 	//register graphql routes
 	if gqlErr := registerGQLRoutes(router, dbProvider); gqlErr != nil {

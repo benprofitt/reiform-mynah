@@ -89,7 +89,7 @@ func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websocke
 
 //accept a new task
 func (a *asyncEngine) StartAsyncTask(user *model.MynahUser, handler AsyncTaskHandler) {
-  //write a new task to the channel
+	//write a new task to the channel
 	a.taskChan <- &asyncTask{
 		user:    user,
 		handler: handler,

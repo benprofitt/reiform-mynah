@@ -5,7 +5,7 @@ import (
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/websockets"
 	"testing"
-  "time"
+	"time"
 )
 
 //run tests on the async architecture
@@ -26,20 +26,20 @@ func TestAsync(t *testing.T) {
 		Uuid: "test_async_user",
 	}
 
-  resultChan := make(chan int, taskCount)
+	resultChan := make(chan int, taskCount)
 
 	//add some tasks
 	for i := 0; i < taskCount; i++ {
 		//start tasks
 		asyncProvider.StartAsyncTask(&user, func(u *model.MynahUser) ([]byte, error) {
-      time.Sleep(time.Second * 1)
-      resultChan <- 0
+			time.Sleep(time.Second * 1)
+			resultChan <- 0
 			return nil, nil
 		})
 	}
 
-  //wait for tasks to complete
-  for i := 0; i< taskCount; i++ {
-    <- resultChan
-  }
+	//wait for tasks to complete
+	for i := 0; i < taskCount; i++ {
+		<-resultChan
+	}
 }

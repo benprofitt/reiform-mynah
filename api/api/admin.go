@@ -19,15 +19,16 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {
+			log.Printf("failed to parse json: %s", err)
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		//create the user
-		if user, jwt, err := authProvider.CreateUser(); err != nil {
+		if user, jwt, err := authProvider.CreateUser(); err == nil {
 			//update attributes
-			user.NameFirst = req.nameFirst
-			user.NameLast = req.nameLast
+			user.NameFirst = req.NameFirst
+			user.NameLast = req.NameLast
 
 			//add the user to the database
 			if createErr := dbProvider.CreateUser(user, admin); createErr != nil {
@@ -38,8 +39,8 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 
 			//the response to return to the frontend
 			res := adminCreateUserResponse{
-				jwt:  jwt,
-				user: *user,
+				Jwt:  jwt,
+				User: *user,
 			}
 
 			//write the response

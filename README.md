@@ -64,9 +64,26 @@ docker run -p 8080:8080 mynah:latest
 ```
 vagrant up && vagrant ssh
 ```
-- Once in the VM, run (optionally add to your bash config `~/.bashrc`)
+- Once in the VM, navigate to `/vagrant`
 ```
-export PATH=$PATH:/usr/local/go/bin
-export PKG_CONFIG_PATH=/vagrant/python
 cd /vagrant
 ```
+
+## Misc.
+
+### Useful shell configurations (for Linux, maybe MacOS)
+- Show current branch in terminal prompt (i.e. `jackhay@archlinux ~/development/reiform/com.reiform.mynah (jh/branch-name) $ `)
+  - Add to `~/.bashrc`
+  ```
+  parse_git_branch() {
+       git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
+  }
+  export PS1="\u@\h \[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] $ "
+  ```
+
+- Git tab autocompletions (i.e. for branch names)
+  - Add to `~/.bashrc`
+  ```
+  source /usr/share/bash-completion/completions/git
+  ```
+- For both of the above you need to open a new terminal or `source ~/.bashrc`

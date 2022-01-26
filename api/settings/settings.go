@@ -83,7 +83,7 @@ type MynahSettings struct {
 func DefaultSettings() *MynahSettings {
 	return &MynahSettings{
 		ApiPrefix:        "/api/v1",
-		StaticPrefix:			"/static/",
+		StaticPrefix:			"/mynah/",
 		StaticResourcesPath: "./static/",
 		UnauthReadAccess: false,
 		Port:             8080,

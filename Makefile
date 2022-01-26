@@ -1,11 +1,12 @@
-.PHONY: site mynah format test clean all
+.PHONY: frontend mynah format test clean all
 GO=go
 
-all: site mynah
+all: frontend mynah
 mynah:
 	cd api ; $(GO) build . && mv mynah ../
-site:
-	echo "TODO"
+frontend:
+	rm -r static || true
+	cd frontend ; npm install && npm run build && mv build ../static
 format:
 	cd api ; $(GO) fmt ./...
 test:
@@ -16,3 +17,4 @@ clean:
 	rm mynah.json || true
 	rm auth.pem || true
 	rm -r tmp || true
+	rm -r static || true

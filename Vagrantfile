@@ -24,6 +24,11 @@ Vagrant.configure("2") do |config|
 		sudo apt-get install -y pkg-config
     sudo apt-get install -y python3-pip
     python3.7 -m pip install Cython
+    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+    sudo apt install -y nodejs
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/vagrant/.bashrc
+    echo 'export PKG_CONFIG_PATH=/vagrant/python' >> /home/vagrant/.bashrc
+    echo 'source /usr/share/bash-completion/completions/git' >> /home/vagrant/.bashrc
   SHELL
 
 end

@@ -85,9 +85,9 @@ func DefaultSettings() *MynahSettings {
 		ApiPrefix:        "/api/v1",
 		StaticPrefix:			"/mynah/",
 		StaticResourcesPath: "./static/",
-		UnauthReadAccess: false,
-		Port:             8080,
-		CORSAllowOrigin:  "*",
+		UnauthReadAccess:    false,
+		Port:                8080,
+		CORSAllowOrigin:     "*",
 		DBSettings: MynahDBSettings{
 			Type:            "local",
 			LocalPath:       "mynah_local.db",
@@ -118,7 +118,7 @@ func generateSettings(path *string) {
 
 	//write to file
 	if json, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {
-		if ioErr := ioutil.WriteFile(*path, json, 0644); ioErr != nil {
+		if ioErr := ioutil.WriteFile(*path, json, 0600); ioErr != nil {
 			log.Printf("failed to write default settings: %s", ioErr)
 		}
 	} else {

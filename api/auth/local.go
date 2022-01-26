@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 )
@@ -52,17 +53,18 @@ func generateJWTKeyFile(path string) error {
 	}
 
 	//write the private key to a file
-	pemFile, err := os.Create(path)
+	pemFile, err := os.Create(filepath.Clean(path))
 	if err != nil {
 		return fmt.Errorf("failed to create private key %s: %s", path, err)
 	}
-	defer pemFile.Close()
 
 	//write the data to the file
 	err = pem.Encode(pemFile, pkBlock)
 	if err != nil {
 		return fmt.Errorf("failed to encode private key %s: %s", path, err)
 	}
+
+	pemFile.Close()
 	return nil
 }
 

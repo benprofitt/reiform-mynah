@@ -7,6 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"os"
+	"path/filepath"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -24,7 +25,7 @@ func checkDBFile(path string) (exists bool, err error) {
 	if _, err := os.Stat(path); err == nil {
 		return true, nil
 	} else if errors.Is(err, os.ErrNotExist) {
-		if file, err := os.Create(path); err == nil {
+		if file, err := os.Create(filepath.Clean(path)); err == nil {
 			file.Close()
 			return false, nil
 		} else {

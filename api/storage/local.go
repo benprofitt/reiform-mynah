@@ -33,8 +33,9 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 	//create the local file to write to
 	if localFile, err := os.Create(file.Path); err == nil {
-		defer localFile.Close()
-		return handler(localFile)
+		handlerErr := handler(localFile)
+		localFile.Close()
+		return handlerErr
 	} else {
 		return err
 	}

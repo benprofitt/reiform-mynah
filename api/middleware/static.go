@@ -1,8 +1,8 @@
 package middleware
 
 import (
-  "net/http"
-  "log"
+	"log"
+	"net/http"
 )
 
 //Log requests for static resources
@@ -27,15 +27,15 @@ func (r *MynahRouter) staticLogger(handler http.Handler) http.HandlerFunc {
 
 //serve the static site
 func (r *MynahRouter) serveStaticSite() {
-  log.Printf("serving static web resources from %s with path prefix %s",
-    r.settings.StaticResourcesPath,
-    r.settings.StaticPrefix)
+	log.Printf("serving static web resources from %s with path prefix %s",
+		r.settings.StaticResourcesPath,
+		r.settings.StaticPrefix)
 
-  //serve static files
-  fs := http.StripPrefix(r.settings.StaticPrefix,
-    http.FileServer(http.Dir(r.settings.StaticResourcesPath)))
-  r.PathPrefix(r.settings.StaticPrefix).Handler(r.staticLogger(fs))
+	//serve static files
+	fs := http.StripPrefix(r.settings.StaticPrefix,
+		http.FileServer(http.Dir(r.settings.StaticResourcesPath)))
+	r.PathPrefix(r.settings.StaticPrefix).Handler(r.staticLogger(fs))
 
-  //redirect root
-  r.Handle("/", http.RedirectHandler(r.settings.StaticPrefix, 301))
+	//redirect root
+	r.Handle("/", http.RedirectHandler(r.settings.StaticPrefix, 301))
 }

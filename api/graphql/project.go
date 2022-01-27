@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package graphql
 
 import (
@@ -174,7 +176,11 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 			log.Printf("graphql errors: %v", result.Errors)
 			writer.WriteHeader(http.StatusBadRequest)
 		} else {
-			json.NewEncoder(writer).Encode(result)
+			if err := json.NewEncoder(writer).Encode(result); err != nil {
+				log.Printf("failed to write GQL response: %s", err)
+			} else {
+				writer.Header().Set("Content-Type", "application/json")
+			}
 		}
 	}), nil
 }

@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package middleware
 
 import (
@@ -62,7 +64,9 @@ func (r *MynahRouter) projectHandler(handler MynahProjectHandler) http.HandlerFu
 			if res.Body != nil {
 				//serialize as json
 				if jsonResp, jsonErr := json.Marshal(res.Body); jsonErr == nil {
-					writer.Write(jsonResp)
+					if _, err := writer.Write(jsonResp); err != nil {
+						log.Printf("failed to write json response for request: %s", err)
+					}
 					//respond with json
 					writer.Header().Set("Content-Type", "application/json")
 
@@ -123,5 +127,7 @@ func (r *MynahRouter) ListenAndServe() {
 func (r *MynahRouter) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	r.server.Shutdown(ctx)
+	if err := r.server.Shutdown(ctx); err != nil {
+		log.Printf("server shutdown error: %s", err)
+	}
 }

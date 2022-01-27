@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package settings
 
 import (
@@ -82,8 +84,8 @@ type MynahSettings struct {
 //get the default settings
 func DefaultSettings() *MynahSettings {
 	return &MynahSettings{
-		ApiPrefix:        "/api/v1",
-		StaticPrefix:			"/mynah/",
+		ApiPrefix:           "/api/v1",
+		StaticPrefix:        "/mynah/",
 		StaticResourcesPath: "./static/",
 		UnauthReadAccess:    false,
 		Port:                8080,

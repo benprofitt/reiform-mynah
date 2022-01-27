@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package websockets
 
 import (
@@ -87,7 +89,9 @@ func (c *connectedClient) clientWrite() {
 
 			//get the next websocket writer
 			if writer, writerErr := c.conn.NextWriter(websocket.TextMessage); writerErr == nil {
-				writer.Write(msg)
+				if _, err := writer.Write(msg); err != nil {
+					log.Printf("failed to write to websocket client: %s", err)
+				}
 				writer.Close()
 
 			} else {

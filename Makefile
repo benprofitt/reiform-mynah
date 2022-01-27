@@ -1,4 +1,4 @@
-.PHONY: frontend mynah format test clean all
+.PHONY: frontend mynah format test clean all lint
 GO=go
 
 all: frontend mynah
@@ -11,6 +11,9 @@ format:
 	cd api ; $(GO) fmt ./...
 test:
 	cd api ; $(GO) test -count=1 -v ./... && rm db/mynah_local.db || true
+lint:
+	cd api ; golangci-lint run || true
+	cd api ; gosec ./... || true
 clean:
 	rm mynah || true
 	rm mynah_local.db || true

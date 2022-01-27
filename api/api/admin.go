@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package api
 
 import (
@@ -45,9 +47,14 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 
 			//write the response
 			if jsonResp, jsonErr := json.Marshal(&res); jsonErr == nil {
-				writer.Write(jsonResp)
-				//respond with json
-				writer.Header().Set("Content-Type", "application/json")
+				//write response
+				if _, writeErr := writer.Write(jsonResp); writeErr != nil {
+					log.Printf("failed to write response: %s", writeErr)
+					writer.WriteHeader(http.StatusInternalServerError)
+				} else {
+					//respond with json
+					writer.Header().Set("Content-Type", "application/json")
+				}
 
 			} else {
 				log.Printf("failed to generate json response %s", jsonErr)

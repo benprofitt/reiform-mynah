@@ -46,11 +46,12 @@ pipeline {
               script: "make GO=/usr/local/go/bin/go test | grep -e FAIL -e '--- PASS'",
               returnStdout: true
             ).trim()
-            sh 'cd api ; curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s latest'
-            gosec_results = sh(
-              script: "cd api ; ./bin/gosec --quiet ./... | grep -e Severity -e Issues || true",
-              returnStdout: true
-            ).trim()
+            // sh 'curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b bin latest'
+            // sh 'export PATH=$PATH:/usr/local/go/bin ; ./bin/gosec api/... || true'
+            // gosec_results = sh(
+            //   script: 'export GOPATH=/usr/local/go ; export PATH=$PATH:$GOPATH/bin ; export GO111MODULE=on ; cd api ; ../bin/gosec --quiet ./... | grep -e Severity -e Issues || true 2>&1',
+            //   returnStdout: true
+            // ).trim()
           }
         }
       }
@@ -58,8 +59,8 @@ pipeline {
   }
   post {
     always {
-      slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n${test_results}\n${gosec_results}"
-      sh "docker rmi -f $IMAGE | true"
+      slackSend message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER}\n${test_results}\n"
+      sh "docker rmi $IMAGE || true"
     }
   }
 }

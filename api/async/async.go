@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package async
 
 import (
@@ -17,8 +19,6 @@ type asyncTask struct {
 	user *model.MynahUser
 	//the task handler
 	handler AsyncTaskHandler
-	//the starting timestamp in epoch seconds
-	start int64
 	//the id of the task
 	uuid string
 }

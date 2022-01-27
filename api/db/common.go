@@ -1,7 +1,8 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package db
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -16,21 +17,6 @@ func restrictedKeys(keys []string) bool {
 		}
 	}
 	return false
-}
-
-//serialize some structure into a string
-func serializeJson(jsonStruct interface{}) (*string, error) {
-	if b, err := json.Marshal(jsonStruct); err == nil {
-		s := string(b)
-		return &s, nil
-	} else {
-		return nil, err
-	}
-}
-
-//deserialize a string back into some json structure
-func deserializeJson(jsonRep *string, target interface{}) error {
-	return json.Unmarshal([]byte(*jsonRep), target)
 }
 
 //verify that the requestor is an admin

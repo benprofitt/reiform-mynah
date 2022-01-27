@@ -26,7 +26,10 @@ Vagrant.configure("2") do |config|
     python3.7 -m pip install Cython
     curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
     sudo apt install -y nodejs
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /home/vagrant/go/bin v1.44.0
+    curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b /home/vagrant/go/bin vX.Y.Z
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/vagrant/.bashrc
+    echo 'export PATH=$PATH:/home/vagrant/go/bin' >> /home/vagrant/.bashrc
     echo 'export PKG_CONFIG_PATH=/vagrant/python' >> /home/vagrant/.bashrc
     echo 'source /usr/share/bash-completion/completions/git' >> /home/vagrant/.bashrc
   SHELL

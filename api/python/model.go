@@ -1,3 +1,5 @@
+// Copyright (c) 2022 by Reiform. All Rights Reserved.
+
 package python
 
 //defines calling interface for python scripts

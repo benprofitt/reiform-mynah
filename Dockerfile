@@ -26,6 +26,7 @@ ENV GOOS=linux
 ENV PKG_CONFIG_PATH=/mynah/python
 ENV GOPATH=$HOME/go
 ENV XDG_CACHE_HOME=/tmp/.cache
+RUN pip3 install -r python/requirements.txt
 RUN make GO=/usr/local/go/bin/go all
 
 EXPOSE 8080

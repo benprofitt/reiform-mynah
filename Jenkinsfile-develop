@@ -43,7 +43,7 @@ pipeline {
         script {
           docker.image(IMAGE).inside {
             test_results = sh(
-              script: "export XDG_CACHE_HOME=.cache ; make GO=/usr/local/go/bin/go test | grep -e FAIL -e '--- PASS'",
+              script: "make GO=/usr/local/go/bin/go test | grep -e FAIL -e '--- PASS'",
               returnStdout: true
             ).trim()
             // sh 'curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b bin latest'

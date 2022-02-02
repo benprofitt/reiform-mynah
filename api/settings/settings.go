@@ -59,6 +59,12 @@ type MynahAsyncSettings struct {
 	BufferSize int `json:"buffer_size"`
 }
 
+//defines settings for ipc
+type MynahIPCSettings struct {
+	//the socket address to communicate on
+	SocketAddr string `json:"socket_addr"`
+}
+
 //Defines various settings for the application
 type MynahSettings struct {
 	//the prefix for api paths
@@ -79,6 +85,7 @@ type MynahSettings struct {
 	StorageSettings MynahStorageSettings `json:"storage_settings"`
 	PythonSettings  MynahPythonSettings  `json:"python_settings"`
 	AsyncSettings   MynahAsyncSettings   `json:"async_settings"`
+	IPCSettings     MynahIPCSettings     `json:"ipc_settings"`
 }
 
 //get the default settings
@@ -110,6 +117,9 @@ func DefaultSettings() *MynahSettings {
 		AsyncSettings: MynahAsyncSettings{
 			Workers:    3,
 			BufferSize: 256,
+		},
+		IPCSettings: MynahIPCSettings{
+			SocketAddr: "/tmp/mynah.sock",
 		},
 	}
 }

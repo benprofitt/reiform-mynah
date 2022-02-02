@@ -33,6 +33,10 @@ type refCountGroup struct {
 func NewPythonProvider(mynahSettings *settings.MynahSettings) PythonProvider {
 	python3.Py_Initialize()
 
+	if !python3.Py_IsInitialized() {
+		log.Fatalf("error initializing the python interpreter")
+	}
+
 	//add src directory to the path so the module can be loaded
 	python3.PyList_Append(python3.PySys_GetObject("path"), python3.PyUnicode_FromString(mynahSettings.PythonSettings.ModulePath))
 
@@ -88,7 +92,7 @@ func (g *refCountGroup) decref() {
 }
 
 //convert some go type to be a python object
-func (g *refCountGroup) toPythonObj(value interface{}) (*python3.PyObject, error) {
+func toPythonObj(value interface{}) (*python3.PyObject, error) {
 	v := reflect.ValueOf(value)
 	//determine the value of the interface
 	switch v.Kind() {
@@ -96,13 +100,13 @@ func (g *refCountGroup) toPythonObj(value interface{}) (*python3.PyObject, error
 		return nil, errors.New("booleans not currently supported for conversion to python objects")
 
 	case reflect.Int, reflect.Int8, reflect.Int32, reflect.Int64:
-		return g.append(python3.PyLong_FromLongLong(v.Int())), nil
+		return python3.PyLong_FromLongLong(v.Int()), nil
 
 	case reflect.Float32, reflect.Float64:
-		return g.append(python3.PyFloat_FromDouble(v.Float())), nil
+		return python3.PyFloat_FromDouble(v.Float()), nil
 
 	case reflect.String:
-		return g.append(python3.PyUnicode_FromString(v.String())), nil
+		return python3.PyUnicode_FromString(v.String()), nil
 
 	case reflect.Slice:
 		return nil, errors.New("slices not currently supported for conversion to python objects")
@@ -139,11 +143,12 @@ func (g *refCountGroup) toPythonObj(value interface{}) (*python3.PyObject, error
 
 //convert some python object to a go type
 func (g *refCountGroup) toGoType(obj *python3.PyObject) (interface{}, error) {
-	g.append(obj)
-
 	if obj == nil {
 		return nil, nil
 	}
+
+	//add to reference count group (we now own this object)
+	g.append(obj)
 
 	//determine the type of the object
 	if python3.PyFloat_Check(obj) {
@@ -182,7 +187,9 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 			//pack the args
 			for i, a := range args {
 				//get the type
-				if pyObj, pyObjErr := rcg.toPythonObj(a); pyObjErr == nil {
+				//Note: PyTuple_SetItem steals a reference to pyObj
+				//so we don't add pyObj to the ref count group
+				if pyObj, pyObjErr := toPythonObj(a); pyObjErr == nil {
 					python3.PyTuple_SetItem(pyArgs, i, pyObj)
 				} else {
 					return nil, pyObjErr
@@ -192,7 +199,7 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 			//execute the call
 			callRes := f.Call(pyArgs, rcg.append(python3.PyDict_New()))
 
-			if (callRes == nil) || (python3.PyErr_Occurred() != nil) {
+			if python3.PyErr_Occurred() != nil {
 				python3.PyErr_Print()
 				return nil, fmt.Errorf("failed to call function %s in module %s", function, module)
 			}

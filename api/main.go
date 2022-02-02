@@ -11,6 +11,7 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
@@ -59,6 +60,15 @@ func main() {
 	//initialize async workers
 	asyncProvider := async.NewAsyncProvider(mynahSettings, wsProvider)
 
+	//initialize the python ipc server
+	ipcProvider, ipcErr := ipc.NewIPCProvider(mynahSettings)
+	if ipcErr != nil {
+		log.Fatalf("failed to initialize ipc %s", ipcErr)
+	}
+
+	//start the ipc server
+	go ipcProvider.HandleEvents(wsProvider.Send)
+
 	//create the router and middleware
 	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider)
 
@@ -93,5 +103,6 @@ func main() {
 	pythonProvider.Close()
 	storageProvider.Close()
 	asyncProvider.Close()
+	ipcProvider.Close()
 	os.Exit(0)
 }

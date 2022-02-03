@@ -9,6 +9,12 @@ import (
 	"testing"
 )
 
+//stores a message from python
+type testRes struct {
+	uuid *string
+	msg  []byte
+}
+
 func TestIPC(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 	mynahSettings.PythonSettings.ModulePath = "../../python"
@@ -33,44 +39,60 @@ func TestIPC(t *testing.T) {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
-	doneChan := make(chan struct{})
+	messagesToSend := 250
 
-	targetUuid := uuid.New().String()
-	targetContents := "payload"
-	var readBytes int64
+	//capture results
+	resChan := make(chan testRes, messagesToSend)
+
+	//track messages sent
+	sentMessages := make(map[string]string)
 
 	//handle ipc events
 	go ipcProvider.HandleEvents(func(uuid *string, msg []byte) {
-		defer close(doneChan)
-		//check the result
-		if *uuid != targetUuid {
-			t.Errorf("ipc uuid does not match (%s != %s)", *uuid, targetUuid)
+		// write to the channel
+		resChan <- testRes{
+			uuid: uuid,
+			msg:  msg,
 		}
-
-		//check the message as a string
-		if string(msg) != targetContents {
-			t.Errorf("ipc message contents does not match (%s != %s)", string(msg), targetContents)
-		}
-
-		readBytes = int64(uuidLength + len(msg))
 	})
 
-	res, err := p.CallFunction("mynah_test", "ipc_test",
-		targetUuid,
-		targetContents,
-		mynahSettings.IPCSettings.SocketAddr)
+	//call python function
+	for i := 0; i < messagesToSend; i++ {
+		targetUuid := uuid.New().String()
+		targetContents := uuid.New().String()
 
-	//call the python ipc function
-	if err != nil {
-		t.Fatalf("failed to call function: %s", err)
+		sentMessages[targetUuid] = targetContents
+
+		go func() {
+			//call the python ipc function
+			res, err := p.CallFunction("mynah_test", "ipc_test",
+				targetUuid,
+				targetContents,
+				mynahSettings.IPCSettings.SocketAddr)
+
+			if err != nil {
+				t.Fatalf("failed to call function: %s", err)
+			}
+
+			sentLength := int64(len(targetUuid) + len(targetContents))
+
+			if res.(int64) != sentLength {
+				t.Fatalf("python result length (%d) != sent length (%d)", res.(int64), sentLength)
+			}
+		}()
 	}
 
-	sentBytes := res.(int64)
+	for i := 0; i < messagesToSend; i++ {
+		res := <-resChan
 
-	//wait for completion
-	<-doneChan
+		if targetPayload, ok := sentMessages[*res.uuid]; ok {
+			//check the message as a string
+			if string(res.msg) != targetPayload {
+				t.Fatalf("ipc message contents does not match (%s != %s)", string(res.msg), targetPayload)
+			}
 
-	if readBytes != sentBytes {
-		t.Errorf("bytes read (%d) different than bytes written (%d)", readBytes, sentBytes)
+		} else {
+			t.Fatalf("got unexpected uuid: %s", *res.uuid)
+		}
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"reiform.com/mynah/settings"
+	"runtime"
 )
 
 //manages a loaded python3.7 module
@@ -22,6 +23,8 @@ type python3_7Module struct {
 type python3_7 struct {
 	//the modules that have been loaded
 	modules map[string]python3_7Module
+	//the initial GIL state
+	gilState *python3.PyThreadState
 }
 
 //group python objects to be dereferenced
@@ -37,16 +40,31 @@ func NewPythonProvider(mynahSettings *settings.MynahSettings) PythonProvider {
 		log.Fatalf("error initializing the python interpreter")
 	}
 
+	python3.PyEval_InitThreads()
+
+	//no need to explicitly initialize in 3.7
+	if !python3.PyEval_ThreadsInitialized() {
+		log.Fatalf("error initializing python interpreter threads")
+	}
+
 	//add src directory to the path so the module can be loaded
 	python3.PyList_Append(python3.PySys_GetObject("path"), python3.PyUnicode_FromString(mynahSettings.PythonSettings.ModulePath))
 
 	return &python3_7{
-		modules: make(map[string]python3_7Module),
+		modules:  make(map[string]python3_7Module),
+		gilState: python3.PyEval_SaveThread(),
 	}
 }
 
 //initialize a module by name
 func (p *python3_7) InitModule(module string) error {
+	//lock goroutine to thread
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	_gilState := python3.PyGILState_Ensure()
+	defer python3.PyGILState_Release(_gilState)
+
 	if m := python3.PyImport_ImportModule(module); (m != nil) && (python3.PyErr_Occurred() == nil) {
 		p.modules[module] = python3_7Module{
 			module:    m,
@@ -61,6 +79,13 @@ func (p *python3_7) InitModule(module string) error {
 
 //initialize a module function. First arg is module, second is function name
 func (p *python3_7) InitFunction(module string, function string) error {
+	//lock goroutine to thread
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	_gilState := python3.PyGILState_Ensure()
+	defer python3.PyGILState_Release(_gilState)
+
 	//verify that the module has been loaded
 	if m, found := p.modules[module]; found {
 		if fn := m.module.GetAttrString(function); (fn != nil) && (python3.PyErr_Occurred() == nil) {
@@ -170,6 +195,14 @@ func (g *refCountGroup) toGoType(obj *python3.PyObject) (interface{}, error) {
 
 //call a module function with arguments
 func (p *python3_7) CallFunction(module string, function string, args ...interface{}) (interface{}, error) {
+	//lock goroutine to thread. Without this the goroutine may jump around threads
+	//which will not hold the GIL and will cause a segfault
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	_gilState := python3.PyGILState_Ensure()
+	defer python3.PyGILState_Release(_gilState)
+
 	//create a new reference counter group
 	var rcg refCountGroup
 	defer rcg.decref()
@@ -218,5 +251,6 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 //on shutdown
 func (p *python3_7) Close() {
 	log.Printf("python engine shutdown")
+	python3.PyEval_RestoreThread(p.gilState)
 	python3.Py_Finalize()
 }

@@ -40,7 +40,9 @@ export default function HomePage(props: HomePageProps): JSX.Element {
         <div className="flex items-center justify-center w-fit p-5 mx-auto">
           <button
             className="border border-black w-36 h-full py-2"
-            onClick={() => setIsProjectOpen(true)}
+            onClick={() => {
+              if (mode === 'Datasets') return
+              setIsProjectOpen(true)}}
           >
             + New {mode.slice(0, -1)}
           </button>

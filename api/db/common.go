@@ -48,12 +48,12 @@ func commonGetFile(file *model.MynahFile, requestor *model.MynahUser) error {
 }
 
 //get a dataset by id or return an error
-func commonGetDataset(dataset *model.MynahDataset, requestor *model.MynahUser) error {
+func commonGetDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser) error {
 	//check that the user is the dataset owner (or admin)
-	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+	if requestor.IsAdmin || requestor.Uuid == dataset.GetBaseDataset().OwnerUuid {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to request dataset %s", requestor.Uuid, dataset.Uuid)
+	return fmt.Errorf("user %s does not have permission to request dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
 }
 
 //check that the user is an admin (org checked in query)
@@ -88,6 +88,17 @@ func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filt
 
 //get the datasets that the user can view
 func commonListDatasets(datasets []*model.MynahDataset, requestor *model.MynahUser) (filtered []*model.MynahDataset) {
+	//filter for files that this user has permission to view
+	for _, d := range datasets {
+		if e := commonGetDataset(d, requestor); e == nil {
+			filtered = append(filtered, d)
+		}
+	}
+	return filtered
+}
+
+//get the datasets that the user can view
+func commonListICDatasets(datasets []*model.MynahICDataset, requestor *model.MynahUser) (filtered []*model.MynahICDataset) {
 	//filter for files that this user has permission to view
 	for _, d := range datasets {
 		if e := commonGetDataset(d, requestor); e == nil {
@@ -135,12 +146,13 @@ func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
 }
 
 //create a new dataset
-func commonCreateDataset(dataset *model.MynahDataset, creator *model.MynahUser) error {
+func commonCreateDataset(dataset model.MynahAbstractDataset, creator *model.MynahUser) error {
+	d := dataset.GetBaseDataset()
 	//give ownership to the user
-	dataset.OwnerUuid = creator.Uuid
+	d.OwnerUuid = creator.Uuid
 	//inherit the org id
-	dataset.OrgId = creator.OrgId
-	dataset.Uuid = uuid.New().String()
+	d.OrgId = creator.OrgId
+	d.Uuid = uuid.New().String()
 	return nil
 }
 
@@ -184,16 +196,16 @@ func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys []
 }
 
 //update a dataset in the database
-func commonUpdateDataset(dataset *model.MynahDataset, requestor *model.MynahUser, keys []string) error {
+func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser, keys []string) error {
 	//check that keys are not restricted
 	if restrictedKeys(keys) {
 		return errors.New("dataset update contained restricted keys")
 	}
 
-	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+	if requestor.IsAdmin || requestor.Uuid == dataset.GetBaseDataset().OwnerUuid {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to update dataset %s", requestor.Uuid, dataset.Uuid)
+	return fmt.Errorf("user %s does not have permission to update dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
 }
 
 //check that the requestor has permission
@@ -222,9 +234,9 @@ func commonDeleteFile(file *model.MynahFile, requestor *model.MynahUser) error {
 }
 
 //check that the requestor has permission to delete the dataset
-func commonDeleteDataset(dataset *model.MynahDataset, requestor *model.MynahUser) error {
-	if requestor.IsAdmin || requestor.Uuid == dataset.OwnerUuid {
+func commonDeleteDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser) error {
+	if requestor.IsAdmin || requestor.Uuid == dataset.GetBaseDataset().OwnerUuid {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to delete dataset %s", requestor.Uuid, dataset.Uuid)
+	return fmt.Errorf("user %s does not have permission to delete dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
 }

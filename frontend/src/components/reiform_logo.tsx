@@ -1,5 +1,5 @@
 import React from "react";
-import Logo from "./../images/favicon.png";
+import Logo from "./../images/ReiformLogo.png";
 
 export interface ReiformLogoProps {
   className?: string;

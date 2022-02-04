@@ -57,3 +57,22 @@ var datasetType = graphql.NewObject(
 		},
 	},
 )
+
+//Mynah Image Classification Datasets (model.MynahICDataset)
+var icDatasetType = graphql.NewObject(
+	graphql.ObjectConfig{
+		Name: "MynahICDataset",
+		Fields: graphql.Fields{
+			"uuid": &graphql.Field{
+				Type: graphql.String,
+			},
+			"dataset_name": &graphql.Field{
+				Type: graphql.String,
+			},
+			//TODO
+			// "referenced_files": &graphql.Field{
+			// 	Type: graphql.List,
+			// },
+		},
+	},
+)

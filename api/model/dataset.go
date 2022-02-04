@@ -2,6 +2,11 @@
 
 package model
 
+//mynah abstract type
+type MynahAbstractDataset interface {
+	GetBaseDataset() *MynahDataset
+}
+
 //Defines a mynah dataset
 type MynahDataset struct {
 	//the id of the dataset
@@ -14,4 +19,9 @@ type MynahDataset struct {
 	ReferencedFiles []string `json:"referenced_files" xorm:"TEXT 'referenced_files'"`
 	//the name of the dataset
 	DatasetName string `json:"dataset_name" xorm:"TEXT 'dataset_name'"`
+}
+
+//get the base dataset for attributes
+func (d *MynahDataset) GetBaseDataset() *MynahDataset {
+	return d
 }

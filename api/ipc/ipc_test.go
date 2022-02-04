@@ -71,13 +71,13 @@ func TestIPC(t *testing.T) {
 				mynahSettings.IPCSettings.SocketAddr)
 
 			if err != nil {
-				t.Fatalf("failed to call function: %s", err)
+				t.Errorf("failed to call function: %s", err)
 			}
 
 			sentLength := int64(len(targetUuid) + len(targetContents))
 
 			if res.(int64) != sentLength {
-				t.Fatalf("python result length (%d) != sent length (%d)", res.(int64), sentLength)
+				t.Errorf("python result length (%d) != sent length (%d)", res.(int64), sentLength)
 			}
 		}()
 	}

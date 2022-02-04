@@ -16,8 +16,8 @@ lint:
 	cd api ; gosec ./... || true
 clean:
 	rm mynah || true
-	rm mynah_local.db || true
+	find . -type f -name 'mynah_local.db' -delete || true
 	rm mynah.json || true
-	rm auth.pem || true
+	find . -type f -name 'auth.pem' -delete || true
 	rm -r tmp || true
 	rm -r static || true

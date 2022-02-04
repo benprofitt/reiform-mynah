@@ -84,7 +84,7 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
           {tabs.map((tabName) => (
             <div
               key={tabName}
-              className="border-t-2 border-b-2 border-black mb-5 p-2 cursor-pointer h-16"
+              className={clsx("border-t-2 border-b-2 border-black mb-5 p-2 cursor-pointer h-16", openTab === tabName && 'font-bold')}
               onClick={() => setOpenTab(tabName)}
             >
               {tabName}

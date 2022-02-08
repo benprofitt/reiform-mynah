@@ -5,11 +5,10 @@ package ipc
 import (
 	"context"
 	"fmt"
-	//"github.com/google/uuid"
 	"io"
-	"log"
 	"net"
 	"os"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/settings"
 	"sync"
 )
@@ -33,7 +32,7 @@ type ipcServer struct {
 //create a new ipc provider fomr settings
 func NewIPCProvider(mynahSettings *settings.MynahSettings) (IPCProvider, error) {
 	//bind to the socket address
-	log.Printf("IPC listening to unix socket %s", mynahSettings.IPCSettings.SocketAddr)
+	log.Infof("IPC listening to unix socket %s", mynahSettings.IPCSettings.SocketAddr)
 
 	//remove any existing socket
 	if err := os.RemoveAll(mynahSettings.IPCSettings.SocketAddr); err != nil {
@@ -76,7 +75,7 @@ func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte))
 				} else if err == io.EOF {
 					break
 				} else {
-					log.Printf("error reading from ipc connection: %s", err)
+					log.Errorf("error reading from ipc connection: %s", err)
 					break
 				}
 			}
@@ -87,7 +86,7 @@ func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte))
 				handler(&s, contents[uuidLength:])
 
 			} else {
-				log.Printf("ipc message contained less than %d bytes (%d)", uuidLength, len(contents))
+				log.Warnf("ipc message contained less than %d bytes (%d)", uuidLength, len(contents))
 			}
 
 			conn.Close()
@@ -107,7 +106,7 @@ func (s *ipcServer) HandleEvents(handler func(userUuid *string, msg []byte)) {
 			s.messages <- conn
 
 		} else {
-			log.Printf("error listening to socket: %s", err)
+			log.Errorf("error listening to socket: %s", err)
 			return
 		}
 	}
@@ -118,6 +117,6 @@ func (s *ipcServer) Close() {
 	//signal goroutines
 	s.cancel()
 	s.waitGroup.Wait()
-	log.Printf("closing ipc server")
+	log.Infof("closing ipc server")
 	s.listener.Close()
 }

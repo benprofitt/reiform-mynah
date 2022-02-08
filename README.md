@@ -32,6 +32,14 @@ This repository combines the frontend interface and the backend api for Mynah.
 - In general, all development work should be done on separate feature branches. When features are complete, these branches should be squashed (i.e. commits are combined into one) and merged into develop. Code reviews at this stage would be appropriate.
 - When changes to develop are considered stable, new features are merged into production. All changes merged into production _must_ be code reviewed.
 
+#### Logging
+- Don't use the go library logger. Instead use `"reiform.com/mynah/log"`
+- Functions
+  - `Info, Infof` - Normal operation message
+  - `Warning, Warningf` - Unexpected, bad user input, etc, may indicate integration bug
+  - `Error, Errorf` - Unexpected error (not the result of user input).
+  - `Fatal, Fatalf` - Exits after logging (unrecoverable)
+
 ### Testing
 - We will do our best to maintain test coverage for the api and frontend. In particular, when defects are identified, these should be added as new test cases.
 

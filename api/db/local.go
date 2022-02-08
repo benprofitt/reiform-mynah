@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/auth"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"xorm.io/xorm"
@@ -55,8 +55,8 @@ func (d *localDB) createLocalOrg(authProvider auth.AuthProvider) error {
 	tempAdmin.IsAdmin = true
 
 	//log the initial information
-	log.Printf("created organization %s", admin.OrgId)
-	log.Printf("created initial admin JWT for org (%s): %s", admin.OrgId, jwt)
+	log.Infof("created organization %s", admin.OrgId)
+	log.Infof("created initial admin JWT for org (%s): %s", admin.OrgId, jwt)
 
 	//add the initial admin user into the database
 	if createAdminErr := d.CreateUser(admin, &tempAdmin); createAdminErr != nil {
@@ -112,7 +112,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			}
 		}
 
-		log.Printf("created local database %s", mynahSettings.DBSettings.LocalPath)
+		log.Warnf("created local database %s", mynahSettings.DBSettings.LocalPath)
 	}
 
 	return &db, nil
@@ -541,6 +541,6 @@ func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) erro
 
 //close the client connection on shutdown
 func (d *localDB) Close() {
-	log.Printf("local database engine shutdown")
+	log.Infof("local database engine shutdown")
 	d.engine.Close()
 }

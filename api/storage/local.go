@@ -3,9 +3,9 @@
 package storage
 
 import (
-	"log"
 	"os"
 	"path/filepath"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 )
@@ -35,9 +35,9 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 	//create the local file to write to
 	if localFile, err := os.Create(file.Path); err == nil {
-		defer func () {
+		defer func() {
 			if err := localFile.Close(); err != nil {
-				log.Printf("error closing file %s: %s", file.Uuid, err)
+				log.Errorf("error closing file %s: %s", file.Uuid, err)
 			}
 		}()
 		return handler(localFile)
@@ -62,5 +62,5 @@ func (s *localStorage) DeleteFile(file *model.MynahFile) error {
 }
 
 func (s *localStorage) Close() {
-	log.Printf("local storage shutdown")
+	log.Infof("local storage shutdown")
 }

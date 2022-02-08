@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-python/cpy3"
-	"log"
 	"reflect"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/settings"
 	"runtime"
 )
@@ -250,7 +250,7 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 
 //on shutdown
 func (p *python3_7) Close() {
-	log.Printf("python engine shutdown")
+	log.Infof("python engine shutdown")
 	python3.PyEval_RestoreThread(p.gilState)
 	python3.Py_Finalize()
 }

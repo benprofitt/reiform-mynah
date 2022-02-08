@@ -4,10 +4,10 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 )
 
@@ -21,7 +21,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {
-			log.Printf("failed to parse json: %s", err)
+			log.Warnf("failed to parse json: %s", err)
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -34,7 +34,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 
 			//add the user to the database
 			if createErr := dbProvider.CreateUser(user, admin); createErr != nil {
-				log.Printf("failed to add new user to database %s", err)
+				log.Errorf("failed to add new user to database %s", err)
 				writer.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -49,7 +49,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 			if jsonResp, jsonErr := json.Marshal(&res); jsonErr == nil {
 				//write response
 				if _, writeErr := writer.Write(jsonResp); writeErr != nil {
-					log.Printf("failed to write response: %s", writeErr)
+					log.Errorf("failed to write response: %s", writeErr)
 					writer.WriteHeader(http.StatusInternalServerError)
 				} else {
 					//respond with json
@@ -57,12 +57,12 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 				}
 
 			} else {
-				log.Printf("failed to generate json response %s", jsonErr)
+				log.Errorf("failed to generate json response %s", jsonErr)
 				writer.WriteHeader(http.StatusInternalServerError)
 			}
 
 		} else {
-			log.Printf("failed to create new user %s", err)
+			log.Errorf("failed to create new user %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})

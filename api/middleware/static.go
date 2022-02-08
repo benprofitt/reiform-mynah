@@ -3,8 +3,8 @@
 package middleware
 
 import (
-	"log"
 	"net/http"
+	"reiform.com/mynah/log"
 )
 
 //Log requests for static resources
@@ -19,7 +19,7 @@ func (r *MynahRouter) staticLogger(handler http.Handler) http.HandlerFunc {
 		handler.ServeHTTP(&res, request)
 
 		//log the result
-		log.Printf("%s %s %s %d",
+		log.Infof("%s %s %s %d",
 			request.Method,
 			request.URL.Path,
 			request.Proto,
@@ -29,7 +29,7 @@ func (r *MynahRouter) staticLogger(handler http.Handler) http.HandlerFunc {
 
 //serve the static site
 func (r *MynahRouter) serveStaticSite() {
-	log.Printf("serving static web resources from %s with path prefix %s",
+	log.Infof("serving static web resources from %s with path prefix %s",
 		r.settings.StaticResourcesPath,
 		r.settings.StaticPrefix)
 

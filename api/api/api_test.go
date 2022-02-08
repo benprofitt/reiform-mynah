@@ -5,232 +5,137 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
-	"reiform.com/mynah/auth"
-	"reiform.com/mynah/db"
-	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
-	"reiform.com/mynah/storage"
+	"reiform.com/mynah/test"
 	"testing"
 )
 
 //create a new user, make an authenticated create user request
-func newUserCreateAuth(t *testing.T,
-	mynahSettings *settings.MynahSettings,
-	authProvider auth.AuthProvider,
-	dbProvider db.DBProvider,
-	router *middleware.MynahRouter,
-	isAdmin bool) (*model.MynahUser, string, error) {
-
-	//create a user
-	user, userJwt, userErr := authProvider.CreateUser()
-	if userErr != nil {
-		return nil, "", fmt.Errorf("failed to create user %s", userErr)
-	}
-	user.IsAdmin = isAdmin
-
-	//create an admin to insert the admin (must have distinct id)
-	creator := model.MynahUser{
-		OrgId:   user.OrgId,
-		IsAdmin: true,
-	}
-
-	//add to the database
-	if dbErr := dbProvider.CreateUser(user, &creator); dbErr != nil {
-		return nil, "", fmt.Errorf("failed to create user %s", dbErr)
-	}
-
+func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) error {
 	var jsonBody = []byte(`{"name_first":"test", "name_last": "test"}`)
 
 	//try to create a user
-	req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "admin", "user/create"), bytes.NewBuffer(jsonBody))
+	req, reqErr := http.NewRequest("POST", filepath.Join(c.Settings.ApiPrefix, "admin", "user/create"), bytes.NewBuffer(jsonBody))
 	if reqErr != nil {
-		return nil, "", fmt.Errorf("failed to create request %s", reqErr)
+		return reqErr
 	}
-	//add auth header
-	req.Header.Add(mynahSettings.AuthSettings.JwtHeader, userJwt)
+
+	//include the content type
 	req.Header.Add("Content-Type", "application/json")
 
-	//create a recorder for the response
-	rr := httptest.NewRecorder()
+	//make an http request
+	return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+		if code != http.StatusOK {
+			return fmt.Errorf("create user did not return a 200 status")
+		}
 
-	//make the request
-	router.ServeHTTP(rr, req)
+		//check that the user was inserted into the database
+		var res adminCreateUserResponse
+		//check the body
+		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+			return fmt.Errorf("failed to decode response %s", err)
+		}
 
-	//check the result
-	if stat := rr.Code; stat != http.StatusOK {
-		return nil, "", fmt.Errorf("create user returned non-200: %v want %v", stat, http.StatusOK)
-	}
+		//check for the user in the database (as a known admin)
+		dbUser, dbErr := c.DBProvider.GetUser(&res.User.Uuid, user)
+		if dbErr != nil {
+			return fmt.Errorf("new user not found in database %s", dbErr)
+		}
 
-	//check that the user was inserted into the database
-	var res adminCreateUserResponse
-
-	//attempt to parse the request body
-	if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
-		return nil, "", fmt.Errorf("failed to decode response %s", err)
-	}
-
-	//check for the user in the database (as a known admin)
-	dbUser, dbErr := dbProvider.GetUser(&res.User.Uuid, &creator)
-	if dbErr != nil {
-		return nil, "", fmt.Errorf("new user not found in database %s", dbErr)
-	}
-
-	//verify same
-	if dbUser.OrgId != res.User.OrgId {
-		return nil, "", fmt.Errorf("user from db (%v) not assigned same org id (%v)", dbUser.OrgId, res.User.OrgId)
-	}
-
-	return user, userJwt, nil
+		//verify same
+		if dbUser.OrgId != user.OrgId {
+			return fmt.Errorf("user from db (%v) not assigned same org id (%v)", dbUser.OrgId, user.OrgId)
+		}
+		return nil
+	})
 }
 
 //Test admin endpoints
 func TestAPIAdminEndpoints(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 
-	//initialize auth
-	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
-	if authErr != nil {
-		t.Fatalf("failed to initialize auth %s", authErr)
+	//load the testing context
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		//handle user creation endpoint
+		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
+
+		//create as admin
+		err := c.WithCreateUser(true, func(user *model.MynahUser, jwt string) error {
+			return makeCreateUserReq(user, jwt, c)
+		})
+		if err != nil {
+			return err
+		}
+
+		//create as non-admin
+		err = c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			return makeCreateUserReq(user, jwt, c)
+		})
+		if err == nil {
+			return errors.New("create user as non admin did not produce error as expected")
+		}
+		return nil
+	})
+
+	if err != nil {
+		t.Fatalf("TestAPIAdminEndpoints error: %s", err)
 	}
-	defer authProvider.Close()
-
-	//initialize the database connection
-	dbProvider, dbErr := db.NewDBProvider(mynahSettings, authProvider)
-	if dbErr != nil {
-		t.Fatalf("failed to initialize database connection %s", dbErr)
-	}
-	defer dbProvider.Close()
-
-	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
-	if storageErr != nil {
-		t.Fatalf("failed to initialize storage %s", storageErr)
-	}
-	defer storageProvider.Close()
-
-	//initialize router
-	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider)
-
-	//handle user creation endpoint
-	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
-
-	//make a request as an admin
-	if _, _, err := newUserCreateAuth(t, mynahSettings, authProvider, dbProvider, router, true); err != nil {
-		t.Fatalf("failed to create user as admin: %s", err)
-	}
-
-	//make a request as a non-admin
-	if _, _, err := newUserCreateAuth(t, mynahSettings, authProvider, dbProvider, router, false); err == nil {
-		t.Fatalf("non-admin was allowed to create a new user")
-	}
-
-	//TODO more admin endpoints
 }
 
 func TestFileGetEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 
-	//initialize auth
-	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
-	if authErr != nil {
-		t.Fatalf("failed to initialize auth %s", authErr)
-	}
-	defer authProvider.Close()
+	//load the testing context
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
+		c.Router.HandleFileRequest("file")
 
-	//initialize the database connection
-	dbProvider, dbErr := db.NewDBProvider(mynahSettings, authProvider)
-	if dbErr != nil {
-		t.Fatalf("failed to initialize database connection %s", dbErr)
-	}
-	defer dbProvider.Close()
+		testContents := "test contents"
+		expectedType := "text/plain; charset=utf-8"
 
-	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
-	if storageErr != nil {
-		t.Fatalf("failed to initialize storage %s", storageErr)
-	}
-	defer storageProvider.Close()
+		//create a user
+		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			//create a file
+			return c.WithCreateFile(user, testContents, func(file *model.MynahFile) error {
+				//make a request for the file
+				req, reqErr := http.NewRequest("GET", filepath.Join(mynahSettings.ApiPrefix, "file", file.Uuid), nil)
+				if reqErr != nil {
+					return reqErr
+				}
+				//add auth header
+				req.Header.Add(mynahSettings.AuthSettings.JwtHeader, jwt)
 
-	//initialize router
-	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider)
-	//handle user creation
-	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
-	//handle user creation endpoint
-	router.HandleFileRequest("file")
+				//make a request for the file
+				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+					//check the result
+					if code != http.StatusOK {
+						return fmt.Errorf("create user returned non-200: %v want %v", code, http.StatusOK)
+					}
 
-	//create a user
-	user, jwt, err := newUserCreateAuth(t, mynahSettings, authProvider, dbProvider, router, true)
-	if err != nil {
-		t.Fatalf("failed to create user as admin: %s", err)
-	}
+					if rr.Result().ContentLength != int64(len(testContents)) {
+						t.Fatalf("file contents length served (%d) not the same as saved (%d)\n",
+							rr.Result().ContentLength,
+							len(testContents))
+					}
 
-	var file model.MynahFile
-	file.Name = "test.txt"
-
-	//create a file
-	if createErr := dbProvider.CreateFile(&file, user); createErr != nil {
-		t.Fatalf("failed to create file in database: %s", createErr)
-	}
-
-	fileContents := "test contents"
-	expectedType := "text/plain; charset=utf-8"
-
-	//create the file in storage
-	storeErr := storageProvider.StoreFile(&file, func(f *os.File) error {
-		//write contents to the file
-		_, err := f.WriteString(fileContents)
-		return err
+					if rr.Result().Header.Get("Content-Type") != expectedType {
+						t.Fatalf("file contents served (%s) not the same as saved (%s)\n",
+							rr.Result().Header.Get("Content-Type"),
+							expectedType)
+					}
+					return nil
+				})
+			})
+		})
 	})
-
-	if storeErr != nil {
-		t.Fatalf("failed to write to file")
-	}
-
-	//update the file in the database
-	if updateErr := dbProvider.UpdateFile(&file, user, "path"); updateErr != nil {
-		t.Fatalf("failed to update file path in database: %s", updateErr)
-	}
-
-	//request the file
-	req, reqErr := http.NewRequest("GET", filepath.Join(mynahSettings.ApiPrefix, "file", file.Uuid), nil)
-	if reqErr != nil {
-		t.Fatalf("failed to create request %s", reqErr)
-	}
-	//add auth header
-	req.Header.Add(mynahSettings.AuthSettings.JwtHeader, jwt)
-
-	//create a recorder for the response
-	rr := httptest.NewRecorder()
-
-	//make the request
-	router.ServeHTTP(rr, req)
-
-	//check the result
-	if stat := rr.Code; stat != http.StatusOK {
-		t.Fatalf("create user returned non-200: %v want %v", stat, http.StatusOK)
-	}
-
-	if rr.Result().ContentLength != int64(len(fileContents)) {
-		t.Fatalf("file contents length served (%d) not the same as saved (%d)\n",
-			rr.Result().ContentLength,
-			len(fileContents))
-	}
-
-	if rr.Result().Header.Get("Content-Type") != expectedType {
-		t.Fatalf("file contents served (%s) not the same as saved (%s)\n",
-			rr.Result().Header.Get("Content-Type"),
-			expectedType)
-	}
-
-	//delete the file
-	if deleteErr := storageProvider.DeleteFile(&file); deleteErr != nil {
-		t.Fatalf("failed to delete file: %s", deleteErr)
+	if err != nil {
+		t.Fatalf("TestFileGetEndpoint error: %s", err)
 	}
 }
 

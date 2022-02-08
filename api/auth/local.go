@@ -11,10 +11,10 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 )
@@ -78,7 +78,7 @@ func newLocalAuth(mynahSettings *settings.MynahSettings) (*localAuth, error) {
 		if err := generateJWTKeyFile(mynahSettings.AuthSettings.PemFilePath); err != nil {
 			return nil, err
 		}
-		log.Printf("generated jwt signing key %s", mynahSettings.AuthSettings.PemFilePath)
+		log.Warnf("generated jwt signing key %s", mynahSettings.AuthSettings.PemFilePath)
 	}
 
 	//load the jwt signing key
@@ -149,5 +149,5 @@ func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
 
 //close the auth provider
 func (a *localAuth) Close() {
-	log.Printf("local authentication shutdown")
+	log.Infof("local authentication shutdown")
 }

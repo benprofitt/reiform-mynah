@@ -22,6 +22,10 @@
 - In the multipart form, `file` must contain the file contents
 - Returns the file
 
+## File endpoint
+- All files tracked by Mynah can be requested using:
+- `GET /api/v1/file/{uuid}`
+
 ## Admin Management Endpoints
 
 ### Creating a User

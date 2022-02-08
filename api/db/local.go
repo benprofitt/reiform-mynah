@@ -391,14 +391,24 @@ func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, 
 	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(file)
-	if err != nil {
-		return err
+
+	hasTsUpdate := false
+
+	//add last modified if not included
+	for _, k := range keys {
+		if k == "last_modified" {
+			hasTsUpdate = true
+			break
+		}
 	}
-	if affected == 0 {
-		return fmt.Errorf("file %s not updated (no records affected)", file.Uuid)
+
+	if !hasTsUpdate {
+		//update the last modified timestamp implicitly
+		keys = append(keys, "last_modified")
 	}
-	return nil
+
+	_, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(file)
+	return err
 }
 
 //update a dataset

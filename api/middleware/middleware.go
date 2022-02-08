@@ -12,8 +12,6 @@ import (
 	"net/http"
 )
 
-const projectKey string = "project"
-
 //response for logging
 type logResponse struct {
 	http.ResponseWriter

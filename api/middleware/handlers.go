@@ -9,11 +9,13 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
+	"reiform.com/mynah/storage"
 	"time"
 )
 
@@ -21,6 +23,8 @@ type ctxKey string
 
 const contextUserKey ctxKey = "user"
 const contextProjectKey ctxKey = "project"
+const projectKey string = "project"
+const fileKey string = "file"
 
 //Handler for a request that requires the user
 type MynahUserHandler func(user *model.MynahUser) (*Response, error)
@@ -39,13 +43,17 @@ func getProjectFromRequest(request *http.Request) *model.MynahProject {
 }
 
 //Create a new router
-func NewRouter(mynahSettings *settings.MynahSettings, authProvider auth.AuthProvider, dbProvider db.DBProvider) *MynahRouter {
+func NewRouter(mynahSettings *settings.MynahSettings,
+	authProvider auth.AuthProvider,
+	dbProvider db.DBProvider,
+	storageProvider storage.StorageProvider) *MynahRouter {
 	return &MynahRouter{
 		mux.NewRouter(),
 		nil,
 		mynahSettings,
 		authProvider,
 		dbProvider,
+		storageProvider,
 	}
 }
 
@@ -82,6 +90,52 @@ func (r *MynahRouter) projectHandler(handler MynahProjectHandler) http.HandlerFu
 	})
 }
 
+//handler that loads a file and serves the contents
+func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Request) {
+	//get the user from context
+	user := GetUserFromRequest(request)
+
+	//get the file id
+	if fileId, ok := mux.Vars(request)[fileKey]; ok {
+		//load the file metadata
+		if file, fileErr := r.dbProvider.GetFile(&fileId, user); fileErr == nil {
+			//serve the file contents
+			storeErr := r.storageProvider.GetStoredFile(file, func(path *string) error {
+				//open the file
+				osFile, osErr := os.Open(*path)
+				if osErr != nil {
+					return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
+				}
+				
+				defer func () {
+					if err := osFile.Close(); err != nil {
+						log.Printf("error closing file %s: %s", file.Uuid, err)
+					}
+				}()
+
+				modTime := time.Unix(file.LastModified, 0)
+
+				//determine the last modified time
+				http.ServeContent(writer, request, file.Name, modTime, osFile)
+				return nil
+			})
+
+			if storeErr != nil {
+				log.Printf("error writing file to response: %s", storeErr)
+				writer.WriteHeader(http.StatusInternalServerError)
+			}
+
+		} else {
+			log.Printf("error retrieving file %s: %s", fileId, fileErr)
+			writer.WriteHeader(http.StatusBadRequest)
+		}
+
+	} else {
+		log.Printf("file request path missing %s", fileKey)
+		writer.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 //handle a basic http request (authenticated user passed in request context)
 func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
@@ -101,11 +155,19 @@ func (r *MynahRouter) HandleAdminRequest(method string, path string, handler htt
 
 //handle a project request (loads project, passes to handler)
 func (r *MynahRouter) HandleProjectRequest(method string, path string, handler MynahProjectHandler) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, fmt.Sprintf("{%s}", projectKey), path),
+	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, fmt.Sprintf("project/{%s}", projectKey), path),
 		r.logMiddleware(
 			r.corsMiddleware(
 				r.authenticationMiddleware(
 					r.projectMiddleware(r.projectHandler(handler)))))).Methods(method, http.MethodOptions)
+}
+
+//handle a request for a file
+func (r *MynahRouter) HandleFileRequest(path string) {
+	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path, fmt.Sprintf("{%s}", fileKey)),
+		r.logMiddleware(
+			r.corsMiddleware(
+				r.authenticationMiddleware(r.fileHandler)))).Methods("GET", http.MethodOptions)
 }
 
 //start server

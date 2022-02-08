@@ -70,7 +70,10 @@ func main() {
 	go ipcProvider.HandleEvents(wsProvider.Send)
 
 	//create the router and middleware
-	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider)
+	router := middleware.NewRouter(mynahSettings,
+		authProvider,
+		dbProvider,
+		storageProvider)
 
 	//register api endpoints
 	if err := api.RegisterRoutes(router,
@@ -98,11 +101,11 @@ func main() {
 
 	//close various services
 	router.Close()
+	asyncProvider.Close()
+	ipcProvider.Close()
 	dbProvider.Close()
 	authProvider.Close()
 	pythonProvider.Close()
 	storageProvider.Close()
-	asyncProvider.Close()
-	ipcProvider.Close()
 	os.Exit(0)
 }

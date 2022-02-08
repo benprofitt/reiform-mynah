@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
@@ -72,19 +72,21 @@ func (r *MynahRouter) projectHandler(handler MynahProjectHandler) http.HandlerFu
 			if res.Body != nil {
 				//serialize as json
 				if jsonResp, jsonErr := json.Marshal(res.Body); jsonErr == nil {
-					if _, err := writer.Write(jsonResp); err != nil {
-						log.Printf("failed to write json response for request: %s", err)
+					if _, err := writer.Write(jsonResp); err == nil {
+						//respond with json
+						writer.Header().Set("Content-Type", "application/json")
+					} else {
+						log.Errorf("failed to write json response for request: %s", err)
+						writer.WriteHeader(http.StatusInternalServerError)
 					}
-					//respond with json
-					writer.Header().Set("Content-Type", "application/json")
 
 				} else {
-					log.Printf("failed to generate json response %s", jsonErr)
+					log.Errorf("failed to generate json response %s", jsonErr)
 					writer.WriteHeader(http.StatusInternalServerError)
 				}
 			}
 		} else {
-			log.Printf("handler returned error %s", handlerErr)
+			log.Errorf("handler returned error %s", handlerErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})
@@ -106,10 +108,10 @@ func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Requ
 				if osErr != nil {
 					return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
 				}
-				
-				defer func () {
+
+				defer func() {
 					if err := osFile.Close(); err != nil {
-						log.Printf("error closing file %s: %s", file.Uuid, err)
+						log.Errorf("error closing file %s: %s", file.Uuid, err)
 					}
 				}()
 
@@ -121,17 +123,17 @@ func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Requ
 			})
 
 			if storeErr != nil {
-				log.Printf("error writing file to response: %s", storeErr)
+				log.Errorf("error writing file to response: %s", storeErr)
 				writer.WriteHeader(http.StatusInternalServerError)
 			}
 
 		} else {
-			log.Printf("error retrieving file %s: %s", fileId, fileErr)
+			log.Warnf("error retrieving file %s: %s", fileId, fileErr)
 			writer.WriteHeader(http.StatusBadRequest)
 		}
 
 	} else {
-		log.Printf("file request path missing %s", fileKey)
+		log.Errorf("file request path missing %s", fileKey)
 		writer.WriteHeader(http.StatusInternalServerError)
 	}
 }
@@ -182,7 +184,7 @@ func (r *MynahRouter) ListenAndServe() {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	log.Printf("server exit: %s", r.server.ListenAndServe())
+	log.Errorf("server exit: %s", r.server.ListenAndServe())
 }
 
 //Shutdown the server
@@ -190,6 +192,6 @@ func (r *MynahRouter) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	if err := r.server.Shutdown(ctx); err != nil {
-		log.Printf("server shutdown error: %s", err)
+		log.Errorf("server shutdown error: %s", err)
 	}
 }

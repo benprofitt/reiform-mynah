@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"os/signal"
 	"reiform.com/mynah/api"
@@ -12,6 +11,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/ipc"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
@@ -22,8 +22,6 @@ import (
 
 //entrypoint
 func main() {
-	log.SetPrefix("mynah ")
-
 	settingsPtr := flag.String("settings", "mynah.json", "settings file path")
 	flag.Parse()
 
@@ -93,7 +91,7 @@ func main() {
 	}()
 
 	//handle signals gracefully
-	signalChan := make(chan os.Signal)
+	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	//block until signal received

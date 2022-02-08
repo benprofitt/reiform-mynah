@@ -3,8 +3,8 @@
 package db
 
 import (
-	"log"
 	"reiform.com/mynah/auth"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/settings"
 )
 

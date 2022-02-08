@@ -76,7 +76,7 @@ func testHarnessE2E(path string,
 
 	//check that the results match
 	for i, m := range results {
-		message := fmt.Sprintf(m)
+		message := fmt.Sprint(m)
 		expected := fmt.Sprintf("message-%d", i)
 		if message != expected {
 			return fmt.Errorf("message %s doesn't match expected %s", message, expected)

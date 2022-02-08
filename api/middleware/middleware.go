@@ -7,9 +7,9 @@ import (
 	"context"
 	"errors"
 	"github.com/gorilla/mux"
-	"log"
 	"net"
 	"net/http"
+	"reiform.com/mynah/log"
 )
 
 //response for logging
@@ -45,7 +45,7 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 		handler.ServeHTTP(&res, request)
 
 		//log the result
-		log.Printf("%s %s %s %d",
+		log.Infof("%s %s %s %d",
 			request.Method,
 			request.URL.Path,
 			request.Proto,
@@ -78,12 +78,12 @@ func (r *MynahRouter) authenticationMiddleware(handler http.HandlerFunc) http.Ha
 					context.WithValue(request.Context(), contextUserKey, user)))
 
 			} else {
-				log.Printf("auth middleware failed to get user from database: %s", getErr)
+				log.Errorf("auth middleware failed to get user from database: %s", getErr)
 				writer.WriteHeader(http.StatusUnauthorized)
 			}
 
 		} else {
-			log.Printf("invalid user authentication: %s", authErr)
+			log.Warnf("invalid user authentication: %s", authErr)
 			writer.WriteHeader(http.StatusUnauthorized)
 		}
 	})
@@ -119,11 +119,11 @@ func (r *MynahRouter) projectMiddleware(handler http.HandlerFunc) http.HandlerFu
 					context.WithValue(request.Context(), contextProjectKey, &project)))
 
 			} else {
-				log.Printf("error retrieving project %s: %s", projectId, projectErr)
+				log.Errorf("error retrieving project %s: %s", projectId, projectErr)
 				writer.WriteHeader(http.StatusBadRequest)
 			}
 		} else {
-			log.Printf("project request path missing %s", projectKey)
+			log.Errorf("project request path missing %s", projectKey)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})

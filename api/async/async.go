@@ -5,7 +5,7 @@ package async
 import (
 	"context"
 	"github.com/google/uuid"
-	"log"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/websockets"
@@ -45,16 +45,16 @@ func (a *asyncEngine) taskRunner(wsProvider websockets.WebSocketProvider) {
 
 		case task := <-a.taskChan:
 			start := time.Now().Unix()
-			log.Printf("started async task %s at timestamp %d", task.uuid, start)
+			log.Infof("started async task %s at timestamp %d", task.uuid, start)
 			//run the task
 			res, err := task.handler(task.user)
 			//get the stop timestamp
 			stop := time.Now().Unix()
 
 			if err != nil {
-				log.Printf("async task %s failed at timestamp %d: %s", task.uuid, stop, err)
+				log.Errorf("async task %s failed at timestamp %d: %s", task.uuid, stop, err)
 			} else {
-				log.Printf("async task %s succeeded at timestamp %d", task.uuid, stop)
+				log.Infof("async task %s succeeded at timestamp %d", task.uuid, stop)
 				//send to the websocket to respond to client
 				wsProvider.Send(&task.uuid, res)
 			}
@@ -79,7 +79,7 @@ func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websocke
 	//set the task completion context
 	e.ctx, e.cancel = context.WithCancel(context.Background())
 
-	log.Printf("starting async pool with %d workers", workers)
+	log.Infof("starting async pool with %d workers", workers)
 	for i := 0; i < workers; i++ {
 		go e.taskRunner(wsProvider)
 	}
@@ -104,6 +104,6 @@ func (a *asyncEngine) Close() {
 	//signal goroutines
 	a.cancel()
 
-	log.Printf("waiting for running async tasks to complete")
+	log.Infof("waiting for running async tasks to complete")
 	a.waitGroup.Wait()
 }

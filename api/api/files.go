@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -37,7 +37,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 
 		//attempt to parse the multipart form
 		if err := request.ParseMultipartForm(mynahSettings.StorageSettings.MaxUpload); err != nil {
-			log.Printf("failed to parse multipart form: %s", err)
+			log.Warnf("failed to parse multipart form: %s", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -45,7 +45,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		//get the file
 		file, fileHeader, formErr := request.FormFile("file")
 		if formErr != nil {
-			log.Printf("failed to get file from form: %s", formErr)
+			log.Warnf("failed to get file from form: %s", formErr)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -53,7 +53,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 
 		//check that the file is not too big
 		if fileHeader.Size > mynahSettings.StorageSettings.MaxUpload {
-			log.Printf("file surpasses max upload size, ignoring")
+			log.Warnf("file surpasses max upload size, ignoring")
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -61,7 +61,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		//check that the file can be read successfully
 		fileContents, readErr := ioutil.ReadAll(file)
 		if readErr != nil {
-			log.Printf("invalid file when reading: %s", readErr)
+			log.Warnf("invalid file when reading: %s", readErr)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -69,7 +69,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		detectedType := http.DetectContentType(fileContents)
 		//validate the content type
 		if !validFiletype(&detectedType) {
-			log.Printf("file has unsupported content type %s, ignoring", detectedType)
+			log.Infof("file has unsupported content type %s, ignoring", detectedType)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -86,17 +86,17 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		})
 
 		if storeErr != nil {
-			log.Printf("failed to write file to local storage %s", storeErr)
+			log.Errorf("failed to write file to local storage %s", storeErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		//add the file to the database
 		if err := dbProvider.CreateFile(&mynahFile, user); err != nil {
-			log.Printf("failed to add file to database %s", err)
+			log.Errorf("failed to add file to database %s", err)
 			//remove the file from local storage
 			if dErr := storageProvider.DeleteFile(&mynahFile); dErr != nil {
-				log.Printf("failed to delete file from local storage %s", dErr)
+				log.Errorf("failed to delete file from local storage %s", dErr)
 			}
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
@@ -105,14 +105,14 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		//return the file metadata
 		if jsonResp, jsonErr := json.Marshal(&mynahFile); jsonErr == nil {
 			if _, writeErr := writer.Write(jsonResp); writeErr != nil {
-				log.Printf("failed to write json as response for file upload %s", writeErr)
+				log.Errorf("failed to write json as response for file upload %s", writeErr)
 				writer.WriteHeader(http.StatusInternalServerError)
 			}
 			//set content type to json
 			writer.Header().Set("Content-Type", "application/json")
 
 		} else {
-			log.Printf("failed to generate json response for file upload %s", jsonErr)
+			log.Errorf("failed to generate json response for file upload %s", jsonErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})

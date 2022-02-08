@@ -4,8 +4,8 @@ package websockets
 
 import (
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/settings"
 	"time"
@@ -80,7 +80,7 @@ func (c *connectedClient) clientWrite() {
 			//send a ping message to the client
 			if pingErr := c.conn.WriteMessage(websocket.PingMessage, nil); pingErr != nil {
 				//exit goroutine and disconnect/deregister client
-				log.Printf("error sending ping to client: %s", pingErr)
+				log.Errorf("error sending ping to client: %s", pingErr)
 				return
 			}
 
@@ -90,12 +90,12 @@ func (c *connectedClient) clientWrite() {
 			//get the next websocket writer
 			if writer, writerErr := c.conn.NextWriter(websocket.TextMessage); writerErr == nil {
 				if _, err := writer.Write(msg); err != nil {
-					log.Printf("failed to write to websocket client: %s", err)
+					log.Errorf("failed to write to websocket client: %s", err)
 				}
 				writer.Close()
 
 			} else {
-				log.Printf("error sending message to websocket client: %s", writerErr)
+				log.Errorf("error sending message to websocket client: %s", writerErr)
 				//exit goroutine and disconnect/deregister client
 				return
 			}
@@ -110,7 +110,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 		for {
 			select {
 			case newClient := <-w.registerClientChan:
-				log.Printf("registered websocket client %s", newClient.uuid)
+				log.Infof("registered websocket client %s", newClient.uuid)
 				//register the client
 				w.clients[newClient.uuid] = newClient
 
@@ -120,7 +120,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 					delete(w.clients, existingClient.uuid)
 					close(existingClient.outgoing)
 				}
-				log.Printf("deregistered websocket client %s", existingClient.uuid)
+				log.Infof("deregistered websocket client %s", existingClient.uuid)
 
 			case newMsg := <-w.dataChan:
 				//find the client in the lookup
@@ -128,7 +128,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 					//offload the writing to the client's goroutine
 					client.outgoing <- newMsg.msg
 				} else {
-					log.Printf("user %s is not connected as a websocket client", newMsg.uuid)
+					log.Warnf("user %s is not connected as a websocket client", newMsg.uuid)
 				}
 			}
 		}
@@ -143,7 +143,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 		clientConn, upgradeErr := upgrader.Upgrade(writer, request, nil)
 
 		if upgradeErr != nil {
-			log.Print("failed to upgrade http client: ", upgradeErr)
+			log.Errorf("failed to upgrade http client: ", upgradeErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -177,7 +177,7 @@ func (w *webSocketServer) Send(uuid *string, msg []byte) {
 
 //close connected clients
 func (w *webSocketServer) Close() {
-	log.Printf("closing websocket connections")
+	log.Infof("closing websocket connections")
 	for uuid, client := range w.clients {
 		close(client.outgoing)
 		delete(w.clients, uuid)

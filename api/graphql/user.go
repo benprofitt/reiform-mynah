@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/graphql-go/graphql"
-	"log"
 	"net/http"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 )
@@ -136,7 +136,6 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	)
 
 	if schemaErr != nil {
-		log.Printf("failed to initialize graphql schema")
 		return nil, schemaErr
 	}
 
@@ -153,11 +152,12 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 		})
 
 		if len(result.Errors) > 0 {
-			log.Printf("graphql errors: %v", result.Errors)
+			log.Warnf("graphql errors: %v", result.Errors)
 			writer.WriteHeader(http.StatusBadRequest)
 		} else {
 			if err := json.NewEncoder(writer).Encode(result); err != nil {
-				log.Printf("failed to write GQL response: %s", err)
+				log.Errorf("failed to write GQL response: %s", err)
+				writer.WriteHeader(http.StatusInternalServerError)
 			} else {
 				writer.Header().Set("Content-Type", "application/json")
 			}

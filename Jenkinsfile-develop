@@ -42,6 +42,7 @@ pipeline {
       steps {
         script {
           docker.image(IMAGE).inside {
+            sh 'rm -rf .cache ; export XDG_CACHE_HOME=../.cache ; make clean && make GO=/usr/local/go/bin/go test'
             test_results = sh(
               script: "rm -rf .cache ; export XDG_CACHE_HOME=../.cache ; make clean && make GO=/usr/local/go/bin/go test | grep -e FAIL",
               returnStdout: true

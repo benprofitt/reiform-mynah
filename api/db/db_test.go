@@ -9,6 +9,7 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"testing"
+	"time"
 )
 
 //TODO run tests for both database providers by changing the settings and passing in
@@ -18,13 +19,13 @@ func TestBasicDBActionsUser(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
 	if authPErr != nil {
-		t.Errorf("failed to create auth provider for test %s", authPErr)
+		t.Fatalf("failed to create auth provider for test %s", authPErr)
 		return
 	}
 	defer authProvider.Close()
 	dbProvider, dbPErr := NewDBProvider(s, authProvider)
 	if dbPErr != nil {
-		t.Errorf("failed to create database provider for test %s", dbPErr)
+		t.Fatalf("failed to create database provider for test %s", dbPErr)
 		return
 	}
 	defer dbProvider.Close()
@@ -123,12 +124,12 @@ func TestBasicDBActionsProject(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
 	if authPErr != nil {
-		t.Errorf("failed to create auth provider for test %s", authPErr)
+		t.Fatalf("failed to create auth provider for test %s", authPErr)
 	}
 	defer authProvider.Close()
 	dbProvider, dbPErr := NewDBProvider(s, authProvider)
 	if dbPErr != nil {
-		t.Errorf("failed to create database provider for test %s", dbPErr)
+		t.Fatalf("failed to create database provider for test %s", dbPErr)
 	}
 	defer dbProvider.Close()
 
@@ -232,12 +233,12 @@ func TestBasicDBActionsDataset(t *testing.T) {
 
 	//create a normal dataset
 	dataset := model.MynahDataset{
-		DatasetName:     "dataset_test",
+		DatasetName: "dataset_test",
 	}
 
 	icDataset := model.MynahICDataset{
 		model.MynahDataset{
-			DatasetName:     "ic_dataset_test",
+			DatasetName: "ic_dataset_test",
 		},
 	}
 
@@ -349,5 +350,59 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		}
 	} else {
 		t.Fatalf("failed to delete dataset %s", deleteErr)
+	}
+}
+
+func TestBasicDBFileUpdate(t *testing.T) {
+	s := settings.DefaultSettings()
+	authProvider, authPErr := auth.NewAuthProvider(s)
+	if authPErr != nil {
+		t.Fatalf("failed to create auth provider for test %s", authPErr)
+	}
+	defer authProvider.Close()
+	dbProvider, dbPErr := NewDBProvider(s, authProvider)
+	if dbPErr != nil {
+		t.Fatalf("failed to create database provider for test %s", dbPErr)
+	}
+	defer dbProvider.Close()
+
+	//create a user
+	user := model.MynahUser{
+		Uuid:    uuid.New().String(),
+		OrgId:   uuid.New().String(),
+		IsAdmin: false,
+	}
+
+	var file model.MynahFile
+
+	//create the project in the database
+	if createErr := dbProvider.CreateFile(&file, &user); createErr != nil {
+		t.Fatalf("failed to create test file %s", createErr)
+	}
+
+	//check the modification time
+	modTime := file.LastModified
+
+	//wait
+	time.Sleep(2 * time.Second)
+
+	//update the file (no fields)
+	if updateErr := dbProvider.UpdateFile(&file, &user); updateErr != nil {
+		t.Fatalf("failed to update test file %s", updateErr)
+	}
+
+	//read the file
+	if dbFile, getErr := dbProvider.GetFile(&file.Uuid, &user); getErr == nil {
+		//check updated time
+		if dbFile.LastModified <= modTime {
+			t.Fatalf("last_modified not updated %d <= %d", dbFile.LastModified, modTime)
+		}
+	} else {
+		t.Fatalf("failed to get ic dataset %s", getErr)
+	}
+
+	//update file and explicitly pass modification key
+	if updateErr := dbProvider.UpdateFile(&file, &user, "last_modified"); updateErr != nil {
+		t.Fatalf("failed to update test file %s", updateErr)
 	}
 }

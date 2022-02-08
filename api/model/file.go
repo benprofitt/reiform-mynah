@@ -24,4 +24,6 @@ type MynahFile struct {
 	Location FileLocation `json:"-" xorm:"TEXT 'location'"`
 	//the path to the file
 	Path string `json:"-" xorm:"TEXT 'path'"`
+	//last modified time
+	LastModified int64 `json:"-" xorm:"INTEGER 'last_modified'"`
 }

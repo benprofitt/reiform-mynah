@@ -13,6 +13,7 @@ import (
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
+	"reiform.com/mynah/storage"
 	"testing"
 	"time"
 )
@@ -104,6 +105,14 @@ func TestWSServerE2E(t *testing.T) {
 	}
 	defer dbProvider.Close()
 
+	//initialize storage
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
+	if storageErr != nil {
+		t.Errorf("failed to initialize storage %s", storageErr)
+		return
+	}
+	defer storageProvider.Close()
+
 	//create a user for authenticating the request
 	admin := model.MynahUser{
 		IsAdmin: true,
@@ -128,7 +137,7 @@ func TestWSServerE2E(t *testing.T) {
 	defer wsProvider.Close()
 
 	//create the middleware router for handling requests
-	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider)
+	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider)
 
 	//register the websocket endpoint
 	router.HandleHTTPRequest("test", wsProvider.ServerHandler())
@@ -139,7 +148,7 @@ func TestWSServerE2E(t *testing.T) {
 	}()
 
 	//let the server come up
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Second * 2)
 
 	//execute the tests on the server
 	if err := testHarnessE2E("/api/v1/test", jwt, &user.Uuid, mynahSettings, wsProvider); err != nil {

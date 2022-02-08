@@ -31,6 +31,9 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	//register the websocket endpoint
 	router.HandleHTTPRequest("websocket", wsProvider.ServerHandler())
 
+	//register the file viewer endpoint
+	router.HandleFileRequest("file")
+
 	//register the file upload endpoint
 	router.HandleHTTPRequest("upload", handleFileUpload(settings, dbProvider, storageProvider))
 

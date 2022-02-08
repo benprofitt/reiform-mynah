@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"reiform.com/mynah/model"
+	"time"
 )
 
 //check if any of the update keys are restricted
@@ -142,6 +143,8 @@ func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
 	//inherit the org id
 	file.OrgId = creator.OrgId
 	file.Uuid = uuid.New().String()
+	//set the updated timestamp
+	file.LastModified = time.Now().Unix()
 	return nil
 }
 
@@ -188,6 +191,9 @@ func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys []
 	if restrictedKeys(keys) {
 		return errors.New("file update contained restricted keys")
 	}
+
+	//update the modification timestamp
+	file.LastModified = time.Now().Unix()
 
 	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
 		return nil

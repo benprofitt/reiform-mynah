@@ -232,7 +232,7 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 			//execute the call
 			callRes := f.Call(pyArgs, rcg.append(python3.PyDict_New()))
 
-			if python3.PyErr_Occurred() != nil {
+			if (callRes == nil) || (python3.PyErr_Occurred() != nil) {
 				python3.PyErr_Print()
 				return nil, fmt.Errorf("failed to call function %s in module %s", function, module)
 			}

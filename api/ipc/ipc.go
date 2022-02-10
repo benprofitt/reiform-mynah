@@ -4,6 +4,7 @@ package ipc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -43,6 +44,11 @@ func NewIPCProvider(mynahSettings *settings.MynahSettings) (IPCProvider, error) 
 	listener, listenErr := net.Listen("unix", mynahSettings.IPCSettings.SocketAddr)
 	if listenErr != nil {
 		return nil, listenErr
+	}
+
+	//check that the file has been created
+	if _, statErr := os.Stat(mynahSettings.IPCSettings.SocketAddr); errors.Is(statErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("ipc socket %s does not exist", mynahSettings.IPCSettings.SocketAddr)
 	}
 
 	s := ipcServer{

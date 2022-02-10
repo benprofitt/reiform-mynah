@@ -51,9 +51,9 @@ make test
 ## Setup
 
 ### Running the API
-- **Important Note**: Running `make clean` will clear the default sqlite database location. If you want to persist your local database, change the name of the database local path in `mynah.json`. The Makefile is set to delete `mynah_local.db`.
-- **Important Note**: Running `make clean` will delete the default configuration file `mynah.json`. To persist a configuration file, rename the file and pass the new path using the `-settings` flag (i.e. `./mynah -settings new_name.json`). The Makefile is set to delete `mynah.json`.
-- **Important Note**: Running `make clean` will delete the default JWT private key `auth.pem`. To persist a JWT private key, change the name of the PEM file local path in `mynah.json`. The Makefile is set to delete `auth.pem`.
+- **Important Note**: Running `make clean` will clear the default sqlite database location. If you want to persist your local database, change the name of the database local path in `mynah.json`. The Makefile is set to delete `data/mynah_local.db`.
+- **Important Note**: Running `make clean` will delete the default configuration file `data/mynah.json`. To persist a configuration file, rename the file and pass the new path using the `-settings` flag (i.e. `./mynah -settings new_name.json`). The Makefile is set to delete `mynah.json`.
+- **Important Note**: Running `make clean` will delete the default JWT private key `data/auth.pem`. To persist a JWT private key, change the name of the PEM file local path in `mynah.json`. The Makefile is set to delete `auth.pem`.
 
 To run the api with a fresh database and configuration file:
 ```
@@ -64,8 +64,10 @@ make clean && make mynah && ./mynah
 - Install Docker on your machine and run
 ```
 docker build -t mynah:latest .
-docker run -p 8080:8080 mynah:latest
+./platform/run_no_gpu.sh latest
 ```
+- Note: in order to reset the configuration, delete `mynah_container_data_latest/`
+  - (This will likely be necessary as new configuration options are added)
 
 ### Using Vagrant (for backend development)
 - Install Vagrant on your machine and run

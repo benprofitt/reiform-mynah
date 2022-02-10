@@ -9,12 +9,34 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/test"
 	"testing"
 )
+
+//setup and teardown
+func TestMain(m *testing.M) {
+	dirPath := "data"
+
+	//create the base directory if it doesn't exist
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		log.Fatalf("failed to create directory: %s", dirPath)
+	}
+
+	//run tests
+	exitVal := m.Run()
+
+	//remove generated
+	if err := os.RemoveAll(dirPath); err != nil {
+		log.Errorf("failed to clean up after tests: %s", err)
+	}
+
+	os.Exit(exitVal)
+}
 
 //create a new user, make an authenticated create user request
 func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) error {

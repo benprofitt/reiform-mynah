@@ -9,3 +9,5 @@ __pycache__
 .pyc
 static/*
 *tmp/*
+*data/*
+mynah_container_data_*/*

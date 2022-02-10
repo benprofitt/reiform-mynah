@@ -3,12 +3,34 @@
 package async
 
 import (
+	"os"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/websockets"
 	"testing"
 	"time"
 )
+
+//setup and teardown
+func TestMain(m *testing.M) {
+	dirPath := "data"
+
+	//create the base directory if it doesn't exist
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		log.Fatalf("failed to create directory: %s", dirPath)
+	}
+
+	//run tests
+	exitVal := m.Run()
+
+	//remove generated
+	if err := os.RemoveAll(dirPath); err != nil {
+		log.Errorf("failed to clean up after tests: %s", err)
+	}
+
+	os.Exit(exitVal)
+}
 
 //run tests on the async architecture
 func TestAsync(t *testing.T) {

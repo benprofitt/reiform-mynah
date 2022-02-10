@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"log"
 	"os"
+	"path/filepath"
+	"reiform.com/mynah/log"
+	"strings"
 )
 
 type DBSetting string
@@ -99,16 +101,16 @@ func DefaultSettings() *MynahSettings {
 		CORSAllowOrigin:     "*",
 		DBSettings: MynahDBSettings{
 			Type:            "local",
-			LocalPath:       "mynah_local.db",
+			LocalPath:       "data/mynah_local.db",
 			InitialOrgCount: 1,
 		},
 		AuthSettings: MynahAuthSettings{
-			PemFilePath: "auth.pem",
+			PemFilePath: "data/auth.pem",
 			JwtHeader:   "api-key",
 		},
 		StorageSettings: MynahStorageSettings{
 			S3Storage: true,
-			LocalPath: `tmp`,
+			LocalPath: `data/tmp`,
 			MaxUpload: 100 * 1024 * 1024 * 1024,
 		},
 		PythonSettings: MynahPythonSettings{
@@ -128,13 +130,21 @@ func DefaultSettings() *MynahSettings {
 func generateSettings(path *string) {
 	m := DefaultSettings()
 
+	dirPath := strings.TrimSuffix(*path, filepath.Base(*path))
+
+	//create the base directory if it doesn't exist
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		log.Errorf("failed to create directory: %s", dirPath)
+		return
+	}
+
 	//write to file
 	if json, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {
 		if ioErr := ioutil.WriteFile(*path, json, 0600); ioErr != nil {
-			log.Printf("failed to write default settings: %s", ioErr)
+			log.Errorf("failed to write default settings: %s", ioErr)
 		}
 	} else {
-		log.Printf("failed to generate default settings: %s", jsonErr)
+		log.Errorf("failed to generate default settings: %s", jsonErr)
 	}
 }
 
@@ -155,7 +165,7 @@ func LoadSettings(path *string) (*MynahSettings, error) {
 	if !settingsExist(path) {
 		//generate default settings
 		generateSettings(path)
-		log.Printf("wrote new settings file to %s", *path)
+		log.Errorf("wrote new settings file to %s", *path)
 	}
 
 	//read in the settings file from the local path

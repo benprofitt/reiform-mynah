@@ -9,10 +9,8 @@ import DataCleaning from "../project_tabs/data_cleaning";
 import CleaningReport from "../project_tabs/cleaning_report";
 import DataEgress from "../project_tabs/data_egress";
 import clsx from "clsx";
-
-export interface ProjectPageProps {
-  setIsProjectOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}
+// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom' 
+// uncomment the above you'll need those components!!
 
 type TabName =
   | "Data Ingest"
@@ -22,8 +20,7 @@ type TabName =
   | "Cleaning Report"
   | "Data Egress";
 
-export default function ProjectPage(props: ProjectPageProps): JSX.Element {
-  const { setIsProjectOpen } = props;
+export default function ProjectPage(): JSX.Element {
   const [projectTitle, setProjectTitle] = useState("Template Project Title");
   const tabs: TabName[] = [
     "Data Ingest",
@@ -45,7 +42,7 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
   console.log(tabs[-1])
   return (
     <PageContainer>
-      <TopBar onClickLogo={() => setIsProjectOpen(false)}>
+      <TopBar>
         <div className="border-r-2 border-black w-full p-2 pr-5 flex">
           <input
             className="font-bold ml-10 text-4xl p-2 border border-black w-full"
@@ -54,7 +51,7 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
           />
         </div>
         <div className="flex items-center justify-center p-5 w-fit mx-auto">
-          <button
+          <button // this button will need to become a Link with the to=project/nextTab
             className={clsx(
               "border border-black w-36 h-full py-2",
               openTab === tabs[tabs.length - 1] && "pointer-events-none text-gray-300"
@@ -82,7 +79,7 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
       <div className="flex grow">
         <SideBar>
           {tabs.map((tabName) => (
-            <div
+            <div // THESE WILL BE LINKS TO 'project/tabName' (keep map using string interpolation!)
               key={tabName}
               className={clsx("border-t-2 border-b-2 border-black mb-5 p-2 cursor-pointer h-16", openTab === tabName && 'font-bold')}
               onClick={() => setOpenTab(tabName)}
@@ -92,8 +89,8 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
           ))}
         </SideBar>
         <div className="w-full">
-          {openTab ? (
-            TabMap[openTab]
+          {openTab ? ( // THIS WILL LOOK LIKE /app, WITH A ROUTER AND 
+            TabMap[openTab] // ROUTES WITH A ROUTE EACH TABNAME
           ) : (
             <p className="text-center mt-3">Project Contents</p>
           )}

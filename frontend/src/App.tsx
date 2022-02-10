@@ -1,19 +1,17 @@
-import { useState } from "react";
 import HomePage from './pages/home_page'
 import ProjectPage from './pages/project_page'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 
 
 function App(): JSX.Element {
-  const [isProjectOpen, setIsProjectOpen] = useState(false);
 
   return (
-    <>
-      {!isProjectOpen ? (
-        <HomePage setIsProjectOpen={setIsProjectOpen} />
-      ) : (
-        <ProjectPage setIsProjectOpen={setIsProjectOpen} />
-      )}
-    </>
+    <Router>
+      <Routes>
+        <Route path='/mynah/project' element={<ProjectPage />} />
+        <Route path='/mynah' element={<HomePage />} />
+      </Routes>
+    </Router>
   );
 }
 

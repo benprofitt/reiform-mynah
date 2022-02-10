@@ -8,8 +8,10 @@ import (
 	"github.com/gorilla/websocket"
 	"net/http"
 	"net/url"
+	"os"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -17,6 +19,26 @@ import (
 	"testing"
 	"time"
 )
+
+//setup and teardown
+func TestMain(m *testing.M) {
+	dirPath := "data"
+
+	//create the base directory if it doesn't exist
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		log.Fatalf("failed to create directory: %s", dirPath)
+	}
+
+	//run tests
+	exitVal := m.Run()
+
+	//remove generated
+	if err := os.RemoveAll(dirPath); err != nil {
+		log.Errorf("failed to clean up after tests: %s", err)
+	}
+
+	os.Exit(exitVal)
+}
 
 //make requests to the testing server
 func testHarnessE2E(path string,
@@ -61,6 +83,8 @@ func testHarnessE2E(path string,
 			results = append(results, string(message))
 		}
 	}()
+
+	time.Sleep(1 * time.Second)
 
 	for i := 0; i < messagesToSend; i++ {
 		//distribute messages

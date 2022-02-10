@@ -22,7 +22,7 @@ import (
 
 //entrypoint
 func main() {
-	settingsPtr := flag.String("settings", "mynah.json", "settings file path")
+	settingsPtr := flag.String("settings", "data/mynah.json", "settings file path")
 	flag.Parse()
 
 	//load settings

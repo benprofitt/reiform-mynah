@@ -5,10 +5,31 @@ package storage
 import (
 	"errors"
 	"os"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"testing"
 )
+
+//setup and teardown
+func TestMain(m *testing.M) {
+	dirPath := "data"
+
+	//create the base directory if it doesn't exist
+	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
+		log.Fatalf("failed to create directory: %s", dirPath)
+	}
+
+	//run tests
+	exitVal := m.Run()
+
+	//remove generated
+	if err := os.RemoveAll(dirPath); err != nil {
+		log.Errorf("failed to clean up after tests: %s", err)
+	}
+
+	os.Exit(exitVal)
+}
 
 //TODO run tests for both storage providers by changing the settings and passing in
 
@@ -40,7 +61,7 @@ func TestBasicStorageActions(t *testing.T) {
 
 	//get the stored file
 	if getErr := storageProvider.GetStoredFile(&file, func(p *string) error {
-		if *p != "tmp/mynah_test_file" {
+		if *p != "data/tmp/mynah_test_file" {
 			return errors.New("test file does not exist")
 		}
 		//check that the file exists
@@ -55,7 +76,7 @@ func TestBasicStorageActions(t *testing.T) {
 	//delete the file
 	if deleteErr := storageProvider.DeleteFile(&file); deleteErr == nil {
 		//verify that the file doesn't exist
-		if _, err := os.Stat("tmp/mynah_test_file"); err == nil {
+		if _, err := os.Stat("data/tmp/mynah_test_file"); err == nil {
 			t.Error("file was not deleted successfully")
 			return
 		}

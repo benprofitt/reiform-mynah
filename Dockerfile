@@ -29,6 +29,8 @@ ENV XDG_CACHE_HOME=/tmp/.cache
 RUN pip3 install -r python/requirements.txt
 RUN make GO=/usr/local/go/bin/go all
 
+#TODO copy binaries + static web resources to next stage
+
 EXPOSE 8080
 
 CMD ["./run.sh"]

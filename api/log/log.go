@@ -15,7 +15,7 @@ var (
 func init() {
 	if log == nil {
 		format := logging.MustStringFormatter(
-			`mynah %{color}%{time:2006-01-02T15:04:05.999Z} %{level:.4s} %{color:reset} %{message}`,
+			`mynah-server %{color}%{time:2006-01-02 15:04:05.999} %{level:.4s} %{color:reset} %{message}`,
 		)
 		//create a log backend
 		backend := logging.NewLogBackend(os.Stderr, "", 0)

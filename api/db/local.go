@@ -219,6 +219,7 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 		model.MynahDataset{
 			Uuid: *uuid,
 		},
+		make([]string, 0),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)

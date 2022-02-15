@@ -10,6 +10,7 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
@@ -67,6 +68,14 @@ func main() {
 	//start the ipc server
 	go ipcProvider.HandleEvents(wsProvider.Send)
 
+	//check that the mynah module can be loaded successfully
+	version, versionErr := impl.GetMynahImplVersion(pythonProvider)
+	if versionErr != nil {
+		log.Fatalf("failed to initialize mynah python %s", versionErr)
+	}
+
+	log.Infof("mynah python version: %s", version.Version)
+
 	//create the router and middleware
 	router := middleware.NewRouter(mynahSettings,
 		authProvider,
@@ -101,6 +110,7 @@ func main() {
 	router.Close()
 	asyncProvider.Close()
 	ipcProvider.Close()
+	wsProvider.Close()
 	dbProvider.Close()
 	authProvider.Close()
 	pythonProvider.Close()

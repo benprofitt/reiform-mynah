@@ -79,6 +79,7 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 							ReferencedFiles: make([]string, 0),
 							DatasetName:     p.Args["dataset_name"].(string),
 						},
+						make([]string, 0),
 					}
 
 					//return the dataset and add to the database

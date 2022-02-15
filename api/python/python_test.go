@@ -34,37 +34,33 @@ func TestPythonArgs(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 	mynahSettings.PythonSettings.ModulePath = "../../python"
 
-	p := NewPythonProvider(mynahSettings)
+	p := newLocalPythonProvider(mynahSettings)
 	defer p.Close()
 
-	if err := p.InitModule("mynah_test"); err != nil {
-		t.Fatalf("failed to init module: %s", err)
-	}
-
-	if err := p.InitFunction("mynah_test", "test0"); err != nil {
+	if _, err := p.InitFunction("mynah_test", "test0"); err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
-	if err := p.InitFunction("mynah_test", "test1"); err != nil {
+	if _, err := p.InitFunction("mynah_test", "test1"); err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
-	if err := p.InitFunction("mynah_test", "test2"); err != nil {
+	if _, err := p.InitFunction("mynah_test", "test2"); err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
-	if err := p.InitFunction("mynah_test", "test3"); err != nil {
+	if _, err := p.InitFunction("mynah_test", "test3"); err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
-	if err := p.InitFunction("mynah_test", "test4"); err != nil {
+	if _, err := p.InitFunction("mynah_test", "test4"); err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
 	arg1_0 := 3
 	arg2_0 := 1.2
 
-	if res, err := p.CallFunction("mynah_test", "test0", arg1_0, arg2_0); err != nil {
+	if res, err := p.localCallFunction("mynah_test", "test0", arg1_0, arg2_0); err != nil {
 		t.Fatalf("failed to call function: %s", err)
 	} else {
 		//check the result
@@ -80,7 +76,7 @@ func TestPythonArgs(t *testing.T) {
 	arg1_1 := "c"
 	arg2_1 := "d"
 
-	if res, err := p.CallFunction("mynah_test", "test1", arg1_1, arg2_1); err != nil {
+	if res, err := p.localCallFunction("mynah_test", "test1", arg1_1, arg2_1); err != nil {
 		t.Fatalf("failed to call function: %s", err)
 	} else {
 		//check the result
@@ -92,7 +88,7 @@ func TestPythonArgs(t *testing.T) {
 		}
 	}
 
-	if res, err := p.CallFunction("mynah_test", "test2"); err != nil {
+	if res, err := p.localCallFunction("mynah_test", "test2"); err != nil {
 		t.Fatalf("failed to call function: %s", err)
 	} else {
 		//check the result
@@ -104,7 +100,7 @@ func TestPythonArgs(t *testing.T) {
 	arg1_3 := "abc"
 	arg2_3 := 5
 
-	if res, err := p.CallFunction("mynah_test", "test3", arg1_3, arg2_3); err != nil {
+	if res, err := p.localCallFunction("mynah_test", "test3", arg1_3, arg2_3); err != nil {
 		t.Fatalf("failed to call function: %s", err)
 	} else {
 		//check the result
@@ -116,7 +112,7 @@ func TestPythonArgs(t *testing.T) {
 		}
 	}
 
-	if _, err := p.CallFunction("mynah_test", "test4"); err == nil {
+	if _, err := p.localCallFunction("mynah_test", "test4"); err == nil {
 		t.Fatal("python exception test did not produce error")
 	}
 }

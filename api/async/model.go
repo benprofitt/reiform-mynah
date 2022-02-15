@@ -7,7 +7,7 @@ import (
 )
 
 //Handler to invoke asynchronously
-type AsyncTaskHandler func(*model.MynahUser) ([]byte, error)
+type AsyncTaskHandler func(string) ([]byte, error)
 
 //interface for launching new background processes
 type AsyncProvider interface {

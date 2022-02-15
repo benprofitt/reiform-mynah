@@ -1,4 +1,6 @@
 import socket
+import json
+import progress_logger
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):
@@ -20,9 +22,10 @@ def test3(s : str, i : int) -> int:
 def test4() -> int:
     raise ValueError("python test exception")
 
-def ipc_test(uuid: str, payload: str, sockaddr: str) -> int:
-    s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.connect(sockaddr)
-    s.send(("{}{}".format(uuid, payload)).encode('utf-8'))
-    s.close()
-    return len(("{}{}".format(uuid, payload)).encode())
+def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
+    #parse payload as json
+    contents = json.loads(payload)
+    with progress_logger.ProgressLogger(uuid, sockaddr) as plogger:
+        plogger.write(contents['msg'])
+
+    return '{"msg": "%s"}' % contents['msg']

@@ -3,28 +3,50 @@
 package python
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-python/cpy3"
 	"reflect"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"runtime"
 )
 
+//response returned by calling python locally
+type localPython3_7Response struct {
+	//the response
+	res string
+	//any error
+	err error
+}
+
+//callable function type
+type localPython3_7Function struct {
+	//the module
+	module string
+	//the function
+	function string
+	//the python provider
+	provider *localPython3_7
+}
+
 //manages a loaded python3.7 module
-type python3_7Module struct {
+type localPython3_7Module struct {
 	module *python3.PyObject
 	//functions loaded in this module
 	functions map[string]*python3.PyObject
 }
 
 //manages python3.7 interop
-type python3_7 struct {
+type localPython3_7 struct {
 	//the modules that have been loaded
-	modules map[string]python3_7Module
+	modules map[string]localPython3_7Module
 	//the initial GIL state
 	gilState *python3.PyThreadState
+	//ipc socket address
+	sockAddr string
 }
 
 //group python objects to be dereferenced
@@ -32,8 +54,40 @@ type refCountGroup struct {
 	objects []*python3.PyObject
 }
 
-//Create a new python provider
-func NewPythonProvider(mynahSettings *settings.MynahSettings) PythonProvider {
+//get the python response as a string
+func (r *localPython3_7Response) GetResponse(target interface{}) error {
+	if r.err != nil {
+		return r.err
+	}
+	//decode the result
+	return json.Unmarshal([]byte(r.res), target)
+}
+
+//call the function as a user
+func (f *localPython3_7Function) Call(user *model.MynahUser, req interface{}) MynahPythonResponse {
+	var res localPython3_7Response
+
+	//perform the json conversion of the request
+	if jsonReq, jsonErr := json.Marshal(req); jsonErr == nil {
+
+		if contents, err := f.provider.localCallFunction(f.module, f.function, user.Uuid, string(jsonReq), f.provider.sockAddr); err == nil {
+			switch v := contents.(type) {
+			case string:
+				res.res = v
+			default:
+				res.err = fmt.Errorf("python function %s in module %s returned a non string type", f.function, f.module)
+			}
+		} else {
+			res.err = err
+		}
+	} else {
+		res.err = jsonErr
+	}
+	return &res
+}
+
+//Create a new local execution python provider
+func newLocalPythonProvider(mynahSettings *settings.MynahSettings) *localPython3_7 {
 	python3.Py_Initialize()
 
 	if !python3.Py_IsInitialized() {
@@ -50,35 +104,15 @@ func NewPythonProvider(mynahSettings *settings.MynahSettings) PythonProvider {
 	//add src directory to the path so the module can be loaded
 	python3.PyList_Append(python3.PySys_GetObject("path"), python3.PyUnicode_FromString(mynahSettings.PythonSettings.ModulePath))
 
-	return &python3_7{
-		modules:  make(map[string]python3_7Module),
+	return &localPython3_7{
+		modules:  make(map[string]localPython3_7Module),
 		gilState: python3.PyEval_SaveThread(),
-	}
-}
-
-//initialize a module by name
-func (p *python3_7) InitModule(module string) error {
-	//lock goroutine to thread
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	_gilState := python3.PyGILState_Ensure()
-	defer python3.PyGILState_Release(_gilState)
-
-	if m := python3.PyImport_ImportModule(module); (m != nil) && (python3.PyErr_Occurred() == nil) {
-		p.modules[module] = python3_7Module{
-			module:    m,
-			functions: make(map[string]*python3.PyObject),
-		}
-		return nil
-	} else {
-		python3.PyErr_Print()
-		return fmt.Errorf("failed to load python module %s", module)
+		sockAddr: mynahSettings.IPCSettings.SocketAddr,
 	}
 }
 
 //initialize a module function. First arg is module, second is function name
-func (p *python3_7) InitFunction(module string, function string) error {
+func (p *localPython3_7) InitFunction(module string, function string) (MynahPythonFunction, error) {
 	//lock goroutine to thread
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -86,18 +120,44 @@ func (p *python3_7) InitFunction(module string, function string) error {
 	_gilState := python3.PyGILState_Ensure()
 	defer python3.PyGILState_Release(_gilState)
 
-	//verify that the module has been loaded
-	if m, found := p.modules[module]; found {
-		if fn := m.module.GetAttrString(function); (fn != nil) && (python3.PyErr_Occurred() == nil) {
-			m.functions[function] = fn
-			return nil
+	//check if the module has been imported yet
+	if _, found := p.modules[module]; !found {
+		//otherwise import
+		if m := python3.PyImport_ImportModule(module); (m != nil) && (python3.PyErr_Occurred() == nil) {
+			p.modules[module] = localPython3_7Module{
+				module:    m,
+				functions: make(map[string]*python3.PyObject),
+			}
 		} else {
 			python3.PyErr_Print()
-			return fmt.Errorf("failed to load python function %s in module %s", function, module)
+			return nil, fmt.Errorf("failed to load python module %s", module)
+		}
+	}
+
+	//verify that the module has been loaded
+	if m, found := p.modules[module]; found {
+		//if already loaded, error (leaks memory)
+		if _, foundFn := m.functions[function]; foundFn {
+			return nil, fmt.Errorf("function already loaded: %s", function)
+		}
+
+		if fn := m.module.GetAttrString(function); (fn != nil) && (python3.PyErr_Occurred() == nil) {
+			m.functions[function] = fn
+
+			//create a new wrapper
+			return &localPython3_7Function{
+				module:   module,
+				function: function,
+				provider: p,
+			}, nil
+
+		} else {
+			python3.PyErr_Print()
+			return nil, fmt.Errorf("failed to load python function %s in module %s", function, module)
 		}
 
 	} else {
-		return fmt.Errorf("module %s has not been loaded", module)
+		return nil, fmt.Errorf("module %s has not been loaded", module)
 	}
 }
 
@@ -194,7 +254,7 @@ func (g *refCountGroup) toGoType(obj *python3.PyObject) (interface{}, error) {
 }
 
 //call a module function with arguments
-func (p *python3_7) CallFunction(module string, function string, args ...interface{}) (interface{}, error) {
+func (p *localPython3_7) localCallFunction(module string, function string, args ...interface{}) (interface{}, error) {
 	//lock goroutine to thread. Without this the goroutine may jump around threads
 	//which will not hold the GIL and will cause a segfault
 	runtime.LockOSThread()
@@ -249,7 +309,7 @@ func (p *python3_7) CallFunction(module string, function string, args ...interfa
 }
 
 //on shutdown
-func (p *python3_7) Close() {
+func (p *localPython3_7) Close() {
 	log.Infof("python engine shutdown")
 	python3.PyEval_RestoreThread(p.gilState)
 	python3.Py_Finalize()

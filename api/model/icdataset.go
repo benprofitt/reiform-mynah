@@ -6,4 +6,6 @@ package model
 type MynahICDataset struct {
 	//underlying mynah dataset
 	MynahDataset `json:"dataset" xorm:"extends"`
+	//all classes referenced in this dataset
+	Classes []string `json:"classes" xorm:"TEXT 'classes'"`
 }

@@ -262,6 +262,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		model.MynahDataset{
 			DatasetName: "ic_dataset_test",
 		},
+		make([]string, 0),
 	}
 
 	//create the projects in the database

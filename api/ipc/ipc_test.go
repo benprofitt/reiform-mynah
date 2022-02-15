@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"os"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/model"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"testing"
@@ -15,6 +16,16 @@ import (
 type testRes struct {
 	uuid *string
 	msg  []byte
+}
+
+//serializes to json for request
+type PyReq struct {
+	Msg string `json:"msg"`
+}
+
+//expected python response
+type PyRes struct {
+	Msg string `json:"msg"`
 }
 
 //setup and teardown
@@ -53,11 +64,9 @@ func TestIPC(t *testing.T) {
 	p := python.NewPythonProvider(mynahSettings)
 	defer p.Close()
 
-	if err := p.InitModule("mynah_test"); err != nil {
-		t.Fatalf("failed to init module: %s", err)
-	}
+	pyFunction, err := p.InitFunction("mynah_test", "ipc_test")
 
-	if err := p.InitFunction("mynah_test", "ipc_test"); err != nil {
+	if err != nil {
 		t.Fatalf("failed to init function: %s", err)
 	}
 
@@ -85,23 +94,28 @@ func TestIPC(t *testing.T) {
 
 		sentMessages[targetUuid] = targetContents
 
+		user := model.MynahUser{
+			Uuid: targetUuid,
+		}
+
+		req := PyReq{
+			Msg: targetContents,
+		}
+
 		go func() {
 			//call the python ipc function
-			res, err := p.CallFunction("mynah_test", "ipc_test",
-				targetUuid,
-				targetContents,
-				mynahSettings.IPCSettings.SocketAddr)
+			res := pyFunction.Call(&user, &req)
 
-			if err != nil {
-				t.Errorf("failed to call function: %s", err)
-				return
-			}
+			var pythonResponse PyRes
+			if err := res.GetResponse(&pythonResponse); err != nil {
+				t.Errorf("error calling function: %s", err)
+			} else {
 
-			sentLength := int64(len(targetUuid) + len(targetContents))
-
-			if res.(int64) != sentLength {
-				t.Errorf("python result length (%d) != sent length (%d)", res.(int64), sentLength)
-				return
+				if pythonResponse.Msg != targetContents {
+					t.Errorf("response msg (%s) did not match target contents (%s)",
+						pythonResponse.Msg,
+						targetContents)
+				}
 			}
 		}()
 	}

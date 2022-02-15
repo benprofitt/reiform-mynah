@@ -16,11 +16,11 @@ import (
 //async task
 type asyncTask struct {
 	//the user who owns this task
-	user *model.MynahUser
+	userUuid string
 	//the task handler
 	handler AsyncTaskHandler
 	//the id of the task
-	uuid string
+	taskUuid string
 }
 
 //maintain the async queue, process new items
@@ -45,18 +45,18 @@ func (a *asyncEngine) taskRunner(wsProvider websockets.WebSocketProvider) {
 
 		case task := <-a.taskChan:
 			start := time.Now().Unix()
-			log.Infof("started async task %s at timestamp %d", task.uuid, start)
+			log.Infof("started async task %s at timestamp %d", task.taskUuid, start)
 			//run the task
-			res, err := task.handler(task.user)
+			res, err := task.handler(task.userUuid)
 			//get the stop timestamp
 			stop := time.Now().Unix()
 
 			if err != nil {
-				log.Errorf("async task %s failed at timestamp %d: %s", task.uuid, stop, err)
+				log.Errorf("async task %s failed at timestamp %d: %s", task.taskUuid, stop, err)
 			} else {
-				log.Infof("async task %s succeeded at timestamp %d", task.uuid, stop)
+				log.Infof("async task %s succeeded at timestamp %d", task.taskUuid, stop)
 				//send to the websocket to respond to client
-				wsProvider.Send(&task.uuid, res)
+				wsProvider.Send(&task.userUuid, res)
 			}
 		}
 	}
@@ -91,9 +91,9 @@ func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websocke
 func (a *asyncEngine) StartAsyncTask(user *model.MynahUser, handler AsyncTaskHandler) {
 	//write a new task to the channel
 	a.taskChan <- &asyncTask{
-		user:    user,
-		handler: handler,
-		uuid:    uuid.New().String(),
+		userUuid: user.Uuid,
+		handler:  handler,
+		taskUuid: uuid.New().String(),
 	}
 }
 

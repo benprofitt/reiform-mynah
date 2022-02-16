@@ -376,7 +376,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	}
 }
 
-func TestBasicDBFileUpdate(t *testing.T) {
+func TestBasicDBActionsFile(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
 	if authPErr != nil {
@@ -427,5 +427,48 @@ func TestBasicDBFileUpdate(t *testing.T) {
 	//update file and explicitly pass modification key
 	if updateErr := dbProvider.UpdateFile(&file, &user, "last_modified"); updateErr != nil {
 		t.Fatalf("failed to update test file %s", updateErr)
+	}
+
+	rangeRequest := 10
+
+	//add more files and then make range request
+	files := make([]model.MynahFile, rangeRequest)
+	var uuids []string
+
+	for _, f := range files {
+		if createErr := dbProvider.CreateFile(&f, &user); createErr != nil {
+			t.Fatalf("failed to create test file %s", createErr)
+		}
+		uuids = append(uuids, f.Uuid)
+	}
+
+	//make a range request
+	dbFiles, rangeErr := dbProvider.GetFiles(uuids, &user)
+	if rangeErr != nil {
+		t.Fatalf("failed to request multiple files %s", rangeErr)
+	}
+
+	if len(dbFiles) != rangeRequest {
+		t.Fatalf("expected %d files but got %d", rangeRequest, len(dbFiles))
+	}
+
+	//make a request for one with the range operator
+	dbFile, rangeErr := dbProvider.GetFiles([]string{file.Uuid}, &user)
+	if rangeErr != nil {
+		t.Fatalf("failed to request single file with range %s", rangeErr)
+	}
+
+	if len(dbFile) != 1 {
+		t.Fatalf("expected %d files but got %d", 1, len(dbFile))
+	}
+
+	//make an empty request
+	noFiles, rangeErr := dbProvider.GetFiles([]string{}, &user)
+	if rangeErr != nil {
+		t.Fatalf("failed to request zero files with range %s", rangeErr)
+	}
+
+	if len(noFiles) != 0 {
+		t.Fatalf("expected %d files but got %d", 0, len(noFiles))
 	}
 }

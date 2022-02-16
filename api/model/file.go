@@ -5,6 +5,18 @@ package model
 //the permissions a user can have for a project
 type FileLocation string
 
+type MetadataKey string
+
+const (
+	MetadataSize   MetadataKey = "size"
+	MetadataWidth  MetadataKey = "width"
+	MetadataHeight MetadataKey = "height"
+	MetadataFormat MetadataKey = "format"
+)
+
+//metadata type
+type FileMetadata map[MetadataKey]string
+
 const (
 	Local FileLocation = "local"
 	S3    FileLocation = "s3 "
@@ -26,4 +38,8 @@ type MynahFile struct {
 	Path string `json:"-" xorm:"TEXT 'path'"`
 	//last modified time
 	LastModified int64 `json:"-" xorm:"INTEGER 'last_modified'"`
+	//the http detected content type
+	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
+	//file metadata
+	Metadata FileMetadata `json:"metadata" xorm:"TEXT 'metadata'"`
 }

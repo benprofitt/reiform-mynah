@@ -191,6 +191,28 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 	return &file, nil
 }
 
+//get multiple files by id
+func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (res []*model.MynahFile, err error) {
+	var files []*model.MynahFile
+
+	//request a set of uuids within the org
+	if err = d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&files); err != nil {
+		return nil, err
+	}
+
+	for _, f := range files {
+		//check that the user has permission
+		if commonErr := commonGetFile(f, requestor); commonErr == nil {
+			//add to the filtered list
+			res = append(res, f)
+		} else {
+			log.Warnf("user %s failed to view file %s", requestor.Uuid, f.Uuid)
+		}
+	}
+
+	return res, nil
+}
+
 //get a dataset from the database
 func (d *localDB) GetDataset(uuid *string, requestor *model.MynahUser) (*model.MynahDataset, error) {
 	dataset := model.MynahDataset{

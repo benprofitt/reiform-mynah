@@ -76,7 +76,8 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 
 		//create a new file db entry
 		mynahFile := model.MynahFile{
-			Uuid: uuid.NewString(),
+			Uuid:     uuid.NewString(),
+			Metadata: make(model.FileMetadata),
 		}
 
 		//write the contents of the file to storage

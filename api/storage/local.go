@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/log"
@@ -40,7 +41,29 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 				log.Errorf("error closing file %s: %s", file.Uuid, err)
 			}
 		}()
-		return handler(localFile)
+		handlerErr := handler(localFile)
+
+		if handlerErr != nil {
+			//get the file size
+			if stat, err := localFile.Stat(); err == nil {
+				file.Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
+
+			} else {
+				log.Warnf("failed to get filesize for %s", file.Uuid)
+			}
+
+			//get the dimensions of the file if it's an image
+			//TODO we'd probably like to check the MIME type first
+			if stat, err := GetImageMetadata(file.Path, PredictMimeType(file.DetectedContentType)); err == nil {
+				file.Metadata[model.MetadataWidth] = fmt.Sprintf("%d", stat.width)
+				file.Metadata[model.MetadataHeight] = fmt.Sprintf("%d", stat.height)
+				file.Metadata[model.MetadataFormat] = stat.format
+			} else {
+				log.Infof("failed to get dimensions of file as image: %s", err)
+			}
+		}
+
+		return handlerErr
 	} else {
 		return err
 	}

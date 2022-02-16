@@ -16,6 +16,8 @@ type DBProvider interface {
 	GetProject(*string, *model.MynahUser) (*model.MynahProject, error)
 	//get a file from the database
 	GetFile(*string, *model.MynahUser) (*model.MynahFile, error)
+	//get multiple files by id
+	GetFiles([]string, *model.MynahUser) ([]*model.MynahFile, error)
 	//get a dataset from the database
 	GetDataset(*string, *model.MynahUser) (*model.MynahDataset, error)
 	//get a dataset from the database

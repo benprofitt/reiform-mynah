@@ -409,31 +409,6 @@ func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.My
 	return nil
 }
 
-//update a file in the database, second arg is requestor
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
-		return commonErr
-	}
-
-	hasTsUpdate := false
-
-	//add last modified if not included
-	for _, k := range keys {
-		if k == "last_modified" {
-			hasTsUpdate = true
-			break
-		}
-	}
-
-	if !hasTsUpdate {
-		//update the last modified timestamp implicitly
-		keys = append(keys, "last_modified")
-	}
-
-	_, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(file)
-	return err
-}
-
 //update a dataset
 func (d *localDB) UpdateDataset(dataset *model.MynahDataset, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {

@@ -115,7 +115,7 @@ func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Requ
 					}
 				}()
 
-				modTime := time.Unix(file.LastModified, 0)
+				modTime := time.Unix(file.Created, 0)
 
 				//determine the last modified time
 				http.ServeContent(writer, request, file.Name, modTime, osFile)

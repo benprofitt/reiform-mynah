@@ -17,11 +17,6 @@ const (
 //metadata type
 type FileMetadata map[MetadataKey]string
 
-const (
-	Local FileLocation = "local"
-	S3    FileLocation = "s3 "
-)
-
 //Defines a file managed by Mynah
 type MynahFile struct {
 	//the id of the file
@@ -32,12 +27,8 @@ type MynahFile struct {
 	OwnerUuid string `json:"owner_uuid" xorm:"TEXT not null 'owner_uuid'"`
 	//the name of the file
 	Name string `json:"name" xorm:"TEXT 'name'"`
-	//the location of the file
-	Location FileLocation `json:"-" xorm:"TEXT 'location'"`
-	//the path to the file
-	Path string `json:"-" xorm:"TEXT 'path'"`
-	//last modified time
-	LastModified int64 `json:"-" xorm:"INTEGER 'last_modified'"`
+	//the time the file was uploaded
+	Created int64 `json:"-" xorm:"INTEGER 'last_modified'"`
 	//the http detected content type
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
 	//file metadata

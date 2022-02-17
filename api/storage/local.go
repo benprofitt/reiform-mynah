@@ -31,11 +31,10 @@ func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, erro
 //Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
 	//create a local storage path for the file
-	file.Path = filepath.Join(s.localPath, file.Uuid)
-	file.Location = model.Local
+	fullPath := filepath.Join(s.localPath, file.Uuid)
 
 	//create the local file to write to
-	if localFile, err := os.Create(file.Path); err == nil {
+	if localFile, err := os.Create(filepath.Clean(fullPath)); err == nil {
 		defer func() {
 			if err := localFile.Close(); err != nil {
 				log.Errorf("error closing file %s: %s", file.Uuid, err)
@@ -54,7 +53,7 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 			//get the dimensions of the file if it's an image
 			//TODO we'd probably like to check the MIME type first
-			if stat, err := GetImageMetadata(file.Path, PredictMimeType(file.DetectedContentType)); err == nil {
+			if stat, err := GetImageMetadata(fullPath, PredictMimeType(file.DetectedContentType)); err == nil {
 				file.Metadata[model.MetadataWidth] = fmt.Sprintf("%d", stat.width)
 				file.Metadata[model.MetadataHeight] = fmt.Sprintf("%d", stat.height)
 				file.Metadata[model.MetadataFormat] = stat.format
@@ -71,17 +70,19 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 //get the contents of a stored file
 func (s *localStorage) GetStoredFile(file *model.MynahFile, handler func(*string) error) error {
+	fullPath := filepath.Join(s.localPath, file.Uuid)
+
 	//verify that the file exists
-	_, err := os.Stat(file.Path)
+	_, err := os.Stat(fullPath)
 	if err != nil {
 		return err
 	}
-	return handler(&file.Path)
+	return handler(&fullPath)
 }
 
 //delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
-	return os.Remove(file.Path)
+	return os.Remove(filepath.Join(s.localPath, file.Uuid))
 }
 
 func (s *localStorage) Close() {

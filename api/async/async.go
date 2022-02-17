@@ -93,7 +93,7 @@ func (a *asyncEngine) StartAsyncTask(user *model.MynahUser, handler AsyncTaskHan
 	a.taskChan <- &asyncTask{
 		userUuid: user.Uuid,
 		handler:  handler,
-		taskUuid: uuid.New().String(),
+		taskUuid: uuid.NewString(),
 	}
 }
 

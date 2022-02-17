@@ -5,7 +5,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"reiform.com/mynah/model"
 	"time"
 )
@@ -132,7 +131,6 @@ func commonCreateProject(project *model.MynahProject, creator *model.MynahUser) 
 	project.UserPermissions[creator.Uuid] = model.Owner
 	//inherit the org id
 	project.OrgId = creator.OrgId
-	project.Uuid = uuid.New().String()
 	return nil
 }
 
@@ -142,9 +140,8 @@ func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
 	file.OwnerUuid = creator.Uuid
 	//inherit the org id
 	file.OrgId = creator.OrgId
-	file.Uuid = uuid.New().String()
 	//set the updated timestamp
-	file.LastModified = time.Now().Unix()
+	file.Created = time.Now().Unix()
 	return nil
 }
 
@@ -155,7 +152,6 @@ func commonCreateDataset(dataset model.MynahAbstractDataset, creator *model.Myna
 	d.OwnerUuid = creator.Uuid
 	//inherit the org id
 	d.OrgId = creator.OrgId
-	d.Uuid = uuid.New().String()
 	return nil
 }
 
@@ -183,22 +179,6 @@ func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to update project %s", requestor.Uuid, project.Uuid)
-}
-
-//update a file in the database
-func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys []string) error {
-	//check that keys are not restricted
-	if restrictedKeys(keys) {
-		return errors.New("file update contained restricted keys")
-	}
-
-	//update the modification timestamp
-	file.LastModified = time.Now().Unix()
-
-	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
-		return nil
-	}
-	return fmt.Errorf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid)
 }
 
 //update a dataset in the database

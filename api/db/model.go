@@ -48,9 +48,6 @@ type DBProvider interface {
 	//update a project in the database. First arg is uuid of project to update, second is requestor, remaining
 	//are keys to update
 	UpdateProject(*model.MynahProject, *model.MynahUser, ...string) error
-	//update a file in the database. First arg is uuid, second is requestor, remaining
-	//are keys to update. Then use .Values()
-	UpdateFile(*model.MynahFile, *model.MynahUser, ...string) error
 	//update a dataset
 	UpdateDataset(*model.MynahDataset, *model.MynahUser, ...string) error
 	//update a dataset

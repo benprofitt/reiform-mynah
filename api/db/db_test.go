@@ -11,7 +11,6 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"testing"
-	"time"
 )
 
 //setup and teardown
@@ -157,12 +156,13 @@ func TestBasicDBActionsProject(t *testing.T) {
 
 	//create a user
 	user := model.MynahUser{
-		Uuid:    uuid.New().String(),
-		OrgId:   uuid.New().String(),
+		Uuid:    uuid.NewString(),
+		OrgId:   uuid.NewString(),
 		IsAdmin: false,
 	}
 
 	project := model.MynahProject{
+		Uuid:            uuid.NewString(),
 		UserPermissions: make(map[string]model.ProjectPermissions),
 		ProjectName:     "project_test",
 	}
@@ -248,18 +248,20 @@ func TestBasicDBActionsDataset(t *testing.T) {
 
 	//create a user
 	user := model.MynahUser{
-		Uuid:    uuid.New().String(),
-		OrgId:   uuid.New().String(),
+		Uuid:    uuid.NewString(),
+		OrgId:   uuid.NewString(),
 		IsAdmin: false,
 	}
 
 	//create a normal dataset
 	dataset := model.MynahDataset{
+		Uuid:        uuid.NewString(),
 		DatasetName: "dataset_test",
 	}
 
 	icDataset := model.MynahICDataset{
 		model.MynahDataset{
+			Uuid:        uuid.NewString(),
 			DatasetName: "ic_dataset_test",
 		},
 		make([]string, 0),
@@ -396,39 +398,6 @@ func TestBasicDBActionsFile(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	var file model.MynahFile
-
-	//create the project in the database
-	if createErr := dbProvider.CreateFile(&file, &user); createErr != nil {
-		t.Fatalf("failed to create test file %s", createErr)
-	}
-
-	//check the modification time
-	modTime := file.LastModified
-
-	//wait
-	time.Sleep(2 * time.Second)
-
-	//update the file (no fields)
-	if updateErr := dbProvider.UpdateFile(&file, &user); updateErr != nil {
-		t.Fatalf("failed to update test file %s", updateErr)
-	}
-
-	//read the file
-	if dbFile, getErr := dbProvider.GetFile(&file.Uuid, &user); getErr == nil {
-		//check updated time
-		if dbFile.LastModified <= modTime {
-			t.Fatalf("last_modified not updated %d <= %d", dbFile.LastModified, modTime)
-		}
-	} else {
-		t.Fatalf("failed to get ic dataset %s", getErr)
-	}
-
-	//update file and explicitly pass modification key
-	if updateErr := dbProvider.UpdateFile(&file, &user, "last_modified"); updateErr != nil {
-		t.Fatalf("failed to update test file %s", updateErr)
-	}
-
 	rangeRequest := 10
 
 	//add more files and then make range request
@@ -436,6 +405,7 @@ func TestBasicDBActionsFile(t *testing.T) {
 	var uuids []string
 
 	for _, f := range files {
+		f.Uuid = uuid.NewString()
 		if createErr := dbProvider.CreateFile(&f, &user); createErr != nil {
 			t.Fatalf("failed to create test file %s", createErr)
 		}
@@ -453,7 +423,7 @@ func TestBasicDBActionsFile(t *testing.T) {
 	}
 
 	//make a request for one with the range operator
-	dbFile, rangeErr := dbProvider.GetFiles([]string{file.Uuid}, &user)
+	dbFile, rangeErr := dbProvider.GetFiles([]string{uuids[0]}, &user)
 	if rangeErr != nil {
 		t.Fatalf("failed to request single file with range %s", rangeErr)
 	}

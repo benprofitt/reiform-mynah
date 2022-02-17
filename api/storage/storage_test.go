@@ -44,8 +44,7 @@ func TestBasicStorageActions(t *testing.T) {
 	defer storageProvider.Close()
 
 	file := model.MynahFile{
-		Uuid:     "mynah_test_file",
-		Location: model.Local,
+		Uuid: "mynah_test_file",
 	}
 
 	//store the file

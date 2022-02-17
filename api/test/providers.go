@@ -4,6 +4,7 @@ package test
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -124,6 +125,7 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 //create a file and pass to the handler
 func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, handler func(*model.MynahFile) error) error {
 	var file model.MynahFile
+	file.Uuid = uuid.NewString()
 
 	//create a file
 	if createErr := t.DBProvider.CreateFile(&file, owner); createErr != nil {
@@ -139,11 +141,6 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 
 	if storeErr != nil {
 		return fmt.Errorf("failed to write to file")
-	}
-
-	//update the file in the database (written to path)
-	if updateErr := t.DBProvider.UpdateFile(&file, owner, "path"); updateErr != nil {
-		return fmt.Errorf("failed to update file path in database: %s", updateErr)
 	}
 
 	//pass to handler
@@ -164,6 +161,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 //create a project and pass to the handler
 func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*model.MynahProject) error) error {
 	var project model.MynahProject
+	project.Uuid = uuid.NewString()
 
 	//create a project
 	if createErr := t.DBProvider.CreateProject(&project, owner); createErr != nil {
@@ -184,6 +182,7 @@ func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*mo
 //create a dataset and pass to the handler
 func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*model.MynahDataset) error) error {
 	var dataset model.MynahDataset
+	dataset.Uuid = uuid.NewString()
 
 	//create a dataset
 	if createErr := t.DBProvider.CreateDataset(&dataset, owner); createErr != nil {
@@ -204,6 +203,7 @@ func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*mo
 //create an image classification dataset and pass to the handler
 func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
 	var dataset model.MynahICDataset
+	dataset.Uuid = uuid.NewString()
 
 	//create a dataset
 	if createErr := t.DBProvider.CreateICDataset(&dataset, owner); createErr != nil {

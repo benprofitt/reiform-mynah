@@ -1,6 +1,6 @@
 import socket
 
-class ProgressLogger:
+class ProgressLogger():
     """
     Writes json or other data to
     the websocket server that frontend clients

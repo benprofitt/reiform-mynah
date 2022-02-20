@@ -1,6 +1,6 @@
 import socket
 import json
-import progress_logger
+from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):
@@ -25,7 +25,7 @@ def test4() -> int:
 def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
     #parse payload as json
     contents = json.loads(payload)
-    with progress_logger.ProgressLogger(uuid, sockaddr) as plogger:
+    with ProgressLogger(uuid, sockaddr) as plogger:
         plogger.write(contents['msg'])
 
     return '{"msg": "%s"}' % contents['msg']

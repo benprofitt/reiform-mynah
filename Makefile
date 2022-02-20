@@ -10,10 +10,12 @@ frontend:
 format:
 	cd api ; $(GO) fmt ./...
 test:
-	cd api ; $(GO) test -count=1 -timeout 30s -v ./... || true
+	cd api ; $(GO) test -count=1 -timeout 30s -v ./... 
+	cd python ; python impl/test/image_classification/mislabeled_tests.py
 lint:
 	cd api ; golangci-lint run || true
 	cd api ; gosec ./... || true
+	mypy python || true
 clean:
 	-@rm -r python/__pycache__ 2> /dev/null || true
 	-@find api/ -type f -name 'mynah_local.db' -delete || true

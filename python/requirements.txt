@@ -1,1 +1,12 @@
 mypy
+joblib
+matplotlib
+mypy-extensions
+nptyping
+numpy==1.21
+pandas
+Pillow
+pyod
+scikit-learn
+scipy
+typing-extensions

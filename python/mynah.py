@@ -1,7 +1,7 @@
 import json
 import logging
 import sys
-import progress_logger
+from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -19,7 +19,7 @@ def get_impl_version(uuid: str, request_str: str, sock_addr: str) -> str:
 def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Start a diagnosis job. See docs/python_api.md'''
     request = json.loads(request_str)
-    with progress_logger.ProgressLogger(uuid, sock_addr) as plogger:
+    with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("INFO  called start_diagnosis_job()")
         # TODO call impl
 

@@ -169,9 +169,13 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 
 //accept data to send to a connected client
 func (w *webSocketServer) Send(uuid *string, msg []byte) {
-	w.dataChan <- queueEntry{
-		uuid: *uuid,
-		msg:  msg,
+	if (msg != nil) || (len(msg) == 0) {
+		w.dataChan <- queueEntry{
+			uuid: *uuid,
+			msg:  msg,
+		}
+	} else {
+		log.Warnf("ignoring empty websocket message to %s", *uuid)
 	}
 }
 

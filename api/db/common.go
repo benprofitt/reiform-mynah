@@ -5,6 +5,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"reiform.com/mynah/model"
 	"time"
 )
@@ -30,12 +31,12 @@ func commonGetUser(user *model.MynahUser, requestor *model.MynahUser) error {
 }
 
 //get a project by id or return an error
-func commonGetProject(project *model.MynahProject, requestor *model.MynahUser) error {
+func commonGetProject(project model.MynahAbstractProject, requestor *model.MynahUser) error {
 	//check that the user has permission to at least view this project
-	if requestor.IsAdmin || project.GetPermissions(requestor) >= model.Read {
+	if requestor.IsAdmin || project.GetBaseProject().GetPermissions(requestor) >= model.Read {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to request project %s", requestor.Uuid, project.Uuid)
+	return fmt.Errorf("user %s does not have permission to request project %s", requestor.Uuid, project.GetBaseProject().Uuid)
 }
 
 //get a file by id or return an error
@@ -108,51 +109,89 @@ func commonListICDatasets(datasets []*model.MynahICDataset, requestor *model.Myn
 	return filtered
 }
 
-//check that the creator is an admin
-func commonCreateUser(user *model.MynahUser, creator *model.MynahUser) error {
-	//Note: uuid created by auth provider
+//create a user
+func commonCreateUser(creator *model.MynahUser) (*model.MynahUser, error) {
 	if !creator.IsAdmin {
-		return fmt.Errorf("unable to create new user, user %s is not an admin", creator.Uuid)
+		return nil, fmt.Errorf("only admins can create users, %s is not an admin", creator.Uuid)
 	}
-	if user.Uuid == creator.Uuid {
-		return errors.New("user must have a distinct creator")
-	}
-
-	//set the creator uuid
-	user.CreatedBy = creator.Uuid
-	//inherit the org id
-	user.OrgId = creator.OrgId
-	return nil
+	return &model.MynahUser{
+		Uuid:      uuid.NewString(),
+		OrgId:     creator.OrgId,
+		NameFirst: "first",
+		NameLast:  "last",
+		IsAdmin:   false,
+		CreatedBy: creator.Uuid,
+	}, nil
 }
 
 //create a new project
-func commonCreateProject(project *model.MynahProject, creator *model.MynahUser) error {
+func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
+	project := model.MynahProject{
+		Uuid:            uuid.NewString(),
+		OrgId:           creator.OrgId,
+		UserPermissions: make(map[string]model.ProjectPermissions),
+		ProjectName:     "name",
+		Datasets:        make([]string, 0),
+	}
+
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
-	//inherit the org id
-	project.OrgId = creator.OrgId
-	return nil
+	return &project
+}
+
+//create a new project
+func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
+	project := model.MynahICProject{
+		model.MynahProject{
+			Uuid:            uuid.NewString(),
+			OrgId:           creator.OrgId,
+			UserPermissions: make(map[string]model.ProjectPermissions),
+			ProjectName:     "name",
+			Datasets:        make([]string, 0),
+		},
+		make(map[string]model.MynahICProjectData),
+	}
+	//give ownership permissions to the user
+	project.UserPermissions[creator.Uuid] = model.Owner
+	return &project
 }
 
 //create a new file
-func commonCreateFile(file *model.MynahFile, creator *model.MynahUser) error {
-	//give ownership to the user
-	file.OwnerUuid = creator.Uuid
-	//inherit the org id
-	file.OrgId = creator.OrgId
-	//set the updated timestamp
-	file.Created = time.Now().Unix()
-	return nil
+func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
+	return &model.MynahFile{
+		Uuid:                uuid.NewString(),
+		OrgId:               creator.OrgId,
+		OwnerUuid:           creator.Uuid,
+		Name:                "file_name",
+		Created:             time.Now().Unix(),
+		DetectedContentType: "none",
+		Metadata:            make(model.FileMetadata),
+	}
 }
 
 //create a new dataset
-func commonCreateDataset(dataset model.MynahAbstractDataset, creator *model.MynahUser) error {
-	d := dataset.GetBaseDataset()
-	//give ownership to the user
-	d.OwnerUuid = creator.Uuid
-	//inherit the org id
-	d.OrgId = creator.OrgId
-	return nil
+func commonCreateDataset(creator *model.MynahUser) *model.MynahDataset {
+	return &model.MynahDataset{
+		Uuid:            uuid.NewString(),
+		OrgId:           creator.OrgId,
+		OwnerUuid:       creator.Uuid,
+		ReferencedFiles: make([]string, 0),
+		DatasetName:     "name",
+	}
+}
+
+//create an ic dataset
+func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
+	return &model.MynahICDataset{
+		model.MynahDataset{
+			Uuid:            uuid.NewString(),
+			OrgId:           creator.OrgId,
+			OwnerUuid:       creator.Uuid,
+			ReferencedFiles: make([]string, 0),
+			DatasetName:     "name",
+		},
+		make([]string, 0),
+	}
 }
 
 //update a user in the database
@@ -203,11 +242,11 @@ func commonDeleteUser(uuid *string, requestor *model.MynahUser) error {
 }
 
 //check that the requestor has permission to delete the project
-func commonDeleteProject(project *model.MynahProject, requestor *model.MynahUser) error {
-	if requestor.IsAdmin || project.GetPermissions(requestor) == model.Owner {
+func commonDeleteProject(project model.MynahAbstractProject, requestor *model.MynahUser) error {
+	if requestor.IsAdmin || project.GetBaseProject().GetPermissions(requestor) == model.Owner {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to delete project %s", requestor.Uuid, project.Uuid)
+	return fmt.Errorf("user %s does not have permission to delete project %s", requestor.Uuid, project.GetBaseProject().Uuid)
 }
 
 //check that the requestor has permission to delete the file

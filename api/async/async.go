@@ -55,8 +55,10 @@ func (a *asyncEngine) taskRunner(wsProvider websockets.WebSocketProvider) {
 				log.Errorf("async task %s failed at timestamp %d: %s", task.taskUuid, stop, err)
 			} else {
 				log.Infof("async task %s succeeded at timestamp %d", task.taskUuid, stop)
-				//send to the websocket to respond to client
-				wsProvider.Send(&task.userUuid, res)
+				if res != nil {
+					//send to the websocket to respond to client
+					wsProvider.Send(&task.userUuid, res)
+				}
 			}
 		}
 	}

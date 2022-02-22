@@ -14,6 +14,8 @@ type DBProvider interface {
 	GetUser(*string, *model.MynahUser) (*model.MynahUser, error)
 	//get a project by id or return an error, second arg is requestor
 	GetProject(*string, *model.MynahUser) (*model.MynahProject, error)
+	//get a project by id or return an error, second arg is requestor
+	GetICProject(*string, *model.MynahUser) (*model.MynahICProject, error)
 	//get a file from the database
 	GetFile(*string, *model.MynahUser) (*model.MynahFile, error)
 	//get multiple files by id
@@ -22,6 +24,8 @@ type DBProvider interface {
 	GetDataset(*string, *model.MynahUser) (*model.MynahDataset, error)
 	//get a dataset from the database
 	GetICDataset(*string, *model.MynahUser) (*model.MynahICDataset, error)
+	//get multiple ic datasets from the database
+	GetICDatasets([]string, *model.MynahUser) ([]*model.MynahICDataset, error)
 	//list all users, arg is requestor
 	ListUsers(*model.MynahUser) ([]*model.MynahUser, error)
 	//list all projects, arg is requestor
@@ -33,15 +37,17 @@ type DBProvider interface {
 	//list all datasets, arg is requestor
 	ListICDatasets(*model.MynahUser) ([]*model.MynahICDataset, error)
 	//create a new user (second argument is the creator --must be admin)
-	CreateUser(*model.MynahUser, *model.MynahUser) error
-	//create a new project, second arg is creator
-	CreateProject(*model.MynahProject, *model.MynahUser) error
-	//create a new file, second arg is creator
-	CreateFile(*model.MynahFile, *model.MynahUser) error
+	CreateUser(*model.MynahUser, func(*model.MynahUser)) (*model.MynahUser, error)
+	//create a new project, arg is creator
+	CreateProject(*model.MynahUser, func(*model.MynahProject)) (*model.MynahProject, error)
+	//create a new project, arg is creator
+	CreateICProject(*model.MynahUser, func(*model.MynahICProject)) (*model.MynahICProject, error)
+	//create a new file, arg is creator
+	CreateFile(*model.MynahUser, func(*model.MynahFile)) (*model.MynahFile, error)
 	//create a new dataset
-	CreateDataset(*model.MynahDataset, *model.MynahUser) error
+	CreateDataset(*model.MynahUser, func(*model.MynahDataset)) (*model.MynahDataset, error)
 	//create a new dataset
-	CreateICDataset(*model.MynahICDataset, *model.MynahUser) error
+	CreateICDataset(*model.MynahUser, func(*model.MynahICDataset)) (*model.MynahICDataset, error)
 	//update a user in the database. First arg is user to update, second is requestor, remaining
 	//are keys to update.
 	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error
@@ -56,6 +62,8 @@ type DBProvider interface {
 	DeleteUser(*string, *model.MynahUser) error
 	//delete a project in the database, second arg is requestor
 	DeleteProject(*string, *model.MynahUser) error
+	//delete a project in the database, second arg is requestor
+	DeleteICProject(*string, *model.MynahUser) error
 	//delete a file in the database, second arg is requestor
 	DeleteFile(*string, *model.MynahUser) error
 	//delete a dataset

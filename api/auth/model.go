@@ -9,8 +9,8 @@ import (
 
 //Defines the interface the auth client must implement
 type AuthProvider interface {
-	//Create a new user, returns the user and initial jwt
-	CreateUser() (*model.MynahUser, string, error)
+	//Generate a jwt for the user
+	GetUserAuth(*model.MynahUser) (string, error)
 	//Takes an http request and checks whether the request is correctly
 	//authenticated
 	IsAuthReq(*http.Request) (string, error)

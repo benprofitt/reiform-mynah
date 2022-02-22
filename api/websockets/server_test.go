@@ -137,22 +137,21 @@ func TestWSServerE2E(t *testing.T) {
 	}
 	defer storageProvider.Close()
 
-	//create a user for authenticating the request
 	admin := model.MynahUser{
 		IsAdmin: true,
 		OrgId:   uuid.New().String(),
 	}
 
-	//create a user
-	user, jwt, userErr := authProvider.CreateUser()
-	if userErr != nil {
-		t.Errorf("error creating user: %s", userErr)
-		return
+	user, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) {})
+
+	if err != nil {
+		t.Errorf("error creating user: %s", err)
 	}
 
-	//create the user in the database
-	if createErr := dbProvider.CreateUser(user, &admin); createErr != nil {
-		t.Errorf("failed to create test user %s", createErr)
+	//create a user
+	jwt, err := authProvider.GetUserAuth(user)
+	if err != nil {
+		t.Errorf("error generating jwt: %s", err)
 		return
 	}
 

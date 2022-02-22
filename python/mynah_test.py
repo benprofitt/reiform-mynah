@@ -29,3 +29,7 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
         plogger.write(contents['msg'])
 
     return '{"msg": "%s"}' % contents['msg']
+
+def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
+    # TODO check that the request body is correct
+    return "{}"

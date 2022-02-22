@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt"
-	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -93,28 +92,13 @@ func newLocalAuth(mynahSettings *settings.MynahSettings) (*localAuth, error) {
 	}
 }
 
-//create a signed jwt
-func (a *localAuth) createSignedJWT(uuid string) (string, error) {
+//generate a jwt for the user
+func (a *localAuth) GetUserAuth(user *model.MynahUser) (string, error) {
 	//create a new token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"uuid": uuid,
+		"uuid": user.Uuid,
 	})
 	return token.SignedString(a.secret)
-}
-
-//create a new user
-func (a *localAuth) CreateUser() (*model.MynahUser, string, error) {
-	//create a new uuid
-	uuid := uuid.New().String()
-	//create a jwt and a new user
-	if jwt, err := a.createSignedJWT(uuid); err == nil {
-		return &model.MynahUser{
-			Uuid:    uuid,
-			IsAdmin: false,
-		}, jwt, nil
-	} else {
-		return nil, "", err
-	}
 }
 
 //check the validity of the jwt in the header, if valid, return user uuid

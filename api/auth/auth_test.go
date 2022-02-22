@@ -3,9 +3,11 @@
 package auth
 
 import (
+	"github.com/google/uuid"
 	"net/http"
 	"os"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"testing"
 )
@@ -43,8 +45,12 @@ func TestJWTAuth(t *testing.T) {
 	}
 	defer authProvider.Close()
 
+	user := model.MynahUser{
+		Uuid: uuid.NewString(),
+	}
+
 	//create a new user
-	user, jwt, userErr := authProvider.CreateUser()
+	jwt, userErr := authProvider.GetUserAuth(&user)
 	if userErr != nil {
 		t.Errorf("error creating user: %s", userErr)
 		return

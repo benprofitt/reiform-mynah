@@ -4,7 +4,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/google/uuid"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -74,31 +73,26 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 			return
 		}
 
-		//create a new file db entry
-		mynahFile := model.MynahFile{
-			Uuid:     uuid.NewString(),
-			Metadata: make(model.FileMetadata),
+		mynahFile, err := dbProvider.CreateFile(user, func(file *model.MynahFile) {})
+
+		//create the file in the database
+		if err != nil {
+			log.Errorf("failed to add file to database %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		//write the contents of the file to storage
-		storeErr := storageProvider.StoreFile(&mynahFile, func(f *os.File) error {
+		storeErr := storageProvider.StoreFile(mynahFile, func(f *os.File) error {
 			_, err := f.Write(fileContents)
 			return err
 		})
 
 		if storeErr != nil {
-			log.Errorf("failed to write file to local storage %s", storeErr)
-			writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+			//try to delete file from database
+			dbProvider.DeleteFile(&mynahFile.Uuid, user)
 
-		//add the file to the database
-		if err := dbProvider.CreateFile(&mynahFile, user); err != nil {
-			log.Errorf("failed to add file to database %s", err)
-			//remove the file from local storage
-			if dErr := storageProvider.DeleteFile(&mynahFile); dErr != nil {
-				log.Errorf("failed to delete file from local storage %s", dErr)
-			}
+			log.Errorf("failed to write file to local storage %s", storeErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}

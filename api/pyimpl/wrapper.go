@@ -1,16 +1,24 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package impl
+package pyimpl
 
 import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/python"
 )
 
+//local python impl provider
+type localImplProvider struct {
+	//the python provider
+	pythonProvider python.PythonProvider
+	//the module name
+	moduleName string
+}
+
 //request the current version of python tools
-func GetMynahImplVersion(pythonProvider python.PythonProvider) (*VersionResponse, error) {
+func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 	//initialize the function
-	fn, err := pythonProvider.InitFunction("mynah", "get_impl_version")
+	fn, err := p.pythonProvider.InitFunction(p.moduleName, "get_impl_version")
 	if err != nil {
 		return nil, err
 	}
@@ -30,12 +38,9 @@ func GetMynahImplVersion(pythonProvider python.PythonProvider) (*VersionResponse
 }
 
 //start a diagnosis job
-func DiagnosisJob(pythonProvider python.PythonProvider,
-	user *model.MynahUser,
-	request *DiagnosisJobRequest) (*DiagnosisJobResponse, error) {
-
+func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error) {
 	//initialize the function
-	fn, err := pythonProvider.InitFunction("mynah", "start_diagnosis_job")
+	fn, err := p.pythonProvider.InitFunction(p.moduleName, "start_diagnosis_job")
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +48,7 @@ func DiagnosisJob(pythonProvider python.PythonProvider,
 	//call the function
 	res := fn.Call(user, request)
 
-	var jobResponse DiagnosisJobResponse
+	var jobResponse ICDiagnosisJobResponse
 
 	//parse the response
 	resErr := res.GetResponse(&jobResponse)

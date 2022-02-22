@@ -13,24 +13,16 @@ type MynahICProjectClassFileData struct {
 	ConfidenceVectors [][]float64 `json:"confidence_vectors"`
 }
 
-//defines information about a class within a dataset
-type MynahICProjectClassData struct {
-	//the files referenced in this dataset
-	Files map[string]MynahICProjectClassFileData `json:"files"`
-}
-
 //defines project-level info about an ic dataset
 type MynahICProjectData struct {
-	//the ic dataset
-	Dataset MynahICDataset `json:"dataset"`
-	//mapping from classes in the dataset to file-level info
-	Classes map[string]MynahICProjectClassData `json:"classes"`
+	//mapping from classes in the dataset to a mapping from file to file info
+	Data map[string]map[string]MynahICProjectClassFileData `json:"data"`
 }
 
 //Defines a project specifically for image classification
 type MynahICProject struct {
 	//underlying mynah dataset
 	MynahProject `json:"dataset" xorm:"extends"`
-	//Datasets in this project
-	Datasets []MynahICProjectData `json:"datasets" xorm:"TEXT 'datasets'"`
+	//Datasets in this project (by uuid)
+	DatasetAttributes map[string]MynahICProjectData `json:"dataset_attributes" xorm:"TEXT 'dataset_attributes'"`
 }

@@ -57,3 +57,14 @@
       - `name_last`: The last name to assign to the user
 
 ## Project Action Endpoints
+
+### Starting an image classification diagnosis job
+- `POST /api/v1/ic/diagnosis/start`
+  - Request body
+  ```json
+  {
+    "project_uuid" : "uuid"
+  }
+  ```
+    - `project_uuid`: The id of the project to diagnose
+      - Combines datasets in the project and analyzes all files

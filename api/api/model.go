@@ -20,3 +20,14 @@ type adminCreateUserResponse struct {
 	//the user itself
 	User model.MynahUser `json:"user"`
 }
+
+//request type for start diagnosis job
+type startDiagnosisJobRequest struct {
+	//the project id
+	ProjectUuid string `json:"project_uuid"`
+}
+
+//response type for start diagnosis job
+type startDiagnosisJobResponse struct {
+	//TODO
+}

@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"net/http"
 	"reiform.com/mynah/db"
@@ -74,15 +73,10 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
 
-					//create a new project
-					project := model.MynahProject{
-						Uuid:            uuid.New().String(),
-						UserPermissions: make(map[string]model.ProjectPermissions),
-						ProjectName:     p.Args["project_name"].(string),
-					}
-
-					//return the project and add to the database
-					return project, dbProvider.CreateProject(&project, user)
+					//return the dataset and add to the database
+					return dbProvider.CreateProject(user, func(project *model.MynahProject) {
+						project.ProjectName = p.Args["project_name"].(string)
+					})
 				},
 			},
 

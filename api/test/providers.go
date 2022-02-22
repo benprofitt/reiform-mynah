@@ -14,6 +14,7 @@ import (
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
@@ -29,6 +30,7 @@ type TestContext struct {
 	AuthProvider      auth.AuthProvider
 	StorageProvider   storage.StorageProvider
 	PythonProvider    python.PythonProvider
+	PyImplProvider    pyimpl.PyImplProvider
 	IPCProvider       ipc.IPCProvider
 	WebSocketProvider websockets.WebSocketProvider
 	AsyncProvider     async.AsyncProvider
@@ -63,6 +65,9 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	pythonProvider := python.NewPythonProvider(mynahSettings)
 	defer pythonProvider.Close()
 
+	//create the python impl provider
+	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
+
 	//initialize websockets
 	websocketProvider := websockets.NewWebSocketProvider(mynahSettings)
 	defer websocketProvider.Close()
@@ -86,6 +91,7 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		AuthProvider:      authProvider,
 		StorageProvider:   storageProvider,
 		PythonProvider:    pythonProvider,
+		PyImplProvider:    pyImplProvider,
 		IPCProvider:       ipcProvider,
 		WebSocketProvider: websocketProvider,
 		AsyncProvider:     asyncProvider,
@@ -95,24 +101,25 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 
 //create a user and pass to handler
 func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser, string) error) error {
-	user, userJwt, userErr := t.AuthProvider.CreateUser()
-	if userErr != nil {
-		return fmt.Errorf("failed to create user %s", userErr)
-	}
-	user.IsAdmin = isAdmin
-
 	//create an admin to insert the admin (must have distinct id)
 	creator := model.MynahUser{
-		OrgId:   user.OrgId,
+		OrgId:   uuid.NewString(),
 		IsAdmin: true,
 	}
 
-	//add to the database
-	if dbErr := t.DBProvider.CreateUser(user, &creator); dbErr != nil {
-		return fmt.Errorf("failed to create user %s", dbErr)
+	user, err := t.DBProvider.CreateUser(&creator, func(user *model.MynahUser) {
+		user.IsAdmin = isAdmin
+	})
+	if err != nil {
+		return err
 	}
 
-	err := handler(user, userJwt)
+	userJwt, err := t.AuthProvider.GetUserAuth(user)
+	if err != nil {
+		return err
+	}
+
+	err = handler(user, userJwt)
 
 	//delete the user
 	if dbErr := t.DBProvider.DeleteUser(&user.Uuid, &creator); dbErr != nil {
@@ -124,16 +131,16 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 
 //create a file and pass to the handler
 func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, handler func(*model.MynahFile) error) error {
-	var file model.MynahFile
-	file.Uuid = uuid.NewString()
 
-	//create a file
-	if createErr := t.DBProvider.CreateFile(&file, owner); createErr != nil {
-		return fmt.Errorf("failed to create file in database: %s", createErr)
+	//create a new file
+	file, err := t.DBProvider.CreateFile(owner, func(*model.MynahFile) {})
+
+	if err != nil {
+		return fmt.Errorf("failed to create file in database: %s", err)
 	}
 
 	//create the file in storage
-	storeErr := t.StorageProvider.StoreFile(&file, func(f *os.File) error {
+	storeErr := t.StorageProvider.StoreFile(file, func(f *os.File) error {
 		//write contents to the file
 		_, err := f.WriteString(contents)
 		return err
@@ -144,9 +151,9 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	}
 
 	//pass to handler
-	err := handler(&file)
+	err = handler(file)
 
-	if deleteErr := t.StorageProvider.DeleteFile(&file); deleteErr != nil {
+	if deleteErr := t.StorageProvider.DeleteFile(file); deleteErr != nil {
 		return fmt.Errorf("failed to delete file: %s", deleteErr)
 	}
 
@@ -158,18 +165,34 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	return err
 }
 
-//create a project and pass to the handler
-func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*model.MynahProject) error) error {
-	var project model.MynahProject
-	project.Uuid = uuid.NewString()
+//create an icdataset and pass to the handler
+func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
 
-	//create a project
-	if createErr := t.DBProvider.CreateProject(&project, owner); createErr != nil {
-		return fmt.Errorf("failed to create project in database: %s", createErr)
+	dataset, err := t.DBProvider.CreateICDataset(owner, func(*model.MynahICDataset) {})
+	if err != nil {
+		return fmt.Errorf("failed to create dataset in database: %s", err)
 	}
 
 	//pass to handler
-	err := handler(&project)
+	err = handler(dataset)
+
+	//clean the dataset
+	if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {
+		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
+	}
+
+	return err
+}
+
+//create a project and pass to the handler
+func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*model.MynahProject) error) error {
+	project, err := t.DBProvider.CreateProject(owner, func(*model.MynahProject) {})
+	if err != nil {
+		return fmt.Errorf("failed to create project in database: %s", err)
+	}
+
+	//pass to handler
+	err = handler(project)
 
 	//clean the project
 	if deleteErr := t.DBProvider.DeleteProject(&project.Uuid, owner); deleteErr != nil {
@@ -179,18 +202,33 @@ func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*mo
 	return err
 }
 
-//create a dataset and pass to the handler
-func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*model.MynahDataset) error) error {
-	var dataset model.MynahDataset
-	dataset.Uuid = uuid.NewString()
-
-	//create a dataset
-	if createErr := t.DBProvider.CreateDataset(&dataset, owner); createErr != nil {
-		return fmt.Errorf("failed to create dataset in database: %s", createErr)
+//create a project and pass to the handler
+func (t *TestContext) WithCreateICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
+	project, err := t.DBProvider.CreateICProject(owner, func(*model.MynahICProject) {})
+	if err != nil {
+		return fmt.Errorf("failed to create project in database: %s", err)
 	}
 
 	//pass to handler
-	err := handler(&dataset)
+	err = handler(project)
+
+	//clean the project
+	if deleteErr := t.DBProvider.DeleteICProject(&project.Uuid, owner); deleteErr != nil {
+		return fmt.Errorf("failed to delete project: %s", deleteErr)
+	}
+
+	return err
+}
+
+//create a dataset and pass to the handler
+func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*model.MynahDataset) error) error {
+	dataset, err := t.DBProvider.CreateDataset(owner, func(*model.MynahDataset) {})
+	if err != nil {
+		return fmt.Errorf("failed to create project in database: %s", err)
+	}
+
+	//pass to handler
+	err = handler(dataset)
 
 	//clean the dataset
 	if deleteErr := t.DBProvider.DeleteDataset(&dataset.Uuid, owner); deleteErr != nil {
@@ -200,18 +238,49 @@ func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*mo
 	return err
 }
 
-//create an image classification dataset and pass to the handler
-func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
-	var dataset model.MynahICDataset
-	dataset.Uuid = uuid.NewString()
-
+//create a complete ic project with a dataset and file and pass to the handler
+func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
 	//create a dataset
-	if createErr := t.DBProvider.CreateICDataset(&dataset, owner); createErr != nil {
-		return fmt.Errorf("failed to create dataset in database: %s", createErr)
+	dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {
+		d.Classes = append(d.Classes, "test_class")
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create dataset in database: %s", err)
 	}
 
-	//pass to handler
-	err := handler(&dataset)
+	//create a file
+	err = t.WithCreateFile(owner, "test_contents", func(f *model.MynahFile) error {
+
+		//create a project
+		project, err := t.DBProvider.CreateICProject(owner, func(p *model.MynahICProject) {
+			//add the dataset
+			p.DatasetAttributes[dataset.Uuid] = model.MynahICProjectData{
+				Data: make(map[string]map[string]model.MynahICProjectClassFileData),
+			}
+
+			p.DatasetAttributes[dataset.Uuid].Data["test_class"] = make(map[string]model.MynahICProjectClassFileData)
+
+			p.DatasetAttributes[dataset.Uuid].Data["test_class"][f.Uuid] = model.MynahICProjectClassFileData{
+				CurrentClass: "test_class",
+				OriginalClass: "old_class",
+				ConfidenceVectors: make([][]float64, 0),
+			}
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to create project in database: %s", err)
+		}
+
+		//pass to handler
+		err = handler(project)
+
+		//clean the project
+		if deleteErr := t.DBProvider.DeleteICProject(&project.Uuid, owner); deleteErr != nil {
+			return fmt.Errorf("failed to delete project: %s", deleteErr)
+		}
+
+		return err
+	})
 
 	//clean the dataset
 	if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {

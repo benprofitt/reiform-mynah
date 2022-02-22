@@ -10,10 +10,10 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
+	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
@@ -53,6 +53,9 @@ func main() {
 	//initialize python
 	pythonProvider := python.NewPythonProvider(mynahSettings)
 
+	//create the python impl provider
+	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
+
 	//initialize websockets
 	wsProvider := websockets.NewWebSocketProvider(mynahSettings)
 
@@ -69,7 +72,7 @@ func main() {
 	go ipcProvider.HandleEvents(wsProvider.Send)
 
 	//check that the mynah module can be loaded successfully
-	version, versionErr := impl.GetMynahImplVersion(pythonProvider)
+	version, versionErr := pyImplProvider.GetMynahImplVersion()
 	if versionErr != nil {
 		log.Fatalf("failed to initialize mynah python %s", versionErr)
 	}
@@ -87,7 +90,7 @@ func main() {
 		dbProvider,
 		authProvider,
 		storageProvider,
-		pythonProvider,
+		pyImplProvider,
 		wsProvider,
 		asyncProvider,
 		mynahSettings); err != nil {

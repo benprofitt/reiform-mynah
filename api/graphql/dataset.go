@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/google/uuid"
 	"github.com/graphql-go/graphql"
 	"net/http"
 	"reiform.com/mynah/db"
@@ -72,15 +71,10 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
 
-					//create a new dataset
-					dataset := model.MynahDataset{
-						Uuid:            uuid.New().String(),
-						ReferencedFiles: make([]string, 0),
-						DatasetName:     p.Args["dataset_name"].(string),
-					}
-
 					//return the dataset and add to the database
-					return dataset, dbProvider.CreateDataset(&dataset, user)
+					return dbProvider.CreateDataset(user, func(dataset *model.MynahDataset) {
+						dataset.DatasetName = p.Args["dataset_name"].(string)
+					})
 				},
 			},
 

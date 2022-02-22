@@ -56,32 +56,35 @@ func TestBasicDBActionsUser(t *testing.T) {
 		OrgId:   uuid.New().String(),
 	}
 
-	//create a user
-	localUser := model.MynahUser{
-		Uuid:      uuid.New().String(),
-		NameFirst: "test_user_first",
-		NameLast:  "test_user_last",
-		IsAdmin:   false,
-	}
+	localUser, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) {
+		user.NameFirst = "test_user_first"
+		user.NameLast = "test_user_last"
+		user.IsAdmin = false
+	})
 
 	//create the user in the database
-	if createErr := dbProvider.CreateUser(&localUser, &admin); createErr != nil {
-		t.Fatalf("failed to create test user %s", createErr)
+	if err != nil {
+		t.Fatalf("failed to create test user %s", err)
 	}
 
 	if localUser.OrgId != admin.OrgId {
 		t.Fatalf("user did not inherit admin org id")
 	}
 
+	//try to create a user with the same uuid
+	_, err = dbProvider.CreateUser(&admin, func(user *model.MynahUser) {
+		user.Uuid = localUser.Uuid
+	})
+
 	//create a second user (should error)
-	if createErr := dbProvider.CreateUser(&localUser, &admin); createErr == nil {
+	if err == nil {
 		t.Fatalf("double user creation did not return error")
 	}
 
 	//get user for auth by uuid
 	if dbUser, getErr := dbProvider.GetUserForAuth(&localUser.Uuid); getErr == nil {
 		//compare
-		if *dbUser != localUser {
+		if *dbUser != *localUser {
 			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
 		}
 	} else {
@@ -91,7 +94,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	//list users and verify same
 	if userList, listErr := dbProvider.ListUsers(&admin); listErr == nil {
 		//should only be one user
-		if *userList[0] != localUser {
+		if *userList[0] != *localUser {
 			t.Fatalf("user in list (%v) not identical to local (%v)", *userList[0], localUser)
 		}
 		if len(userList) > 1 {
@@ -104,7 +107,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	//get the user and verify same
 	if dbUser, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
 		//compare
-		if *dbUser != localUser {
+		if *dbUser != *localUser {
 			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
 		}
 	} else {
@@ -116,11 +119,11 @@ func TestBasicDBActionsUser(t *testing.T) {
 	localUser.NameLast = "new_name_last"
 
 	//update the user
-	if updateErr := dbProvider.UpdateUser(&localUser, &admin, "name_first", "name_last"); updateErr == nil {
+	if updateErr := dbProvider.UpdateUser(localUser, &admin, "name_first", "name_last"); updateErr == nil {
 		//get the user and verify same
 		if dbUser, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
 			//look through list
-			if *dbUser != localUser {
+			if *dbUser != *localUser {
 				t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
 			}
 		} else {
@@ -161,15 +164,13 @@ func TestBasicDBActionsProject(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	project := model.MynahProject{
-		Uuid:            uuid.NewString(),
-		UserPermissions: make(map[string]model.ProjectPermissions),
-		ProjectName:     "project_test",
-	}
+	project, err := dbProvider.CreateProject(&user, func(project *model.MynahProject) {
+		project.ProjectName = "project_test"
+	})
 
 	//create the project in the database
-	if createErr := dbProvider.CreateProject(&project, &user); createErr != nil {
-		t.Fatalf("failed to create test project %s", createErr)
+	if err != nil {
+		t.Fatalf("failed to create test project %s", err)
 	}
 
 	if project.UserPermissions[user.Uuid] != model.Owner {
@@ -183,7 +184,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 	//list projects and verify same
 	if projectList, listErr := dbProvider.ListProjects(&user); listErr == nil {
 		//should only be one project
-		if !reflect.DeepEqual(*projectList[0], project) {
+		if !reflect.DeepEqual(*projectList[0], *project) {
 			t.Fatalf("project in list (%v) not identical to local (%v)", *projectList[0], project)
 		}
 		if len(projectList) > 1 {
@@ -196,7 +197,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 	//get the project and verify same
 	if dbProject, getErr := dbProvider.GetProject(&project.Uuid, &user); getErr == nil {
 		//compare
-		if !reflect.DeepEqual(*dbProject, project) {
+		if !reflect.DeepEqual(*dbProject, *project) {
 			t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
 		}
 	} else {
@@ -208,11 +209,11 @@ func TestBasicDBActionsProject(t *testing.T) {
 	project.ProjectName = "new_project_name"
 
 	//update the project
-	if updateErr := dbProvider.UpdateProject(&project, &user, "project_name", "user_permissions"); updateErr == nil {
+	if updateErr := dbProvider.UpdateProject(project, &user, "project_name", "user_permissions"); updateErr == nil {
 		//get the project and verify same
 		if dbProject, getErr := dbProvider.GetProject(&project.Uuid, &user); getErr == nil {
 			//compare
-			if !reflect.DeepEqual(*dbProject, project) {
+			if !reflect.DeepEqual(*dbProject, *project) {
 				t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
 			}
 		} else {
@@ -253,27 +254,22 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	//create a normal dataset
-	dataset := model.MynahDataset{
-		Uuid:        uuid.NewString(),
-		DatasetName: "dataset_test",
-	}
-
-	icDataset := model.MynahICDataset{
-		model.MynahDataset{
-			Uuid:        uuid.NewString(),
-			DatasetName: "ic_dataset_test",
-		},
-		make([]string, 0),
-	}
+	dataset, err := dbProvider.CreateDataset(&user, func(dataset *model.MynahDataset) {
+		dataset.DatasetName = "dataset_test"
+	})
 
 	//create the projects in the database
-	if createErr := dbProvider.CreateDataset(&dataset, &user); createErr != nil {
-		t.Fatalf("failed to create test dataset %s", createErr)
+	if err != nil {
+		t.Fatalf("failed to create test dataset %s", err)
 	}
 
-	if createErr := dbProvider.CreateICDataset(&icDataset, &user); createErr != nil {
-		t.Fatalf("failed to create test ic dataset %s", createErr)
+	icDataset, err := dbProvider.CreateICDataset(&user, func(icDataset *model.MynahICDataset) {
+		icDataset.DatasetName = "ic_dataset_test"
+	})
+
+	//create the projects in the database
+	if err != nil {
+		t.Fatalf("failed to create test dataset %s", err)
 	}
 
 	if (dataset.OrgId != user.OrgId) || (icDataset.OrgId != user.OrgId) {
@@ -283,7 +279,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	//list datasets and verify same
 	if datasetList, listErr := dbProvider.ListDatasets(&user); listErr == nil {
 		//should only be one project
-		if !reflect.DeepEqual(*datasetList[0], dataset) {
+		if !reflect.DeepEqual(*datasetList[0], *dataset) {
 			t.Fatalf("dataset in list (%v) not identical to local (%v)", *datasetList[0], dataset)
 		}
 		if len(datasetList) > 1 {
@@ -296,7 +292,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	//list datasets and verify same
 	if datasetList, listErr := dbProvider.ListICDatasets(&user); listErr == nil {
 		//should only be one project
-		if !reflect.DeepEqual(*datasetList[0], icDataset) {
+		if !reflect.DeepEqual(*datasetList[0], *icDataset) {
 			t.Fatalf("dataset in list (%v) not identical to local (%v)", *datasetList[0], icDataset)
 		}
 		if len(datasetList) > 1 {
@@ -309,7 +305,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	//get the datasets and verify same
 	if dbDataset, getErr := dbProvider.GetDataset(&dataset.Uuid, &user); getErr == nil {
 		//compare
-		if !reflect.DeepEqual(*dbDataset, dataset) {
+		if !reflect.DeepEqual(*dbDataset, *dataset) {
 			t.Fatalf("dataset from db (%v) not identical to local (%v)", *dbDataset, dataset)
 		}
 	} else {
@@ -318,7 +314,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 
 	if dbDataset, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
 		//compare
-		if !reflect.DeepEqual(*dbDataset, icDataset) {
+		if !reflect.DeepEqual(*dbDataset, *icDataset) {
 			t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
 		}
 	} else {
@@ -330,11 +326,11 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	icDataset.DatasetName = "new_icdataset_name"
 
 	//update the dataset
-	if updateErr := dbProvider.UpdateDataset(&dataset, &user, "dataset_name"); updateErr == nil {
+	if updateErr := dbProvider.UpdateDataset(dataset, &user, "dataset_name"); updateErr == nil {
 		//get the dataset and verify same
 		if dbDataset, getErr := dbProvider.GetDataset(&dataset.Uuid, &user); getErr == nil {
 			//compare
-			if !reflect.DeepEqual(*dbDataset, dataset) {
+			if !reflect.DeepEqual(*dbDataset, *dataset) {
 				t.Fatalf("dataset from db (%v) not identical to local (%v)", *dbDataset, dataset)
 			}
 		} else {
@@ -344,11 +340,11 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		t.Fatalf("failed to update dataset %s", updateErr)
 	}
 
-	if updateErr := dbProvider.UpdateICDataset(&icDataset, &user, "dataset_name"); updateErr == nil {
+	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, "dataset_name"); updateErr == nil {
 		//get the dataset and verify same
 		if dbDataset, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
 			//compare
-			if !reflect.DeepEqual(*dbDataset, icDataset) {
+			if !reflect.DeepEqual(*dbDataset, *icDataset) {
 				t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
 			}
 		} else {
@@ -401,15 +397,17 @@ func TestBasicDBActionsFile(t *testing.T) {
 	rangeRequest := 10
 
 	//add more files and then make range request
-	files := make([]model.MynahFile, rangeRequest)
 	var uuids []string
 
-	for _, f := range files {
-		f.Uuid = uuid.NewString()
-		if createErr := dbProvider.CreateFile(&f, &user); createErr != nil {
-			t.Fatalf("failed to create test file %s", createErr)
+	for i := 0; i < rangeRequest; i++ {
+
+		_, err := dbProvider.CreateFile(&user, func(file *model.MynahFile) {
+			uuids = append(uuids, file.Uuid)
+		})
+
+		if err != nil {
+			t.Fatalf("failed to create test file %s", err)
 		}
-		uuids = append(uuids, f.Uuid)
 	}
 
 	//make a range request

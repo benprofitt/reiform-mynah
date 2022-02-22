@@ -80,6 +80,18 @@ func (s *localStorage) GetStoredFile(file *model.MynahFile, handler func(*string
 	return handler(&fullPath)
 }
 
+//get the temporary path to a file
+func (s *localStorage) GetTmpPath(file *model.MynahFile) (string, error) {
+	fullPath := filepath.Join(s.localPath, file.Uuid)
+
+	//verify that the file exists
+	_, err := os.Stat(fullPath)
+	if err != nil {
+		return "", err
+	}
+	return fullPath, nil
+}
+
 //delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
 	return os.Remove(filepath.Join(s.localPath, file.Uuid))

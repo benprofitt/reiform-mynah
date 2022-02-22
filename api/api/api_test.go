@@ -130,8 +130,6 @@ func TestFileGetEndpoint(t *testing.T) {
 				if reqErr != nil {
 					return reqErr
 				}
-				//add auth header
-				req.Header.Add(mynahSettings.AuthSettings.JwtHeader, jwt)
 
 				//make a request for the file
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
@@ -158,6 +156,68 @@ func TestFileGetEndpoint(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("TestFileGetEndpoint error: %s", err)
+	}
+}
+
+func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
+	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.ModulePath = "../../python"
+	mynahSettings.PythonSettings.ModuleName = "mynah_test"
+
+	//load the testing context
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		//create a user
+		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			//create a file
+			return c.WithCreateFullICProject(user, func(project *model.MynahICProject) error {
+				//create the request body
+				reqBody := startDiagnosisJobRequest{
+					ProjectUuid: project.Uuid,
+				}
+
+				jsonBody, err := json.Marshal(reqBody)
+				if err != nil {
+					return err
+				}
+
+				//make a request to start a diagnosis job
+				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "ic/diagnosis/start"), bytes.NewBuffer(jsonBody))
+				if reqErr != nil {
+					return reqErr
+				}
+				req.Header.Add("Content-Type", "application/json")
+
+				//handle user creation endpoint
+				c.Router.HandleHTTPRequest("ic/diagnosis/start",
+					startICDiagnosisJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
+
+				//make the request
+				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+					//check the result
+					if code != http.StatusOK {
+						return fmt.Errorf("ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
+					}
+
+					//TODO check the result
+
+					// res := rr.Result()
+					// defer res.Body.Close()
+					//
+					// data, err := ioutil.ReadAll(res.Body)
+					// if err != nil {
+					// 	return fmt.Errorf("failed to read response body: %s", err)
+					// }
+					//
+					// //deserialize
+
+					return nil
+				})
+			})
+		})
+	})
+
+	if err != nil {
+		t.Fatalf("TestAPIStartDiagnosisJobEndpoint error: %s", err)
 	}
 }
 

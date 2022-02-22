@@ -73,3 +73,21 @@ func requestParseJson(writer http.ResponseWriter, request *http.Request, target 
 	}
 	return nil
 }
+
+//write a struct to a json response
+func responseWriteJson(writer http.ResponseWriter, target interface{}) error {
+	//marshal the response
+	if jsonResp, jsonErr := json.Marshal(target); jsonErr == nil {
+		//write response
+		if _, writeErr := writer.Write(jsonResp); writeErr == nil {
+			//respond with json
+			writer.Header().Set("Content-Type", "application/json")
+			return nil
+		} else {
+			return fmt.Errorf("failed to write response: %s", writeErr)
+		}
+
+	} else {
+		return fmt.Errorf("failed to generate json response %s", jsonErr)
+	}
+}

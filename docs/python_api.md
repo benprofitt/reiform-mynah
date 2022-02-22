@@ -9,7 +9,7 @@
   ```json
   {
     "classes" : ["class1", "class2"],
-    "files" : {
+    "class_files" : {
       "class1" : {
         "fileuuid1" : {
           "uuid": "uuid1",
@@ -17,7 +17,7 @@
           "original_class": "class",
           "projections": {},
           "confidence_vectors": [[1.0, 2.0]],
-          "mime_type" : "image/tiff",
+          "tmp_path": "/tmp/uuid"
         },
         "fileuuid2" : {
           "uuid": "uuid2",
@@ -25,7 +25,7 @@
           "original_class": "class2",
           "projections": {},
           "confidence_vectors": [[1.0, 2.0]],
-          "mime_type" : "image/png",
+          "tmp_path": "/tmp/uuid2"
         }
       },
       "class2" : {
@@ -35,7 +35,7 @@
           "original_class": "class",
           "projections": {},
           "confidence_vectors": [[1.0, 2.0]],
-          "mime_type" : "image/jpeg",
+          "tmp_path": "/tmp/uuid3"
         },
         "fileuuid4" : {
           "uuid": "uuid4",
@@ -43,7 +43,7 @@
           "original_class": "class",
           "projections": {},
           "confidence_vectors": [[1.0, 2.0]],
-          "mime_type" : "image/jpeg",
+          "tmp_path": "/tmp/uuid4"
         }
       }
     }

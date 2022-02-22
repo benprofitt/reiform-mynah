@@ -7,7 +7,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/middleware"
-	"reiform.com/mynah/python"
+	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -18,7 +18,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	authProvider auth.AuthProvider,
 	storageProvider storage.StorageProvider,
-	pythonProvider python.PythonProvider,
+	pyImplProvider pyimpl.PyImplProvider,
 	wsProvider websockets.WebSocketProvider,
 	asyncProvider async.AsyncProvider,
 	settings *settings.MynahSettings) error {
@@ -36,6 +36,10 @@ func RegisterRoutes(router *middleware.MynahRouter,
 
 	//register the file upload endpoint
 	router.HandleHTTPRequest("upload", handleFileUpload(settings, dbProvider, storageProvider))
+
+	//register the ic diagnosis job endpoint
+	router.HandleHTTPRequest("ic/diagnosis/start",
+		startICDiagnosisJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
 	//register admin endpoints
 	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))

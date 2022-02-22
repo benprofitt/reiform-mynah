@@ -51,6 +51,8 @@ type MynahStorageSettings struct {
 type MynahPythonSettings struct {
 	//the path where python modules are stored
 	ModulePath string `json:"module_path"`
+	//the top level module name
+	ModuleName string `json:"module_name"`
 }
 
 //defines configuration settings for async task engine
@@ -115,6 +117,7 @@ func DefaultSettings() *MynahSettings {
 		},
 		PythonSettings: MynahPythonSettings{
 			ModulePath: "./python",
+			ModuleName: "mynah",
 		},
 		AsyncSettings: MynahAsyncSettings{
 			Workers:    3,
@@ -165,7 +168,7 @@ func LoadSettings(path *string) (*MynahSettings, error) {
 	if !settingsExist(path) {
 		//generate default settings
 		generateSettings(path)
-		log.Errorf("wrote new settings file to %s", *path)
+		log.Warnf("wrote new settings file to %s", *path)
 	}
 
 	//read in the settings file from the local path

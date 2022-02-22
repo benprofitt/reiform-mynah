@@ -1,13 +1,12 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package impl
+package pyimpl
 
 import (
-	"fmt"
 	"os"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
-	"reiform.com/mynah/test"
 	"testing"
 )
 
@@ -35,19 +34,18 @@ func TestMynahPythonVersion(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 	mynahSettings.PythonSettings.ModulePath = "../../python"
 
-	//load the testing context
-	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
-		if res, err := GetMynahImplVersion(c.PythonProvider); err == nil {
-			if res.Version != "0.1.0" {
-				return fmt.Errorf("unexpected version: %s", res.Version)
-			}
-			return nil
-		} else {
-			return err
-		}
-	})
+	//initialize python
+	pythonProvider := python.NewPythonProvider(mynahSettings)
+	defer pythonProvider.Close()
 
-	if err != nil {
-		t.Fatalf("TestMynahPythonVersion error: %s", err)
+	//create the python impl provider
+	pyImplProvider := NewPyImplProvider(mynahSettings, pythonProvider)
+
+	if res, err := pyImplProvider.GetMynahImplVersion(); err == nil {
+		if res.Version != "0.1.0" {
+			t.Fatalf("unexpected version: %s", res.Version)
+		}
+	} else {
+		t.Fatalf("error calling python: %s", err)
 	}
 }

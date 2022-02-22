@@ -12,6 +12,11 @@ const (
 	Owner
 )
 
+//mynah abstract type
+type MynahAbstractProject interface {
+	GetBaseProject() *MynahProject
+}
+
 //Defines a mynah project
 type MynahProject struct {
 	//the id of the project
@@ -22,6 +27,13 @@ type MynahProject struct {
 	UserPermissions map[string]ProjectPermissions `json:"-" xorm:"TEXT 'user_permissions'"`
 	//the name of the project
 	ProjectName string `json:"project_name" xorm:"TEXT 'project_name'"`
+	//datasets that are part of this project (by id)
+	Datasets []string `json:"datasets" xorm:"TEXT 'datasets'"`
+}
+
+//get the base dataset for attributes
+func (d *MynahProject) GetBaseProject() *MynahProject {
+	return d
 }
 
 //Get the permissions that a user has on a given project

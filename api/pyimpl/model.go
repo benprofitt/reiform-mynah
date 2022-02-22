@@ -1,14 +1,26 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package impl
+package pyimpl
+
+import (
+	"reiform.com/mynah/model"
+)
+
+type PyImplProvider interface {
+	//get the current version
+	GetMynahImplVersion() (*VersionResponse, error)
+	//start ic diagnosis
+	ICDiagnosisJob(user *model.MynahUser, request *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error)
+}
 
 //mynah python version response
 type VersionResponse struct {
+	//the version returned by python
 	Version string `json:"version"`
 }
 
 //format of files for a start diagnosis request
-type DiagnosisJobFile struct {
+type ICDiagnosisJobFile struct {
 	//the uuid for the file
 	Uuid string `json:"uuid"`
 	//the current class
@@ -18,19 +30,19 @@ type DiagnosisJobFile struct {
 	//projections
 	//TODO
 	ConfidenceVectors [][]float64 `json:"confidence_vectors"`
-	//the type of the file
-	MimeType string `json:"mime_type"`
+	//the path to the file
+	TmpPath string `json:"tmp_path"`
 }
 
 //request format for a diagnosis job
-type DiagnosisJobRequest struct {
+type ICDiagnosisJobRequest struct {
 	//all classes in the dataset
 	Classes []string `json:"classes"`
 	//map by class to map by fileid
-	Files map[string]map[string]DiagnosisJobFile `json:"files"`
+	ClassFiles map[string]map[string]ICDiagnosisJobFile `json:"class_files"`
 }
 
 //response format for a diagnosis job
-type DiagnosisJobResponse struct {
+type ICDiagnosisJobResponse struct {
 	//TODO
 }

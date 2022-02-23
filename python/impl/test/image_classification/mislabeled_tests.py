@@ -19,13 +19,13 @@ def test_detection(results : ReiformICDataSet) -> Tuple[ReiformICDataSet, Reifor
     inliers, outliers = find_outliers_isolation_forest(results, 0.2)
     return inliers, outliers
 
-def test_2D_report_projection(inliers : ReiformICDataSet, 
-                              outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, 
+def test_2D_report_projection(inliers : ReiformICDataSet,
+                              outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet,
                                                                   ReiformICDataSet]:
     inliers, outliers = projection_2D_from_outlier_projection_one_class(inliers, outliers)
     return inliers, outliers
 
-def test_label_correction(inliers : ReiformICDataSet, 
+def test_label_correction(inliers : ReiformICDataSet,
                           outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, ReiformICDataSet]:
     inliers, outliers, corrected = iterative_reinjection_label_correction(1, inliers, outliers)
 
@@ -37,8 +37,8 @@ def run_tests():
     random.seed(random_seed)
     torch.manual_seed(random_seed)
 
-    data_path : str = "./impl/test/test_data_mnist"
-    results_path : str = "./impl/test/test_results"
+    data_path : str = "./python/impl/test/test_data_mnist"
+    results_path : str = "./python/impl/test/test_results"
     dataset : ReiformICDataSet = dataset_from_path(data_path)
 
     results : ReiformICDataSet = test_projection(dataset)

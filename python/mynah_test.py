@@ -1,6 +1,7 @@
 import socket
 import json
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
+from mynah import * # type: ignore
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):
@@ -21,6 +22,13 @@ def test3(s : str, i : int) -> int:
 
 def test4() -> int:
     raise ValueError("python test exception")
+
+def image_metadata_test():
+    path : str = "impl/test/test_data_mnist/0/img_322.jpg"
+    try:
+        print(get_image_metadata(path))
+    except:
+        raise FileNotFoundError("File {} not found. Run the test from inside python".format(path))
 
 def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
     #parse payload as json

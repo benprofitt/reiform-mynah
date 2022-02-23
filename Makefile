@@ -1,4 +1,4 @@
-.PHONY: frontend mynah format test clean all lint
+.PHONY: frontend mynah format test data-test clean all lint
 GO=go
 
 all: frontend mynah
@@ -10,8 +10,9 @@ frontend:
 format:
 	cd api ; $(GO) fmt ./...
 test:
-	cd api ; $(GO) test -count=1 -timeout 30s -v ./... 
-	cd python ; python impl/test/image_classification/mislabeled_tests.py
+	cd api ; $(GO) test -count=1 -timeout 30s -v ./...
+data-test:
+	PYTHONPATH=$(PYTHONPATH):$(PWD)/python python3.7 python/impl/test/image_classification/mislabeled_tests.py
 lint:
 	cd api ; golangci-lint run || true
 	cd api ; gosec ./... || true

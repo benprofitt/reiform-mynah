@@ -13,3 +13,4 @@ static/*
 mynah_container_data_*/*
 /python/impl/test/test_results/
 .venv/
+.idea/

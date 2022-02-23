@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
+import impl.services.modules.utils.image_utils as image_utils # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -25,3 +26,7 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
 
     # TODO response
     return "{}"
+
+def get_image_metadata(path: str) -> str:
+    '''Retrieve the image width, height, and channels'''
+    return json.dumps(image_utils.get_image_metadata(path))

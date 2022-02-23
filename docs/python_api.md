@@ -54,3 +54,16 @@
   ```json
 
   ```
+
+### Get Image Metadata
+- Name: `get_image_metadata(path: str)`
+- `path`: The path to the image in question
+- 
+- Output:
+  ```json
+    {
+      "channels" : 3,
+      "height" : 32,
+      "width" : 64
+    }
+  ```

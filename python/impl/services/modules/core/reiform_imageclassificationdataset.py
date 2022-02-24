@@ -110,7 +110,7 @@ class ReiformICFile():
     def merge(self, other: ReiformICFile) -> ReiformICFile:
         # Assuming 'other' is an updated version that is merging in - other overwrites self in conflicts
         if self.name != other.name:
-            raise AssertionError("Cannot merge with different names")
+            raise ReiformICFileException("Cannot merge files different names", "merge")
         merged_file : ReiformICFile = ReiformICFile(other.name, other.current_class)
         merged_file.original_class = other.original_class
 
@@ -182,7 +182,7 @@ class ReiformICDataSet():
         if name in self.files[label]:
             return self.files[label][name]
         else:
-            raise AssertionError("File not in dataset")
+            raise ReiformICDataSetException("File not in dataset", "get_file")
 
     def get_items(self, label : str):
         return self.files[label].items()
@@ -193,7 +193,7 @@ class ReiformICDataSet():
                 del self.files[label][name]
 
     def set_minus(self, other: ReiformICDataSet) -> None:
-        raise AssertionError("need to implement ReiformICDataSet::set_minus :-)")
+        raise ReiformICDataSetException("need to implement :-)", "set_minus")
 
     def split(self, ratio: float) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
 
@@ -262,7 +262,7 @@ class ReiformICDataSet():
     def merge(self, other : ReiformICDataSet) -> ReiformICDataSet:
         new_ds : ReiformICDataSet = self.copy()
         if other.classes() != self.class_list:
-            raise AssertionError("Cannot merge with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()))
+            raise ReiformICDataSetException("Cannot merge with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()), "merge")
 
         for c, files in self.files.items():
             other_files = other.files[c]
@@ -358,7 +358,7 @@ class DatasetFromReiformDataset(torch.utils.data.Dataset):
         elif self.layer_count == 1:
             return self.transform(Image.open(name).convert('L')), label, name
         else:
-            raise AssertionError("DatasetFromReiformDataset::layer_count not supported - submit a ticket")
+            raise ReiformClassMethodException("DatasetFromReiformDataset", "layer_count")
 
 
 class ProjectionDataset(torch.utils.data.Dataset):

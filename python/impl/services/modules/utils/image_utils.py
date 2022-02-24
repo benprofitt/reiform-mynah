@@ -1,4 +1,5 @@
 from PIL import Image # type: ignore
+from .reiform_exceptions import *
 
 def get_image_metadata(path : str) -> dict:
 
@@ -17,4 +18,4 @@ def get_image_metadata(path : str) -> dict:
         }
     
     except:
-        raise FileNotFoundError("Couldn't get metadata from {}".format(path))
+        raise ReiformFileSystemException("Couldn't get metadata from {}".format(path))

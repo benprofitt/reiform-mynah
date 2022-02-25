@@ -10,7 +10,9 @@ type PyImplProvider interface {
 	//get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
 	//start ic diagnosis
-	ICDiagnosisJob(user *model.MynahUser, request *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error)
+	ICDiagnosisJob(*model.MynahUser, *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error)
+	//get image metadata
+	ImageMetadata(*model.MynahUser, *ImageMetadataRequest) (*ImageMetadataResponse, error)
 }
 
 //mynah python version response
@@ -45,4 +47,20 @@ type ICDiagnosisJobRequest struct {
 //response format for a diagnosis job
 type ICDiagnosisJobResponse struct {
 	//TODO
+}
+
+//request type for image metadata
+type ImageMetadataRequest struct {
+	//the path to the image
+	Path string `json:"path"`
+}
+
+//response type for image metadata
+type ImageMetadataResponse struct {
+	//the number of channels in an image
+	Channels int `json:"channels"`
+	//the height of the image
+	Height int `json:"height"`
+	//the width of the image
+	Width int `json:"width"`
 }

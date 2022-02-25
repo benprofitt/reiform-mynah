@@ -11,7 +11,7 @@ import (
 type StorageProvider interface {
 	//Save a file to the storage target. Local path passed to function, once function completes
 	//file is moved to storage target
-	StoreFile(*model.MynahFile, func(*os.File) error) error
+	StoreFile(*model.MynahFile, *model.MynahUser, func(*os.File) error) error
 	//get the contents of a stored file. File is mounted locally, local path passed to function
 	GetStoredFile(*model.MynahFile, func(*string) error) error
 	//get the temporary path to a file

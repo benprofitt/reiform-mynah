@@ -44,17 +44,17 @@ func main() {
 		log.Fatalf("failed to initialize database connection %s", dbErr)
 	}
 
-	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
-	if storageErr != nil {
-		log.Fatalf("failed to initialize storage %s", storageErr)
-	}
-
 	//initialize python
 	pythonProvider := python.NewPythonProvider(mynahSettings)
 
 	//create the python impl provider
 	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
+
+	//initialize storage
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings, pyImplProvider)
+	if storageErr != nil {
+		log.Fatalf("failed to initialize storage %s", storageErr)
+	}
 
 	//initialize websockets
 	wsProvider := websockets.NewWebSocketProvider(mynahSettings)

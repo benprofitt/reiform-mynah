@@ -56,9 +56,15 @@
   ```
 
 ### Get Image Metadata
-- Name: `get_image_metadata(path: str)`
-- `path`: The path to the image in question
-- 
+- Name: `get_image_metadata(uuid: str, request: str, sock_addr: str)`
+- `uuid`: The uuid of the user starting the job
+- `request` :
+  ```json
+  {
+    "path" : ""
+  }
+  ```
+- `sock_addr`: The ipc socket address for sending websocket data
 - Output:
   ```json
     {

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 )
 
@@ -15,21 +16,24 @@ import (
 type localStorage struct {
 	//the local path to store files
 	localPath string
+	//the python interface provider
+	pyImplProvider pyimpl.PyImplProvider
 }
 
 //create a new local storage provider
-func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, error) {
+func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimpl.PyImplProvider) (*localStorage, error) {
 	//create the storage directory if it doesn't exist
 	if err := os.MkdirAll(mynahSettings.StorageSettings.LocalPath, os.ModePerm); err != nil {
 		return nil, err
 	}
 	return &localStorage{
-		localPath: mynahSettings.StorageSettings.LocalPath,
+		localPath:      mynahSettings.StorageSettings.LocalPath,
+		pyImplProvider: pyImplProvider,
 	}, nil
 }
 
 //Save a file to the storage target
-func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
+func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, handler func(*os.File) error) error {
 	//create a local storage path for the file
 	fullPath := filepath.Join(s.localPath, file.Uuid)
 
@@ -48,17 +52,20 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 				file.Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
 
 			} else {
-				log.Warnf("failed to get filesize for %s", file.Uuid)
+				log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)
 			}
 
-			//get the dimensions of the file if it's an image
-			//TODO we'd probably like to check the MIME type first
-			if stat, err := GetImageMetadata(fullPath, PredictMimeType(file.DetectedContentType)); err == nil {
-				file.Metadata[model.MetadataWidth] = fmt.Sprintf("%d", stat.width)
-				file.Metadata[model.MetadataHeight] = fmt.Sprintf("%d", stat.height)
-				file.Metadata[model.MetadataFormat] = stat.format
+			//get metadata for image
+			metadataRes, err := s.pyImplProvider.ImageMetadata(user, &pyimpl.ImageMetadataRequest{
+				Path: fullPath,
+			})
+
+			if err == nil {
+				file.Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
+				file.Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
+				file.Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
 			} else {
-				log.Infof("failed to get dimensions of file as image: %s", err)
+				log.Warnf("failed to get metadata for %s: %s", file.Uuid, err)
 			}
 		}
 

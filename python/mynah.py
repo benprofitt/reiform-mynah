@@ -12,6 +12,8 @@ stream.setFormatter(formatter)
 stream.setLevel(logging.DEBUG)
 log.addHandler(stream)
 
+logging.getLogger('PIL').setLevel(logging.WARNING)
+
 def get_impl_version(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Make sure that the module loads, returns version string'''
     logging.info("INFO  called get_impl_version()")
@@ -27,6 +29,7 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO response
     return "{}"
 
-def get_image_metadata(path: str) -> str:
+def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''
-    return json.dumps(image_utils.get_image_metadata(path))
+    request = json.loads(request_str)
+    return json.dumps(image_utils.get_image_metadata(request['path']))

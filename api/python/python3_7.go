@@ -138,7 +138,11 @@ func (p *localPython3_7) InitFunction(module string, function string) (MynahPyth
 	if m, found := p.modules[module]; found {
 		//if already loaded, error (leaks memory)
 		if _, foundFn := m.functions[function]; foundFn {
-			return nil, fmt.Errorf("function already loaded: %s", function)
+			return &localPython3_7Function{
+				module:   module,
+				function: function,
+				provider: p,
+			}, nil
 		}
 
 		if fn := m.module.GetAttrString(function); (fn != nil) && (python3.PyErr_Occurred() == nil) {

@@ -8,10 +8,10 @@ type FileLocation string
 type MetadataKey string
 
 const (
-	MetadataSize   MetadataKey = "size"
-	MetadataWidth  MetadataKey = "width"
-	MetadataHeight MetadataKey = "height"
-	MetadataFormat MetadataKey = "format"
+	MetadataSize     MetadataKey = "size"
+	MetadataWidth    MetadataKey = "width"
+	MetadataHeight   MetadataKey = "height"
+	MetadataChannels MetadataKey = "channels"
 )
 
 //metadata type

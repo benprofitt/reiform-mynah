@@ -3,6 +3,7 @@
 package websockets
 
 import (
+	"context"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"reiform.com/mynah/log"
@@ -27,6 +28,10 @@ type webSocketServer struct {
 	registerClientChan chan *connectedClient
 	//channel for removing clients from lookup
 	deregisterClientChan chan *connectedClient
+	//server completion context
+	ctx context.Context
+	//server completion function
+	cancel context.CancelFunc
 }
 
 //an authenticated client connected
@@ -43,11 +48,14 @@ type connectedClient struct {
 
 //create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &webSocketServer{
 		dataChan:             make(chan queueEntry, 256),
 		clients:              make(map[string]*connectedClient),
 		registerClientChan:   make(chan *connectedClient),
 		deregisterClientChan: make(chan *connectedClient),
+		ctx:                  ctx,
+		cancel:               cancel,
 	}
 }
 
@@ -95,7 +103,7 @@ func (c *connectedClient) clientWrite() {
 				writer.Close()
 
 			} else {
-				log.Errorf("error sending message to websocket client: %s", writerErr)
+				log.Warnf("error sending message to websocket client: %s", writerErr)
 				//exit goroutine and disconnect/deregister client
 				return
 			}
@@ -109,6 +117,8 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 	go func() {
 		for {
 			select {
+			case <-w.ctx.Done():
+				return
 			case newClient := <-w.registerClientChan:
 				log.Infof("registered websocket client %s", newClient.uuid)
 				//register the client
@@ -182,6 +192,7 @@ func (w *webSocketServer) Send(uuid *string, msg []byte) {
 //close connected clients
 func (w *webSocketServer) Close() {
 	log.Infof("closing websocket connections")
+	w.cancel()
 	for uuid, client := range w.clients {
 		close(client.outgoing)
 		delete(w.clients, uuid)

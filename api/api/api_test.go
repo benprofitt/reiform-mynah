@@ -170,6 +170,22 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 			//create a file
 			return c.WithCreateFullICProject(user, func(project *model.MynahICProject) error {
+
+				errChan := make(chan error)
+				readyChan := make(chan struct{})
+
+				//listen for websocket response
+				go c.WebsocketListener(jwt, 1, readyChan, errChan, func(res string) error {
+					//TODO check more
+					if res == "{}" {
+						return nil
+					}
+					return fmt.Errorf("unexpected response: %s", res)
+				})
+
+				//wait for the websocket server to be up
+				<-readyChan
+
 				//create the request body
 				reqBody := startDiagnosisJobRequest{
 					ProjectUuid: project.Uuid,
@@ -198,19 +214,8 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						return fmt.Errorf("ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
 					}
 
-					//TODO check the result
-
-					// res := rr.Result()
-					// defer res.Body.Close()
-					//
-					// data, err := ioutil.ReadAll(res.Body)
-					// if err != nil {
-					// 	return fmt.Errorf("failed to read response body: %s", err)
-					// }
-					//
-					// //deserialize
-
-					return nil
+					//wait for the websocket response
+					return <-errChan
 				})
 			})
 		})

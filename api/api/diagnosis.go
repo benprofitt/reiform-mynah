@@ -3,6 +3,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"reiform.com/mynah/async"
@@ -21,11 +23,10 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 	req *pyimpl.ICDiagnosisJobRequest) async.AsyncTaskHandler {
 	//Note: we shouldn't modify the user that was passed in in the event that it becomes stale
 	return func(string) ([]byte, error) {
-		// get the requested project
-
-		if _, err := pyImplProvider.ICDiagnosisJob(user, req); err == nil {
-			//TODO use response
-			return nil, nil
+		// start the job and return the response
+		if res, err := pyImplProvider.ICDiagnosisJob(user, req); err == nil {
+			//TODO extract data from the response
+			return json.Marshal(res)
 		} else {
 			log.Warnf("ic diagnosis job returned error: %s", err)
 			return nil, err
@@ -34,7 +35,7 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 }
 
 //create a new request body from the given data
-func startICDiagnosisJobCreateReq(project *model.MynahICProject, fileTmpPaths map[string]string) *pyimpl.ICDiagnosisJobRequest {
+func startICDiagnosisJobCreateReq(project *model.MynahICProject, fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
 
 	//build the job request
 	jobRequest := pyimpl.ICDiagnosisJobRequest{
@@ -60,12 +61,12 @@ func startICDiagnosisJobCreateReq(project *model.MynahICProject, fileTmpPaths ma
 						TmpPath:           tmpPath,
 					}
 				} else {
-					log.Warnf("no temporary path found for: %s, ignoring", fileid)
+					return nil, fmt.Errorf("no temporary path found for: %s", fileid)
 				}
 			}
 		}
 	}
-	return &jobRequest
+	return &jobRequest, nil
 }
 
 //handle request to start a new async job
@@ -110,10 +111,16 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 						}
 					}
 
+					req, err := startICDiagnosisJobCreateReq(icProject, fileTempPaths)
+					if err != nil {
+						log.Warnf("failed to create ic diagnosis job: %s", err)
+						writer.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+
 					//kick off async job
 					asyncProvider.StartAsyncTask(user,
-						startICDiagnosisHandler(dbProvider, pyImplProvider, user,
-							startICDiagnosisJobCreateReq(icProject, fileTempPaths)))
+						startICDiagnosisHandler(dbProvider, pyImplProvider, user, req))
 
 				} else {
 					log.Warnf("failed to load files: %s", err)

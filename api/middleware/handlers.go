@@ -138,6 +138,11 @@ func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Requ
 	}
 }
 
+// HttpMiddleware wraps the given function in basic request middleware
+func (r *MynahRouter) HttpMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	return r.logMiddleware(r.corsMiddleware(r.authenticationMiddleware(handler)))
+}
+
 //handle a basic http request (authenticated user passed in request context)
 func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
@@ -149,30 +154,22 @@ func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
 //Handle an admin request (passes authenticated admin)
 func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
-		r.logMiddleware(
-			r.corsMiddleware(
-				r.authenticationMiddleware(
-					r.adminMiddleware(handler))))).Methods(method, http.MethodOptions)
+		r.HttpMiddleware(r.adminMiddleware(handler))).Methods(method, http.MethodOptions)
 }
 
 //handle a project request (loads project, passes to handler)
 func (r *MynahRouter) HandleProjectRequest(method string, path string, handler MynahProjectHandler) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, fmt.Sprintf("project/{%s}", projectKey), path),
-		r.logMiddleware(
-			r.corsMiddleware(
-				r.authenticationMiddleware(
-					r.projectMiddleware(r.projectHandler(handler)))))).Methods(method, http.MethodOptions)
+		r.HttpMiddleware(r.projectMiddleware(r.projectHandler(handler)))).Methods(method, http.MethodOptions)
 }
 
 //handle a request for a file
 func (r *MynahRouter) HandleFileRequest(path string) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path, fmt.Sprintf("{%s}", fileKey)),
-		r.logMiddleware(
-			r.corsMiddleware(
-				r.authenticationMiddleware(r.fileHandler)))).Methods("GET", http.MethodOptions)
+		r.HttpMiddleware(r.fileHandler)).Methods("GET", http.MethodOptions)
 }
 
-//start server
+// ListenAndServe start server
 func (r *MynahRouter) ListenAndServe() {
 	//serve static resources
 	r.serveStaticSite()
@@ -184,7 +181,8 @@ func (r *MynahRouter) ListenAndServe() {
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	log.Errorf("server exit: %s", r.server.ListenAndServe())
+	log.Infof("server starting on %s", r.server.Addr)
+	log.Warnf("server exit: %s", r.server.ListenAndServe())
 }
 
 //Shutdown the server

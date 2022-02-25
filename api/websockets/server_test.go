@@ -55,7 +55,7 @@ func testHarnessE2E(path string,
 	}
 
 	headers := make(http.Header)
-	headers[mynahSettings.AuthSettings.JwtHeader] = []string{jwt}
+	headers.Add(mynahSettings.AuthSettings.JwtHeader, jwt)
 
 	//connect to the websocket server, attaching jwt as auth
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), headers)
@@ -63,6 +63,8 @@ func testHarnessE2E(path string,
 		return err
 	}
 	defer c.Close()
+
+	c.SetReadDeadline(time.Now().Add(2 * time.Second))
 
 	messagesToSend := 100
 

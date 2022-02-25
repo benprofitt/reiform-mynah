@@ -5,6 +5,8 @@ package test
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/posener/wstest"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,7 +23,10 @@ import (
 	"reiform.com/mynah/websockets"
 )
 
-//TODO clean generated files
+type wsRecorder struct {
+	httptest.ResponseRecorder
+	server net.Conn
+}
 
 //maintains the context for testing
 type TestContext struct {
@@ -240,20 +245,23 @@ func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*mo
 
 //create a complete ic project with a dataset and file and pass to the handler
 func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
-	//create a dataset
-	dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {
-		d.Classes = append(d.Classes, "test_class")
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create dataset in database: %s", err)
-	}
-
 	//create a file
-	err = t.WithCreateFile(owner, "test_contents", func(f *model.MynahFile) error {
+	err := t.WithCreateFile(owner, "test_contents", func(f *model.MynahFile) error {
+
+		//create a dataset
+		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {
+			d.Classes = append(d.Classes, "test_class")
+			d.ReferencedFiles = append(d.ReferencedFiles, f.Uuid)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create dataset in database: %s", err)
+		}
 
 		//create a project
 		project, err := t.DBProvider.CreateICProject(owner, func(p *model.MynahICProject) {
 			//add the dataset
+			p.Datasets = append(p.Datasets, dataset.Uuid)
+
 			p.DatasetAttributes[dataset.Uuid] = model.MynahICProjectData{
 				Data: make(map[string]map[string]model.MynahICProjectClassFileData),
 			}
@@ -261,8 +269,8 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 			p.DatasetAttributes[dataset.Uuid].Data["test_class"] = make(map[string]model.MynahICProjectClassFileData)
 
 			p.DatasetAttributes[dataset.Uuid].Data["test_class"][f.Uuid] = model.MynahICProjectClassFileData{
-				CurrentClass: "test_class",
-				OriginalClass: "old_class",
+				CurrentClass:      "test_class",
+				OriginalClass:     "old_class",
 				ConfidenceVectors: make([][]float64, 0),
 			}
 		})
@@ -279,13 +287,13 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 			return fmt.Errorf("failed to delete project: %s", deleteErr)
 		}
 
+		//clean the dataset
+		if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {
+			return fmt.Errorf("failed to delete dataset: %s", deleteErr)
+		}
+
 		return err
 	})
-
-	//clean the dataset
-	if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {
-		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
-	}
 
 	return err
 }
@@ -303,4 +311,38 @@ func (t *TestContext) WithHTTPRequest(req *http.Request, jwt string, handler fun
 
 	//call the handler
 	return handler(rr.Code, rr)
+}
+
+//expect a websocket message for the given user
+func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan struct{}, errChan chan error, handler func(string) error) {
+	dialer := wstest.NewDialer(t.Router.HttpMiddleware(t.WebSocketProvider.ServerHandler()))
+
+	headers := make(http.Header)
+	headers[t.Settings.AuthSettings.JwtHeader] = []string{jwt}
+
+	conn, _, err := dialer.Dial("ws://test/ws", headers)
+	if err != nil {
+		errChan <- err
+		return
+	}
+	defer conn.Close()
+
+	//server is ready
+	close(readyChan)
+
+	var resErr error
+
+	for i := 0; i < expect; i++ {
+		_, message, err := conn.ReadMessage()
+		if err != nil {
+			errChan <- resErr
+			return
+		}
+		if err = handler(string(message)); err != nil {
+			errChan <- resErr
+			return
+		}
+	}
+
+	errChan <- resErr
 }

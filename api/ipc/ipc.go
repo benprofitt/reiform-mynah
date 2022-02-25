@@ -112,7 +112,7 @@ func (s *ipcServer) HandleEvents(handler func(userUuid *string, msg []byte)) {
 			s.messages <- conn
 
 		} else {
-			log.Errorf("error listening to socket: %s", err)
+			log.Warnf("error listening to socket: %s", err)
 			return
 		}
 	}

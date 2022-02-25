@@ -57,3 +57,24 @@ func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDia
 	}
 	return &jobResponse, nil
 }
+
+//get image metadata
+func (p *localImplProvider) ImageMetadata(user *model.MynahUser, request *ImageMetadataRequest) (*ImageMetadataResponse, error) {
+	//initialize the function
+	fn, err := p.pythonProvider.InitFunction(p.moduleName, "get_image_metadata")
+	if err != nil {
+		return nil, err
+	}
+
+	//call the function
+	res := fn.Call(user, request)
+
+	var response ImageMetadataResponse
+
+	//parse the response
+	resErr := res.GetResponse(&response)
+	if resErr != nil {
+		return nil, resErr
+	}
+	return &response, nil
+}

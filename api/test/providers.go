@@ -59,19 +59,19 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	}
 	defer dbProvider.Close()
 
-	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
-	if storageErr != nil {
-		return storageErr
-	}
-	defer storageProvider.Close()
-
 	//initialize python
 	pythonProvider := python.NewPythonProvider(mynahSettings)
 	defer pythonProvider.Close()
 
 	//create the python impl provider
 	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
+
+	//initialize storage
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings, pyImplProvider)
+	if storageErr != nil {
+		return storageErr
+	}
+	defer storageProvider.Close()
 
 	//initialize websockets
 	websocketProvider := websockets.NewWebSocketProvider(mynahSettings)
@@ -145,7 +145,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	}
 
 	//create the file in storage
-	storeErr := t.StorageProvider.StoreFile(file, func(f *os.File) error {
+	storeErr := t.StorageProvider.StoreFile(file, owner, func(f *os.File) error {
 		//write contents to the file
 		_, err := f.WriteString(contents)
 		return err

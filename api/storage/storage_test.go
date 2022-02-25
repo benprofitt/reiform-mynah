@@ -7,6 +7,8 @@ import (
 	"os"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/pyimpl"
+	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"testing"
 )
@@ -36,7 +38,15 @@ func TestMain(m *testing.M) {
 //Test basic storage behavior
 func TestBasicStorageActions(t *testing.T) {
 	s := settings.DefaultSettings()
-	storageProvider, storagePErr := NewStorageProvider(s)
+
+	//initialize python
+	pythonProvider := python.NewPythonProvider(s)
+	defer pythonProvider.Close()
+
+	//create the python impl provider
+	pyImplProvider := pyimpl.NewPyImplProvider(s, pythonProvider)
+
+	storageProvider, storagePErr := NewStorageProvider(s, pyImplProvider)
 	if storagePErr != nil {
 		t.Errorf("failed to create storage provider for test %s", storagePErr)
 		return
@@ -47,8 +57,12 @@ func TestBasicStorageActions(t *testing.T) {
 		Uuid: "mynah_test_file",
 	}
 
+	user := model.MynahUser{
+		Uuid: "owner",
+	}
+
 	//store the file
-	if storeErr := storageProvider.StoreFile(&file, func(f *os.File) error {
+	if storeErr := storageProvider.StoreFile(&file, &user, func(f *os.File) error {
 		//write to the file
 		_, err := f.WriteString("data")
 		return err
@@ -102,7 +116,16 @@ func TestBasicStorageActions(t *testing.T) {
 //test size detection
 func TestStorageImageSizeDetection(t *testing.T) {
 	s := settings.DefaultSettings()
-	storageProvider, storagePErr := NewStorageProvider(s)
+	s.PythonSettings.ModulePath = "../../python"
+
+	//initialize python
+	pythonProvider := python.NewPythonProvider(s)
+	defer pythonProvider.Close()
+
+	//create the python impl provider
+	pyImplProvider := pyimpl.NewPyImplProvider(s, pythonProvider)
+
+	storageProvider, storagePErr := NewStorageProvider(s, pyImplProvider)
 	if storagePErr != nil {
 		t.Errorf("failed to create storage provider for test %s", storagePErr)
 		return
@@ -113,34 +136,42 @@ func TestStorageImageSizeDetection(t *testing.T) {
 	pngPath := "../../docs/mynah_arch_1-13-21.drawio.png"
 	notImagePath := "../../docs/ipc.md"
 
-	//get the dimensions of the jpeg
-	if stat, err := GetImageMetadata(jpegPath, JPEGType); err == nil {
-		if (stat.width != 4032) || (stat.height != 3024) {
-			t.Fatalf("unexpected jpeg dimensions (%d, %d), expected: (%d, %d)",
-				stat.width, stat.height, 4032, 3024)
-		}
-		if stat.format != "jpeg" {
-			t.Fatalf("unexpected format: %s, expected: %s", stat.format, "jpeg")
-		}
-	} else {
-		t.Fatalf("failed to get jpeg size: %s", err)
+	user := model.MynahUser{
+		Uuid: "owner",
 	}
 
-	//get the dimensions of the png
-	if stat, err := GetImageMetadata(pngPath, PNGType); err == nil {
-		if (stat.width != 3429) || (stat.height != 2316) {
-			t.Fatalf("unexpected jpeg dimensions (%d, %d), expected: (%d, %d)",
-				stat.width, stat.height, 3429, 2316)
-		}
-		if stat.format != "png" {
-			t.Fatalf("unexpected format: %s, expected: %s", stat.format, "png")
-		}
-	} else {
-		t.Fatalf("failed to get png size: %s", err)
+	//get metadata for image
+	jpegRes, err := pyImplProvider.ImageMetadata(&user, &pyimpl.ImageMetadataRequest{
+		Path: jpegPath,
+	})
+
+	if err != nil {
+		t.Fatalf("error requesting metadata: %s", err)
 	}
 
-	//get the dimensions of a different file
-	if _, err := GetImageMetadata(notImagePath, PNGType); err == nil {
+	if (jpegRes.Width != 4032) || (jpegRes.Height != 3024) {
+		t.Fatalf("unexpected jpeg dimensions (%d, %d), expected: (%d, %d)",
+			jpegRes.Width, jpegRes.Height, 4032, 3024)
+	}
+
+	pngRes, err := pyImplProvider.ImageMetadata(&user, &pyimpl.ImageMetadataRequest{
+		Path: pngPath,
+	})
+
+	if err != nil {
+		t.Fatalf("error requesting metadata: %s", err)
+	}
+
+	if (pngRes.Width != 3429) || (pngRes.Height != 2316) {
+		t.Fatalf("unexpected png dimensions (%d, %d), expected: (%d, %d)",
+			pngRes.Width, pngRes.Height, 3429, 2316)
+	}
+
+	_, err = pyImplProvider.ImageMetadata(&user, &pyimpl.ImageMetadataRequest{
+		Path: notImagePath,
+	})
+
+	if err == nil {
 		t.Fatalf("expected error for non-image")
 	}
 }

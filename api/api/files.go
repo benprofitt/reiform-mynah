@@ -83,7 +83,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		}
 
 		//write the contents of the file to storage
-		storeErr := storageProvider.StoreFile(mynahFile, func(f *os.File) error {
+		storeErr := storageProvider.StoreFile(mynahFile, user, func(f *os.File) error {
 			_, err := f.Write(fileContents)
 			return err
 		})

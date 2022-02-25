@@ -37,7 +37,7 @@ export default function HomePage(): JSX.Element {
           {/* this will change in the future to accomodate a model for datasets,
           and will also eventually be generating unique project ids */}
           <Link
-            to={mode === "Projects" ? "/mynah/project" : "/mynah"}
+            to={mode === "Projects" ? "/mynah/project/data-ingest" : "/mynah"}
             className="border border-black w-36 h-full py-2 text-center"
           >
             + New {mode.slice(0, -1)}

@@ -5,6 +5,17 @@ class Projections():
     def __init__(self) -> None:
         self.projections : Dict[str, NDArray] = {}
 
+    def from_json(self, projs : Dict[str, List[float]]) -> None:
+        for name, arr in projs.items():
+            self.projections[name] = np.array(arr)
+
+    def to_json(self) -> Dict[str: List[float]]:
+        results : Dict[str: List[float]] = {}
+        for name, arr in self.projections.items():
+            results[name] = arr.tolist()
+
+        return results
+
     def insert(self, label: str, proj : NDArray) -> None:
         self.projections[label] = proj
 
@@ -49,6 +60,8 @@ class Projections():
 class ReiformICFile():
     def __init__(self, name : str, label : str) -> None:
 
+        self.uuid : str = ""
+
         self.name : str = name
         self.current_class : str = label
         self.original_class : str = label
@@ -61,6 +74,24 @@ class ReiformICFile():
         self.confidence_vectors : List[NDArray] = []
 
         self.was_outlier : bool = False
+
+    def from_json(self, body: Dict[str, Any]):
+        for attrib in ["uuid", "width", "height", "layers", "current_class", "original_class"]:
+            if attrib in body:
+                setattr(self, attrib, body[attrib])
+
+        if "projections" in body:
+            self.projections.from_json(body["projections"])
+        if "confidence_vectors" in body:
+            self.confidence_vectors = [np.array(arr) for arr in body["confidence_vectors"]]
+
+    def to_json(self) -> Dict[str, Any]:
+        results : Dict[str, Any] = self.__dict__
+
+        results["projections"] = results["projections"].to_json()
+        results["confidence_vectors"] = [v.tolist() for v in results["confidence_vectors"]]
+
+        return results
 
     def get_projection_size(self, label: str):
         self.projections.get_size(label)
@@ -282,6 +313,26 @@ class ReiformICDataSet():
 
     def merge_in(self, other : ReiformICDataSet) -> None:
         self = self.merge(other)
+
+    def from_json(self, files: Dict[str, Dict[str, Dict[str, Any]]]):
+        if len(self.class_list) == 0:
+            return
+
+        else:
+            for c in self.class_list:
+                class_files = files[c]
+                for filename, file in class_files.items():
+                    new_file : ReiformICFile = ReiformICFile(filename, c)
+                    new_file.from_json(file)
+                    self.add_file(new_file)
+
+    def to_json(self) -> Dict[str, Any]:
+        results : Dict[str, Any] = self.__dict__
+
+        for c in self.class_list:
+            results["files"][c] = results["files"][c].to_json()
+
+        return results
 
     def copy(self):
         return copy.deepcopy(self)

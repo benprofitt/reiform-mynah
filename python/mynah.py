@@ -1,8 +1,12 @@
 import json
 import logging
 import sys
+from typing import *
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 import impl.services.modules.utils.image_utils as image_utils # type: ignore
+import impl.services.image_classification.diagnosis_job as diagnosis # type: ignore
+import impl.services.image_classification.cleaning_job as cleaning # type: ignore
+
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -24,10 +28,17 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     request = json.loads(request_str)
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("INFO  called start_diagnosis_job()")
-        # TODO call impl
+        # call impl
+        diagnosis_job : diagnosis.Diagnosis_Job = diagnosis.Diagnosis_Job(request)
 
-    # TODO response
-    return "{}"
+        # Pass in logger to relay progress
+        task_results : List[Dict[str, Any]] = diagnosis_job.run_diagnosis(plogger)
+
+    # response
+    return json.dumps({
+                        "project_uuid" : request["project_uuid"],
+                        "tasks" : task_results
+                      })
 
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''

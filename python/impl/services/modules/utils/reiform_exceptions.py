@@ -31,3 +31,11 @@ class ReiformICFileException(ReiformFileException):
 class ReiformFileSystemException(ReiformException):
     def __init__(self, message: str = "File Not Found"):
         super().__init__(message)
+
+class ReiformDiagnosisException(ReiformException):
+    def __init__(self, message: str = ""):
+        super().__init__("Error in diagnosis: {}".format(message))
+
+class ReiformCleaningException(ReiformException):
+    def __init__(self, message: str = ""):
+        super().__init__("Error in data cleaning: {}".format(message))

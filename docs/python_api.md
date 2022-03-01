@@ -8,7 +8,7 @@
 - `request`:
   ```json
   {
-    "auto": "<0|1>",
+    "auto": false,
     "project_uuid": "uuid_of_project",
     "dataset": {
       "classes" : ["class1", "class2"],
@@ -186,13 +186,13 @@
   }
   ```
 
-### Start Cleaning Job (TODO)
+### Start Cleaning Job
 - Name: `start_cleaning_job(uuid: str, request: str, sock_addr: str)`
 - `uuid`: The uuid of the user starting the job
 - `request`:
   ```json
   {
-    "auto": "<0|1>",
+    "auto": true,
     "project_uuid": "uuid_of_project",
     "tasks" : [
       {

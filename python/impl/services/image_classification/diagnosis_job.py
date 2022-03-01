@@ -4,6 +4,11 @@ class Diagnosis_Job(Processing_Job):
     def __init__(self, job_json: Dict[str, Any]) -> None:
         super().__init__(job_json)
 
+        if not self.auto:
+            self.tasks : List[Dict[str, Any]] = job_json["tasks"]
+        dataset : Dict[str, Any] = job_json["dataset"]
+        self.data : ReiformICDataSet = self.make_dataset(dataset)
+
     def run_diagnosis(self, logger : ProgressLogger):
         if self.auto:
             raise ReiformDiagnosisException("need to implement auto diagnosis")

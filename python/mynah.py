@@ -40,6 +40,24 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
                         "tasks" : task_results
                       })
 
+
+def start_cleaning_job(uuid: str, request_str: str, sock_addr: str) -> str:
+    '''Start a cleaning job. See docs/python_api.md'''
+    request = json.loads(request_str)
+    with ProgressLogger(uuid, sock_addr) as plogger:
+        logging.info("INFO  called start_diagnosis_job()")
+        # call impl
+        cleaning_job : cleaning.Cleaning_Job = cleaning.Cleaning_Job(request)
+
+        # Pass in logger to relay progress
+        cleaning_results : List[Dict[str, Any]] = cleaning_job.run_cleaning(plogger)
+
+    # response
+    return json.dumps({
+                        "project_uuid" : request["project_uuid"],
+                        "datasets" : cleaning_results
+                      })
+
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''
     request = json.loads(request_str)

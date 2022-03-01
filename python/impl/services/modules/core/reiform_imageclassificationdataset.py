@@ -68,7 +68,7 @@ class ReiformICFile():
 
         self.width : int = 0
         self.height : int = 0
-        self.layers : int = 3
+        self.channels : int = 3
 
         self.projections : Projections = Projections()
         self.confidence_vectors : List[NDArray] = []
@@ -76,7 +76,7 @@ class ReiformICFile():
         self.was_outlier : bool = False
 
     def from_json(self, body: Dict[str, Any]):
-        for attrib in ["uuid", "width", "height", "layers", "current_class", "original_class"]:
+        for attrib in ["uuid", "width", "height", "channels", "current_class", "original_class"]:
             if attrib in body:
                 setattr(self, attrib, body[attrib])
 
@@ -224,7 +224,17 @@ class ReiformICDataSet():
                 del self.files[label][name]
 
     def set_minus(self, other: ReiformICDataSet) -> None:
-        raise ReiformICDataSetException("need to implement :-)", "set_minus")
+        new_ds : ReiformICDataSet = self.copy()
+        if other.classes() != self.class_list:
+            raise ReiformICDataSetException("Cannot subtract with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()), "merge")
+
+        for c, files in self.files.items():
+            other_files = other.files[c]
+            for filename, file in files.items():
+                if filename not in other_files:
+                    new_ds.add_file(copy.deepcopy(file))
+
+        return new_ds
 
     def split(self, ratio: float) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
 
@@ -270,13 +280,13 @@ class ReiformICDataSet():
 
             new_file.width = max(file1.width, file2.width)
             new_file.height = max(file1.height, file2.height)
-            new_file.layers = max(file1.layers, file2.layers)
+            new_file.channels = max(file1.channels, file2.channels)
 
             return new_file
 
         file = self.reduce_files(find_max)
 
-        return file.width, file.height, file.layers
+        return file.width, file.height, file.channels
 
     def reduce_files(self, condition: Callable) -> ReiformICFile:
 
@@ -310,6 +320,19 @@ class ReiformICDataSet():
 
         return new_ds
 
+    def intersection(self, other : ReiformICDataSet) -> ReiformICDataSet:
+        new_ds : ReiformICDataSet = self.copy()
+        if other.classes() != self.class_list:
+            raise ReiformICDataSetException("Cannot merge with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()), "merge")
+
+        for c, files in self.files.items():
+            other_files = other.files[c]
+            for filename, file in files.items():
+                if filename in other_files:
+                    merged_file = file.merge(other_files[filename])
+                    new_ds.add_file(merged_file)
+                
+        return new_ds
 
     def merge_in(self, other : ReiformICDataSet) -> None:
         self = self.merge(other)
@@ -488,7 +511,7 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
 
         new_file.width  = sizes[0]
         new_file.height = sizes[1]
-        new_file.layers = 1 if len(sizes) < 3 else sizes[2]
+        new_file.channels = 1 if len(sizes) < 3 else sizes[2]
 
         dataset.add_file(new_file)
 

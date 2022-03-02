@@ -14,12 +14,12 @@ class Diagnosis_Job(Processing_Job):
             raise ReiformDiagnosisException("need to implement auto diagnosis")
         else:
             task : Dict[str, Any]
-            results : List[Dict[str, Any]] = {}
+            results : List[Dict[str, Any]] = []
             for i, task in enumerate(self.tasks):
                 name : str = task["name"]
 
                 try:
-                    results_json : Dict[str: Any] = eval("self.{}()".format(name))
+                    results_json : Dict[str, Any] = eval("self.{}()".format(name))
                     results.append({"name" : name, "datasets": results_json})
                     logger.write(json.dumps({"completed": name, "progress" : i/len(self.tasks)}))
                 except:

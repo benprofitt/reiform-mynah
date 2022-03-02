@@ -1,7 +1,7 @@
 import socket
 import json
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
-from mynah import * # type: ignore
+# from mynah import * # type: ignore
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):

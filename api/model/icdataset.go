@@ -2,7 +2,7 @@
 
 package model
 
-//Defines a dataset specifically for image classification
+// MynahICDataset Defines a dataset specifically for image classification
 type MynahICDataset struct {
 	//underlying mynah dataset
 	MynahDataset `json:"dataset" xorm:"extends"`

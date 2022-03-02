@@ -2,12 +2,12 @@
 
 package model
 
-//mynah abstract type
+// MynahAbstractDataset mynah abstract type
 type MynahAbstractDataset interface {
 	GetBaseDataset() *MynahDataset
 }
 
-//Defines a mynah dataset
+// MynahDataset Defines a mynah dataset
 type MynahDataset struct {
 	//the id of the dataset
 	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
@@ -21,7 +21,7 @@ type MynahDataset struct {
 	DatasetName string `json:"dataset_name" xorm:"TEXT 'dataset_name'"`
 }
 
-//get the base dataset for attributes
+// GetBaseDataset get the base dataset for attributes
 func (d *MynahDataset) GetBaseDataset() *MynahDataset {
 	return d
 }

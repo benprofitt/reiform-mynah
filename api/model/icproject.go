@@ -2,6 +2,10 @@
 
 package model
 
+// ConfidenceVectors for a file
+type ConfidenceVectors [][]float64
+
+// MynahICProjectClassFileData file data in the project
 type MynahICProjectClassFileData struct {
 	//the current clas
 	CurrentClass string `json:"current_class"`
@@ -10,16 +14,16 @@ type MynahICProjectClassFileData struct {
 	//the projections
 	//TODO
 	//the confidence vectors
-	ConfidenceVectors [][]float64 `json:"confidence_vectors"`
+	ConfidenceVectors ConfidenceVectors `json:"confidence_vectors"`
 }
 
-//defines project-level info about an ic dataset
+// MynahICProjectData defines project-level info about an ic dataset
 type MynahICProjectData struct {
 	//mapping from classes in the dataset to a mapping from file to file info
 	Data map[string]map[string]MynahICProjectClassFileData `json:"data"`
 }
 
-//Defines a project specifically for image classification
+// MynahICProject Defines a project specifically for image classification
 type MynahICProject struct {
 	//underlying mynah dataset
 	MynahProject `json:"dataset" xorm:"extends"`

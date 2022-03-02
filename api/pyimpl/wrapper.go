@@ -15,7 +15,7 @@ type localImplProvider struct {
 	moduleName string
 }
 
-//request the current version of python tools
+// GetMynahImplVersion request the current version of python tools
 func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 	//initialize the function
 	fn, err := p.pythonProvider.InitFunction(p.moduleName, "get_impl_version")
@@ -37,7 +37,7 @@ func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 	return &versionResponse, nil
 }
 
-//start a diagnosis job
+// ICDiagnosisJob start a diagnosis job
 func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error) {
 	//initialize the function
 	fn, err := p.pythonProvider.InitFunction(p.moduleName, "start_diagnosis_job")
@@ -58,7 +58,7 @@ func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDia
 	return &jobResponse, nil
 }
 
-//get image metadata
+// ImageMetadata get image metadata
 func (p *localImplProvider) ImageMetadata(user *model.MynahUser, request *ImageMetadataRequest) (*ImageMetadataResponse, error) {
 	//initialize the function
 	fn, err := p.pythonProvider.InitFunction(p.moduleName, "get_image_metadata")

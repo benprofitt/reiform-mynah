@@ -2,7 +2,7 @@
 
 package model
 
-//Defines a mynah user
+// MynahUser Defines a mynah user
 type MynahUser struct {
 	//the id of the user
 	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`

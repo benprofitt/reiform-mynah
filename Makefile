@@ -1,5 +1,5 @@
 .PHONY: frontend mynah format test data-test clean all lint
-GO=go
+GO=/usr/local/go/bin/go
 
 all: frontend mynah
 mynah:
@@ -16,7 +16,7 @@ data-test:
 lint:
 	cd api ; golangci-lint run || true
 	cd api ; gosec ./... || true
-	mypy python || true
+	mypy --config-file .mypy.ini . || true
 clean:
 	-@rm -r python/__pycache__ 2> /dev/null || true
 	-@find api/ -type f -name 'mynah_local.db' -delete || true

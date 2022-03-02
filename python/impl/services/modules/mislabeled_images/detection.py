@@ -1,4 +1,4 @@
-from .mislabeled_resources import *
+from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
 # shape of latent projection:
 # {

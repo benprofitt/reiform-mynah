@@ -1,4 +1,4 @@
-from .mislabeled_resources import *
+from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
 def plot_in_2D(projections : Tuple[ReiformICDataSet], label : str) -> None:
     

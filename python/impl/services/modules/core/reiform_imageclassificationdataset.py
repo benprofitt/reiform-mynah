@@ -9,8 +9,8 @@ class Projections():
         for name, arr in projs.items():
             self.projections[name] = np.array(arr)
 
-    def to_json(self) -> Dict[str: List[float]]:
-        results : Dict[str: List[float]] = {}
+    def to_json(self) -> Dict[str, List[float]]:
+        results : Dict[str, List[float]] = {}
         for name, arr in self.projections.items():
             results[name] = arr.tolist()
 
@@ -223,7 +223,7 @@ class ReiformICDataSet():
             if name in self.files[label]:
                 del self.files[label][name]
 
-    def set_minus(self, other: ReiformICDataSet) -> None:
+    def set_minus(self, other: ReiformICDataSet) -> ReiformICDataSet:
         new_ds : ReiformICDataSet = self.copy()
         if other.classes() != self.class_list:
             raise ReiformICDataSetException("Cannot subtract with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()), "merge")

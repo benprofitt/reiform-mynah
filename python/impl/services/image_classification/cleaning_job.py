@@ -4,13 +4,13 @@ class Cleaning_Job(Processing_Job):
     def __init__(self, job_json: Dict[str, Any]) -> None:
         super().__init__(job_json)
         
-        self.task_data : Dict[str : Dict[str, ReiformICDataSet]] = {}
+        self.task_data : Dict[str , Dict[str, ReiformICDataSet]] = {}
 
         for task in job_json["tasks"]:
             task_name : str = task["name"]
             self.task_data[task_name] = {} 
-            for name, ds in task["datasets"].items():
-                self.task_data[name] = self.make_dataset(ds)
+            for name, dset in task["datasets"].items():
+                self.task_data[task_name][name] = self.make_dataset(dset)
 
         
     def order_tasks(self) -> List[str]:
@@ -30,7 +30,7 @@ class Cleaning_Job(Processing_Job):
             raise ReiformCleaningException("need to implement auto cleaning")
         else:
             
-            results : List[Dict[str, Any]] = {}
+            results : List[Dict[str, Any]] = []
             ordered_tasks : List[str] = self.order_tasks()
 
             for i, name in enumerate(ordered_tasks):
@@ -48,7 +48,7 @@ class Cleaning_Job(Processing_Job):
                         
                     datasets = {"inliers" : inliers, "outliers" : outliers}
 
-                    results_json : Dict[str: Any] = eval("self.{}(datasets)".format(name))
+                    results_json : Dict[str, Any] = eval("self.{}(datasets)".format(name))
                     results.append({"name" : name, "datasets": results_json})
                     logger.write(json.dumps({"completed": name, "progress" : i/len(self.task_data)}))
                 except:
@@ -68,7 +68,7 @@ class Cleaning_Job(Processing_Job):
 
         return {"corrected" : corrected.to_json(), "removed" : removed.to_json()}
 
-    def mislabeled_images(self, diagnosed_datasets : Dict[str: ReiformICDataSet]):
+    def mislabeled_images(self, diagnosed_datasets : Dict[str, ReiformICDataSet]):
 
         inliers, outliers, corrected = iterative_reinjection_label_correction(1, diagnosed_datasets["inliers"], diagnosed_datasets["outliers"])
 

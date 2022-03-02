@@ -2,7 +2,7 @@
 
 package model
 
-//the permissions a user can have for a project
+// ProjectPermissions the permissions a user can have for a project
 type ProjectPermissions int
 
 const (
@@ -12,12 +12,12 @@ const (
 	Owner
 )
 
-//mynah abstract type
+// MynahAbstractProject mynah abstract type
 type MynahAbstractProject interface {
 	GetBaseProject() *MynahProject
 }
 
-//Defines a mynah project
+// MynahProject Defines a mynah project
 type MynahProject struct {
 	//the id of the project
 	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`

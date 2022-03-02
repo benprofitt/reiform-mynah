@@ -1,8 +1,8 @@
 from pathlib import Path
-from python.impl.services.modules.mislabeled_images.mislabeled_resources import *
-from python.impl.services.modules.mislabeled_images.detection import *
-from python.impl.services.modules.mislabeled_images.correction import *
-from python.impl.services.modules.mislabeled_images.report_generation import *
+from impl.services.image_classification.resources import *
+from impl.services.modules.mislabeled_images.detection import *
+from impl.services.modules.mislabeled_images.correction import *
+from impl.services.modules.mislabeled_images.report_generation import *
 
 
 def test_projection(data : ReiformICDataSet) -> ReiformICDataSet:

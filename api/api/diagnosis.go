@@ -4,7 +4,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"reiform.com/mynah/async"
@@ -21,7 +20,8 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 	pyImplProvider pyimpl.PyImplProvider,
 	user *model.MynahUser,
 	req *pyimpl.ICDiagnosisJobRequest) async.AsyncTaskHandler {
-	//Note: we shouldn't modify the user that was passed in in the event that it becomes stale
+	//Note: we shouldn't modify the user that was passed in, over the course
+	//of handling the async request the user data may become stale
 	return func(string) ([]byte, error) {
 		// start the job and return the response
 		if res, err := pyImplProvider.ICDiagnosisJob(user, req); err == nil {
@@ -36,32 +36,31 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 
 //create a new request body from the given data
 func startICDiagnosisJobCreateReq(project *model.MynahICProject, fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
-
 	//build the job request
 	jobRequest := pyimpl.ICDiagnosisJobRequest{
-		Classes:    make([]string, 0),
-		ClassFiles: make(map[string]map[string]pyimpl.ICDiagnosisJobFile),
+		ProjectUuid: project.Uuid,
 	}
+	jobRequest.Dataset.Classes = make([]string, 0)
+	jobRequest.Dataset.ClassFiles = make(map[string]map[string]pyimpl.ICDiagnosisJobRequestFile)
 
 	//iterate over all project data
 	for _, projectData := range project.DatasetAttributes {
-		for className, fileMap := range projectData.Data {
+		for className, _ := range projectData.Data {
 			//create a mapping
-			jobRequest.ClassFiles[className] = make(map[string]pyimpl.ICDiagnosisJobFile)
+			jobRequest.Dataset.ClassFiles[className] = make(map[string]pyimpl.ICDiagnosisJobRequestFile)
 
-			for fileid, fileData := range fileMap {
+			for fileid, tmpPath := range fileTmpPaths {
+				//extract file metadata
+				width := 0
+				height := 0
+				channels := 0
 
-				//get the path to the file on the server
-				if tmpPath, ok := fileTmpPaths[fileid]; ok {
-					jobRequest.ClassFiles[className][fileid] = pyimpl.ICDiagnosisJobFile{
-						Uuid:              fileid,
-						CurrentClass:      fileData.CurrentClass,
-						OriginalClass:     fileData.OriginalClass,
-						ConfidenceVectors: fileData.ConfidenceVectors,
-						TmpPath:           tmpPath,
-					}
-				} else {
-					return nil, fmt.Errorf("no temporary path found for: %s", fileid)
+				//add the class -> tmp file -> data mapping
+				jobRequest.Dataset.ClassFiles[className][tmpPath] = pyimpl.ICDiagnosisJobRequestFile{
+					Uuid:     fileid,
+					Width:    width,
+					Height:   height,
+					Channels: channels,
 				}
 			}
 		}

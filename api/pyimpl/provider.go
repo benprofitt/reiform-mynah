@@ -8,7 +8,7 @@ import (
 	"reiform.com/mynah/settings"
 )
 
-//create a new provider
+// NewPyImplProvider create a new provider
 func NewPyImplProvider(mynahSettings *settings.MynahSettings,
 	pythonProvider python.PythonProvider) PyImplProvider {
 

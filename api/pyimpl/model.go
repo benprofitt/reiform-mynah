@@ -6,56 +6,103 @@ import (
 	"reiform.com/mynah/model"
 )
 
+// PyImplProvider provider interface
 type PyImplProvider interface {
-	//get the current version
+	// GetMynahImplVersion get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
-	//start ic diagnosis
+	// ICDiagnosisJob start ic diagnosis
 	ICDiagnosisJob(*model.MynahUser, *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error)
-	//get image metadata
+	// ImageMetadata get image metadata
 	ImageMetadata(*model.MynahUser, *ImageMetadataRequest) (*ImageMetadataResponse, error)
 }
 
-//mynah python version response
+// VersionResponse mynah python version response
 type VersionResponse struct {
 	//the version returned by python
 	Version string `json:"version"`
 }
 
-//format of files for a start diagnosis request
-type ICDiagnosisJobFile struct {
+// ICDiagnosisJobRequestFile format of files for a start diagnosis request
+type ICDiagnosisJobRequestFile struct {
 	//the uuid for the file
 	Uuid string `json:"uuid"`
-	//the current class
-	CurrentClass string `json:"current_class"`
-	//the original class
-	OriginalClass string `json:"original_class"`
-	//projections
-	//TODO
-	ConfidenceVectors [][]float64 `json:"confidence_vectors"`
-	//the path to the file
-	TmpPath string `json:"tmp_path"`
+	//the width of the image
+	Width int `json:"width"`
+	//the height of the image
+	Height int `json:"height"`
+	//the number of channels in the image
+	Channels int `json:"channels"`
 }
 
-//request format for a diagnosis job
+// ICDiagnosisJobRequest request format for a diagnosis job
 type ICDiagnosisJobRequest struct {
-	//all classes in the dataset
-	Classes []string `json:"classes"`
-	//map by class to map by fileid
-	ClassFiles map[string]map[string]ICDiagnosisJobFile `json:"class_files"`
+	Auto bool `json:"auto"`
+	//the uuid of the project
+	ProjectUuid string `json:"project_uuid"`
+	//the dataset to operate on
+	Dataset struct {
+		//all classes in the dataset
+		Classes []string `json:"classes"`
+		//map by class to map by temp path
+		ClassFiles map[string]map[string]ICDiagnosisJobRequestFile `json:"class_files"`
+	} `json:"dataset"`
 }
 
-//response format for a diagnosis job
+// ICDiagnosisJobResponseFile file data returned in response
+type ICDiagnosisJobResponseFile struct {
+	//the uuid of the file
+	Uuid string `json:"uuid"`
+	//the current class for this file
+	CurrentClass string `json:"current_class"`
+	//the original class for this file
+	OriginalClass string `json:"original_class"`
+	//the width of this file
+	Width int `json:"width"`
+	//the height of this file
+	Height int `json:"height"`
+	//the channels in this file
+	Channels int `json:"channels"`
+	//projections
+	Projections map[string][]int `json:"projections"`
+	//confidence vectors
+	ConfidenceVectors model.ConfidenceVectors `json:"confidence_vectors"`
+}
+
+// ICDiagnosisJobResponse response format for a diagnosis job
 type ICDiagnosisJobResponse struct {
-	//TODO
+	//the uuid of the project
+	ProjectUuid string `json:"project_uuid"`
+	//the tasks in the project
+	Tasks []struct {
+		//the task name
+		Name string `json:"name"`
+		//the datasets in the task
+		Datasets struct {
+			//the outliers in the dataset
+			Outliers struct {
+				//classes
+				Classes []string `json:"classes"`
+				//map from class to map by fileid to file data
+				ClassFiles map[string]map[string]ICDiagnosisJobResponseFile `json:"class_files"`
+			} `json:"outliers"`
+			//the inliers in the dataset
+			Inliers struct {
+				//classes
+				Classes []string `json:"classes"`
+				//map from class to map by fileid to file data
+				ClassFiles map[string]map[string]ICDiagnosisJobResponseFile `json:"class_files"`
+			} `json:"inliers"`
+		} `json:"datasets"`
+	} `json:"tasks"`
 }
 
-//request type for image metadata
+// ImageMetadataRequest request type for image metadata
 type ImageMetadataRequest struct {
 	//the path to the image
 	Path string `json:"path"`
 }
 
-//response type for image metadata
+// ImageMetadataResponse response type for image metadata
 type ImageMetadataResponse struct {
 	//the number of channels in an image
 	Channels int `json:"channels"`

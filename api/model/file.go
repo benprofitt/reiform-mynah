@@ -2,7 +2,7 @@
 
 package model
 
-//the permissions a user can have for a project
+// FileLocation the permissions a user can have for a project
 type FileLocation string
 
 type MetadataKey string
@@ -14,10 +14,10 @@ const (
 	MetadataChannels MetadataKey = "channels"
 )
 
-//metadata type
+// FileMetadata metadata type
 type FileMetadata map[MetadataKey]string
 
-//Defines a file managed by Mynah
+// MynahFile Defines a file managed by Mynah
 type MynahFile struct {
 	//the id of the file
 	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`

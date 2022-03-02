@@ -14,7 +14,7 @@ class ReiformClassMethodException(ReiformException):
 
 class ReiformDataSetException(ReiformException):
     def __init__(self, message : str="", method : str="UNKNOWN", dataset_type : str="Unspecified"):
-        super().__init__("Error in a ReiformDataSet({})::{} : {}"(dataset_type, method, message))
+        super().__init__("Error in a ReiformDataSet({})::{} : {}".format(dataset_type, method, message))
 
 class ReiformICDataSetException(ReiformDataSetException):
     def __init__(self, message: str = "", method: str = "UNKNOWN"):
@@ -22,7 +22,7 @@ class ReiformICDataSetException(ReiformDataSetException):
 
 class ReiformFileException(ReiformException):
     def __init__(self, message : str="", method : str="UNKNOWN", dataset_type : str="Unspecified"):
-        super().__init__("Error in a ReiformFile({})::{} : {}"(dataset_type, method, message))
+        super().__init__("Error in a ReiformFile({})::{} : {}".format(dataset_type, method, message))
 
 class ReiformICFileException(ReiformFileException):
     def __init__(self, message: str = "", method: str = "UNKNOWN"):

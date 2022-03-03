@@ -2,6 +2,7 @@ import HomePage from "./pages/home_page";
 import ProjectPage from "./pages/project_page";
 import LoginPage, { authCookieName } from "./pages/login_page";
 import AccountSettingsPage from "./pages/account_settings_page";
+import PageNotFound from './pages/page_not_found'
 
 import {
   BrowserRouter as Router,
@@ -24,7 +25,7 @@ function App(): JSX.Element {
         {!loggedIn ? (
           <>
             <Route path="/mynah/login" element={<LoginPage />} />
-            <Route path="/*" element={<Navigate replace to="/mynah/login" />} />
+            <Route path="*" element={<Navigate replace to="/mynah/login" />} />
           </>
         ) : (
           <>
@@ -39,6 +40,7 @@ function App(): JSX.Element {
               element={<AccountSettingsPage />}
             />
             <Route path="/" element={<Navigate replace to={"/mynah"} />} />
+            <Route path="*" element={<PageNotFound />} />
           </>
         )}
       </Routes>

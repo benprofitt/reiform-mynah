@@ -29,16 +29,17 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	}
 
 	//register the websocket endpoint
-	router.HandleHTTPRequest("websocket", wsProvider.ServerHandler())
+	router.HandleHTTPRequest("GET", "websocket", wsProvider.ServerHandler())
 
 	//register the file viewer endpoint
 	router.HandleFileRequest("file")
 
-	//register the file upload endpoint
-	router.HandleHTTPRequest("upload", handleFileUpload(settings, dbProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(dbProvider))
+	router.HandleHTTPRequest("POST", "icproject/create", icProjectCreate(dbProvider))
 
 	//register the ic diagnosis job endpoint
-	router.HandleHTTPRequest("ic/diagnosis/start",
+	router.HandleHTTPRequest("POST", "ic/diagnosis/start",
 		startICDiagnosisJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
 	//register admin endpoints

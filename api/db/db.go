@@ -8,7 +8,7 @@ import (
 	"reiform.com/mynah/settings"
 )
 
-//Create a new db provider based on the Mynah settings
+// NewDBProvider Create a new db provider based on the Mynah settings
 func NewDBProvider(mynahSettings *settings.MynahSettings, authProvider auth.AuthProvider) (DBProvider, error) {
 	//check the db settings type
 	if mynahSettings.DBSettings.Type == settings.Local {

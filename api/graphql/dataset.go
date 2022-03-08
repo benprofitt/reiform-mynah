@@ -14,7 +14,7 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Handle new graphql requests for datasets
+// DatasetQueryResolver Handle new graphql requests for datasets
 func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	//request datasets (query, list)
 	var datasetQueryType = graphql.NewObject(
@@ -59,25 +59,6 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	var datasetMutationType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "DatasetMutation",
 		Fields: graphql.Fields{
-			//Create a dataset ?query=mutation+_{create(dataset_name:"example name"){dataset_name}}
-			"create": &graphql.Field{
-				Type:        datasetType,
-				Description: "Create a new dataset",
-				Args: graphql.FieldConfigArgument{
-					"dataset_name": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-
-					//return the dataset and add to the database
-					return dbProvider.CreateDataset(user, func(dataset *model.MynahDataset) {
-						dataset.DatasetName = p.Args["dataset_name"].(string)
-					})
-				},
-			},
-
 			//Update a dataset by uuid ?query=mutation+_{update(uuid:"",dataset_name:"update"){uuid,dataset_name}}
 			"update": &graphql.Field{
 				Type:        datasetType,

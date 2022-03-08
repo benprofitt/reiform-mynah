@@ -16,7 +16,7 @@ import (
 
 const contextUserKey = "user"
 
-//Handle new graphql requests for projects
+// ProjectQueryResolver Handle new graphql requests for projects
 func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	//request projects (query, list)
 	var projectQueryType = graphql.NewObject(
@@ -61,25 +61,6 @@ func ProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	var projectMutationType = graphql.NewObject(graphql.ObjectConfig{
 		Name: "ProjectMutation",
 		Fields: graphql.Fields{
-			//Create a project ?query=mutation+_{create(project_name:"example name"){project_name}}
-			"create": &graphql.Field{
-				Type:        projectType,
-				Description: "Create a new project",
-				Args: graphql.FieldConfigArgument{
-					"project_name": &graphql.ArgumentConfig{
-						Type: graphql.NewNonNull(graphql.String),
-					},
-				},
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-
-					//return the dataset and add to the database
-					return dbProvider.CreateProject(user, func(project *model.MynahProject) {
-						project.ProjectName = p.Args["project_name"].(string)
-					})
-				},
-			},
-
 			//Update a project by uuid ?query=mutation+_{update(uuid:"",project_name:"update"){uuid,project_name}}
 			"update": &graphql.Field{
 				Type:        projectType,

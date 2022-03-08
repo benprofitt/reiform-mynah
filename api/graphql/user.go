@@ -14,7 +14,7 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Handle new graphql requests for users
+// UserQueryResolver Handle new graphql requests for users
 func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	//request users (query, list)
 	var userQueryType = graphql.NewObject(

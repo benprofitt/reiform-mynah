@@ -26,13 +26,13 @@ const contextProjectKey ctxKey = "project"
 const projectKey string = "project"
 const fileKey string = "file"
 
-//Handler for a request that requires the user
+// MynahUserHandler Handler for a request that requires the user
 type MynahUserHandler func(user *model.MynahUser) (*Response, error)
 
-//Handler for a request that requires the user and a project
+// MynahProjectHandler Handler for a request that requires the user and a project
 type MynahProjectHandler func(user *model.MynahUser, project *model.MynahProject) (*Response, error)
 
-//extract the user from context (can be used externally for basic http requests)
+// GetUserFromRequest extract the user from context (can be used externally for basic http requests)
 func GetUserFromRequest(request *http.Request) *model.MynahUser {
 	return request.Context().Value(contextUserKey).(*model.MynahUser)
 }
@@ -42,7 +42,7 @@ func getProjectFromRequest(request *http.Request) *model.MynahProject {
 	return request.Context().Value(contextProjectKey).(*model.MynahProject)
 }
 
-//Create a new router
+// NewRouter Create a new router
 func NewRouter(mynahSettings *settings.MynahSettings,
 	authProvider auth.AuthProvider,
 	dbProvider db.DBProvider,
@@ -143,27 +143,25 @@ func (r *MynahRouter) HttpMiddleware(handler http.HandlerFunc) http.HandlerFunc 
 	return r.logMiddleware(r.corsMiddleware(r.authenticationMiddleware(handler)))
 }
 
-//handle a basic http request (authenticated user passed in request context)
-func (r *MynahRouter) HandleHTTPRequest(path string, handler http.HandlerFunc) {
+// HandleHTTPRequest handle a basic http request (authenticated user passed in request context)
+func (r *MynahRouter) HandleHTTPRequest(method, path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
-		r.logMiddleware(
-			r.corsMiddleware(
-				r.authenticationMiddleware(handler)))).Methods("GET", "POST", http.MethodOptions)
+		r.HttpMiddleware(handler)).Methods(method, http.MethodOptions)
 }
 
-//Handle an admin request (passes authenticated admin)
+// HandleAdminRequest Handle an admin request (passes authenticated admin)
 func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
 		r.HttpMiddleware(r.adminMiddleware(handler))).Methods(method, http.MethodOptions)
 }
 
-//handle a project request (loads project, passes to handler)
+// HandleProjectRequest handle a project request (loads project, passes to handler)
 func (r *MynahRouter) HandleProjectRequest(method string, path string, handler MynahProjectHandler) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, fmt.Sprintf("project/{%s}", projectKey), path),
 		r.HttpMiddleware(r.projectMiddleware(r.projectHandler(handler)))).Methods(method, http.MethodOptions)
 }
 
-//handle a request for a file
+// HandleFileRequest handle a request for a file
 func (r *MynahRouter) HandleFileRequest(path string) {
 	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path, fmt.Sprintf("{%s}", fileKey)),
 		r.HttpMiddleware(r.fileHandler)).Methods("GET", http.MethodOptions)

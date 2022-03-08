@@ -25,9 +25,9 @@ func registerGQLRoutes(router *middleware.MynahRouter, dbProvider db.DBProvider)
 		return datasetErr
 	}
 
-	router.HandleHTTPRequest("graphql/project", projectHandler)
-	router.HandleHTTPRequest("graphql/user", userHandler)
-	router.HandleHTTPRequest("graphql/dataset", datasetHandler)
+	router.HandleHTTPRequest("POST", "graphql/project", projectHandler)
+	router.HandleHTTPRequest("POST", "graphql/user", userHandler)
+	router.HandleHTTPRequest("POST", "graphql/dataset", datasetHandler)
 
 	return nil
 }

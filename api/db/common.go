@@ -131,7 +131,6 @@ func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
 		OrgId:           creator.OrgId,
 		UserPermissions: make(map[string]model.ProjectPermissions),
 		ProjectName:     "name",
-		Datasets:        make([]string, 0),
 	}
 
 	//give ownership permissions to the user
@@ -147,9 +146,8 @@ func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 			OrgId:           creator.OrgId,
 			UserPermissions: make(map[string]model.ProjectPermissions),
 			ProjectName:     "name",
-			Datasets:        make([]string, 0),
 		},
-		make(map[string]model.MynahICProjectData),
+		make([]string, 0),
 	}
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
@@ -172,11 +170,10 @@ func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 //create a new dataset
 func commonCreateDataset(creator *model.MynahUser) *model.MynahDataset {
 	return &model.MynahDataset{
-		Uuid:            uuid.NewString(),
-		OrgId:           creator.OrgId,
-		OwnerUuid:       creator.Uuid,
-		ReferencedFiles: make([]string, 0),
-		DatasetName:     "name",
+		Uuid:        uuid.NewString(),
+		OrgId:       creator.OrgId,
+		OwnerUuid:   creator.Uuid,
+		DatasetName: "name",
 	}
 }
 
@@ -184,13 +181,12 @@ func commonCreateDataset(creator *model.MynahUser) *model.MynahDataset {
 func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
 	return &model.MynahICDataset{
 		model.MynahDataset{
-			Uuid:            uuid.NewString(),
-			OrgId:           creator.OrgId,
-			OwnerUuid:       creator.Uuid,
-			ReferencedFiles: make([]string, 0),
-			DatasetName:     "name",
+			Uuid:        uuid.NewString(),
+			OrgId:       creator.OrgId,
+			OwnerUuid:   creator.Uuid,
+			DatasetName: "name",
 		},
-		make([]string, 0),
+		make(map[string]model.MynahICDatasetFile),
 	}
 }
 

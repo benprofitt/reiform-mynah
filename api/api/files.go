@@ -3,7 +3,6 @@
 package api
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -48,7 +47,11 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		defer file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Warnf("error closing file from upload form: %s", err)
+			}
+		}()
 
 		//check that the file is not too big
 		if fileHeader.Size > mynahSettings.StorageSettings.MaxUpload {
@@ -73,7 +76,9 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 			return
 		}
 
-		mynahFile, err := dbProvider.CreateFile(user, func(file *model.MynahFile) {})
+		mynahFile, err := dbProvider.CreateFile(user, func(f *model.MynahFile) {
+			f.Name = "<unknown>" //TODO read this from the multipart form
+		})
 
 		//create the file in the database
 		if err != nil {
@@ -89,8 +94,8 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		})
 
 		if storeErr != nil {
-			//try to delete file from database
-			dbProvider.DeleteFile(&mynahFile.Uuid, user)
+			//try to delete file from database (ignore failure, already in a failure mode)
+			_ = dbProvider.DeleteFile(&mynahFile.Uuid, user)
 
 			log.Errorf("failed to write file to local storage %s", storeErr)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -98,16 +103,8 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		}
 
 		//return the file metadata
-		if jsonResp, jsonErr := json.Marshal(&mynahFile); jsonErr == nil {
-			if _, writeErr := writer.Write(jsonResp); writeErr != nil {
-				log.Errorf("failed to write json as response for file upload %s", writeErr)
-				writer.WriteHeader(http.StatusInternalServerError)
-			}
-			//set content type to json
-			writer.Header().Set("Content-Type", "application/json")
-
-		} else {
-			log.Errorf("failed to generate json response for file upload %s", jsonErr)
+		if err := responseWriteJson(writer, &mynahFile); err != nil {
+			log.Errorf("failed to generate json response for file upload %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})

@@ -27,11 +27,11 @@ type ICDiagnosisJobRequestFile struct {
 	//the uuid for the file
 	Uuid string `json:"uuid"`
 	//the width of the image
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	//the height of the image
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	//the number of channels in the image
-	Channels int `json:"channels"`
+	Channels int64 `json:"channels"`
 }
 
 // ICDiagnosisJobRequest request format for a diagnosis job

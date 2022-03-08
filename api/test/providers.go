@@ -250,8 +250,11 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 
 		//create a dataset
 		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {
-			d.Classes = append(d.Classes, "test_class")
-			d.ReferencedFiles = append(d.ReferencedFiles, f.Uuid)
+			d.Files[f.Uuid] = model.MynahICDatasetFile{
+				CurrentClass:      "class1",
+				OriginalClass:     "class1",
+				ConfidenceVectors: make(model.ConfidenceVectors, 0),
+			}
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create dataset in database: %s", err)
@@ -261,18 +264,6 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 		project, err := t.DBProvider.CreateICProject(owner, func(p *model.MynahICProject) {
 			//add the dataset
 			p.Datasets = append(p.Datasets, dataset.Uuid)
-
-			p.DatasetAttributes[dataset.Uuid] = model.MynahICProjectData{
-				Data: make(map[string]map[string]model.MynahICProjectClassFileData),
-			}
-
-			p.DatasetAttributes[dataset.Uuid].Data["test_class"] = make(map[string]model.MynahICProjectClassFileData)
-
-			p.DatasetAttributes[dataset.Uuid].Data["test_class"][f.Uuid] = model.MynahICProjectClassFileData{
-				CurrentClass:      "test_class",
-				OriginalClass:     "old_class",
-				ConfidenceVectors: make([][]float64, 0),
-			}
 		})
 
 		if err != nil {

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title> Mynah Batch Uploader </title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="main.css" />
+  <link rel="shortcut icon" type="image/png" href="images/favicon.png"/>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;600;900&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+  <h1>Mynah Batch Uploader</h1>
+
+  <label for="jwt">JWT: </label>
+  <input name="jwt" type="text" maxlength="512" id="jwt"/>
+
+  <form id='file-selector'>
+    <input id='file-input' type='file' webkitdirectory mozdirectory msdirectory odirectory directory multiple/>
+    <button type='submit'>
+      Submit
+    </button>
+  </form>
+
+  <div id='file-list-display'></div>
+
+  <script>
+    var current_file_list = [];
+    var dataset_contents = new Map();
+
+    //TODO empty dataset contents
+
+    $(document).ready(function () {
+    var file_selector = document.getElementById('file-selector');
+    var fileInput = document.getElementById('file-input');
+    var fileListDisplay = document.getElementById('file-list-display');
+
+    var renderFileList, sendFile;
+
+    file_selector.addEventListener('submit', function (event) {
+      event.preventDefault();
+      //send the files that have been added
+      current_file_list.forEach(function (file) {
+        var folder = file.webkitRelativePath.split("/")[0];
+        sendFile(file, folder);
+      });
+
+      //empty staged files
+      current_file_list = [];
+    });
+
+    fileInput.addEventListener('change', function (event) {
+      for (var i = 0; i < event.target.files.length; i++) {
+        current_file_list.push(event.target.files[i]);
+      }
+      renderFileList();
+    });
+
+    renderFileList = function () {
+      fileListDisplay.innerHTML = '';
+      current_file_list.forEach(function (file, index) {
+        var fileDisplayEl = document.createElement('p');
+        var folder = file.webkitRelativePath.split("/");
+        fileDisplayEl.innerHTML = (index + 1) + ': ' + file.name + ' in folder (' + folder[0] + ')';
+        fileListDisplay.appendChild(fileDisplayEl);
+      });
+    };
+
+    sendFile = function (file, folder) {
+      var formData = new FormData();
+      var request = new XMLHttpRequest();
+
+      formData.set('file', file);
+      request.open("POST", 'http://localhost:8080/api/v1/upload');
+      request.responseType = 'json';
+      request.setRequestHeader("api-key", document.getElementById('jwt').value)
+      request.send(formData);
+      request.onload  = function() {
+        dataset_contents.set(request.response['uuid'], folder);
+      };
+    };
+  });
+  </script>
+  <footer>
+    <p> © 2022 Reiform </p>
+  </footer>
+</body>
+</html>

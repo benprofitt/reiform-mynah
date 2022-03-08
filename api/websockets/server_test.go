@@ -172,7 +172,7 @@ func TestWSServerE2E(t *testing.T) {
 	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider)
 
 	//register the websocket endpoint
-	router.HandleHTTPRequest("test", wsProvider.ServerHandler())
+	router.HandleHTTPRequest("GET", "test", wsProvider.ServerHandler())
 
 	//start the websocket server in a goroutine
 	go func() {

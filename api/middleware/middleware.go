@@ -18,13 +18,13 @@ type logResponse struct {
 	status int
 }
 
-//write response, record status for logging
+// WriteHeader write response, record status for logging
 func (r *logResponse) WriteHeader(stat int) {
 	r.status = stat
 	r.ResponseWriter.WriteHeader(stat)
 }
 
-//implement the hijacker interface for websocket connection upgrade
+// Hijack implement the hijacker interface for websocket connection upgrade
 func (r *logResponse) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := r.ResponseWriter.(http.Hijacker)
 	if !ok {
@@ -56,7 +56,8 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 //handle cors
 func (r *MynahRouter) corsMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//set the CORS header
+		//set the CORS headers
+		writer.Header().Set("Access-Control-Allow-Headers", r.settings.AuthSettings.JwtHeader)
 		writer.Header().Set("Access-Control-Allow-Origin", r.settings.CORSAllowOrigin)
 		if request.Method == http.MethodOptions {
 			return

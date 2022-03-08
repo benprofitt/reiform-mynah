@@ -2,10 +2,23 @@
 
 package model
 
+// ConfidenceVectors for a file
+type ConfidenceVectors [][]float64
+
+// MynahICDatasetFile file data
+type MynahICDatasetFile struct {
+	//the current clas
+	CurrentClass string `json:"current_class"`
+	//the original class
+	OriginalClass string `json:"original_class"`
+	//the confidence vectors
+	ConfidenceVectors ConfidenceVectors `json:"confidence_vectors"`
+}
+
 // MynahICDataset Defines a dataset specifically for image classification
 type MynahICDataset struct {
 	//underlying mynah dataset
 	MynahDataset `json:"dataset" xorm:"extends"`
-	//all classes referenced in this dataset
-	Classes []string `json:"classes" xorm:"TEXT 'classes'"`
+	//map of fileid -> file + class info
+	Files map[string]MynahICDatasetFile `json:"files" xorm:"TEXT 'classes'"`
 }

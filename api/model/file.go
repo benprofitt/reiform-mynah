@@ -2,6 +2,8 @@
 
 package model
 
+import "strconv"
+
 // FileLocation the permissions a user can have for a project
 type FileLocation string
 
@@ -33,4 +35,14 @@ type MynahFile struct {
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
 	//file metadata
 	Metadata FileMetadata `json:"metadata" xorm:"TEXT 'metadata'"`
+}
+
+// GetDefaultInt GetDefault returns a value if the key is found or the default value provided
+func (m FileMetadata) GetDefaultInt(key MetadataKey, def int64) int64 {
+	if val, found := m[key]; found {
+		if intVal, err := strconv.ParseInt(val, 0, 8); err == nil {
+			return intVal
+		}
+	}
+	return def
 }

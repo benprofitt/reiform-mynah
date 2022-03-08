@@ -35,29 +35,40 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 }
 
 //create a new request body from the given data
-func startICDiagnosisJobCreateReq(project *model.MynahICProject, fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
+func startICDiagnosisJobCreateReq(projectId string,
+	datasets []*model.MynahICDataset,
+	files map[string]*model.MynahFile,
+	fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
 	//build the job request
 	jobRequest := pyimpl.ICDiagnosisJobRequest{
-		ProjectUuid: project.Uuid,
+		ProjectUuid: projectId,
 	}
 	jobRequest.Dataset.Classes = make([]string, 0)
 	jobRequest.Dataset.ClassFiles = make(map[string]map[string]pyimpl.ICDiagnosisJobRequestFile)
 
 	//iterate over all project data
-	for _, projectData := range project.DatasetAttributes {
-		for className, _ := range projectData.Data {
+	for _, dataset := range datasets {
+		for fileId, classInfo := range dataset.Files {
 			//create a mapping
-			jobRequest.Dataset.ClassFiles[className] = make(map[string]pyimpl.ICDiagnosisJobRequestFile)
+			jobRequest.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]pyimpl.ICDiagnosisJobRequestFile)
 
-			for fileid, tmpPath := range fileTmpPaths {
+			//find the temp path for this file
+			if tmpPath, found := fileTmpPaths[fileId]; found {
 				//extract file metadata
-				width := 0
-				height := 0
-				channels := 0
+				var channels int64
+				var width int64
+				var height int64
+
+				//check for metadata
+				if fileData, found := files[fileId]; found {
+					channels = fileData.Metadata.GetDefaultInt(model.MetadataChannels, 0)
+					width = fileData.Metadata.GetDefaultInt(model.MetadataWidth, 0)
+					height = fileData.Metadata.GetDefaultInt(model.MetadataHeight, 0)
+				}
 
 				//add the class -> tmp file -> data mapping
-				jobRequest.Dataset.ClassFiles[className][tmpPath] = pyimpl.ICDiagnosisJobRequestFile{
-					Uuid:     fileid,
+				jobRequest.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = pyimpl.ICDiagnosisJobRequestFile{
+					Uuid:     fileId,
 					Width:    width,
 					Height:   height,
 					Channels: channels,
@@ -91,9 +102,15 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 			if icDatasets, err := dbProvider.GetICDatasets(icProject.Datasets, user); err == nil {
 				//create a set for file uuids
 				fileUuidSet := NewUniqueSet()
-				//add files
-				for _, d := range icDatasets {
-					fileUuidSet.Union(d.ReferencedFiles)
+
+				//all files
+				allFiles := make(map[string]*model.MynahFile)
+
+				// add files
+				for _, dataset := range icDatasets {
+					for fileid, _ := range dataset.Files {
+						fileUuidSet.Union(fileid)
+					}
 				}
 
 				//request all of the referenced files
@@ -101,6 +118,8 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 					//get the temp path for each file
 					fileTempPaths := make(map[string]string)
 					for _, f := range files {
+						allFiles[f.Uuid] = f
+
 						if path, err := storageProvider.GetTmpPath(f); err == nil {
 							fileTempPaths[f.Uuid] = path
 						} else {
@@ -110,7 +129,7 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 						}
 					}
 
-					req, err := startICDiagnosisJobCreateReq(icProject, fileTempPaths)
+					req, err := startICDiagnosisJobCreateReq(icProject.Uuid, icDatasets, allFiles, fileTempPaths)
 					if err != nil {
 						log.Warnf("failed to create ic diagnosis job: %s", err)
 						writer.WriteHeader(http.StatusInternalServerError)

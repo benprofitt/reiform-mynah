@@ -123,7 +123,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 	return &db, nil
 }
 
-//Get a user by uuid or return an error
+// GetUserForAuth Get a user by uuid or return an error
 func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 	user := model.MynahUser{
 		Uuid: *uuid,
@@ -139,7 +139,7 @@ func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 	return &user, nil
 }
 
-//Get a user other than self (must be admin)
+// GetUser Get a user other than self (must be admin)
 func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.MynahUser, error) {
 	if user, err := d.GetUserForAuth(uuid); err == nil {
 		//verify that this user has permission
@@ -152,7 +152,7 @@ func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.Myna
 	}
 }
 
-//get a project by id or return an error
+// GetProject get a project by id or return an error
 func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.MynahProject, error) {
 	project := model.MynahProject{
 		Uuid: *uuid,
@@ -174,13 +174,13 @@ func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.M
 	return &project, nil
 }
 
-//get a project by id or return an error, second arg is requestor
+// GetICProject get a project by id or return an error, second arg is requestor
 func (d *localDB) GetICProject(uuid *string, requestor *model.MynahUser) (*model.MynahICProject, error) {
 	project := model.MynahICProject{
 		model.MynahProject{
 			Uuid: *uuid,
 		},
-		make(map[string]model.MynahICProjectData),
+		make([]string, 0),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&project)
@@ -199,7 +199,7 @@ func (d *localDB) GetICProject(uuid *string, requestor *model.MynahUser) (*model
 	return &project, nil
 }
 
-//get a file from the database
+// GetFile get a file from the database
 func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.MynahFile, error) {
 	file := model.MynahFile{
 		Uuid: *uuid,
@@ -221,7 +221,7 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 	return &file, nil
 }
 
-//get multiple files by id
+// GetFiles get multiple files by id
 func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (res []*model.MynahFile, err error) {
 	var files []*model.MynahFile
 
@@ -243,7 +243,7 @@ func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (res []*m
 	return res, nil
 }
 
-//get a dataset from the database
+// GetDataset get a dataset from the database
 func (d *localDB) GetDataset(uuid *string, requestor *model.MynahUser) (*model.MynahDataset, error) {
 	dataset := model.MynahDataset{
 		Uuid: *uuid,
@@ -265,13 +265,13 @@ func (d *localDB) GetDataset(uuid *string, requestor *model.MynahUser) (*model.M
 	return &dataset, nil
 }
 
-//get a dataset from the database
+// GetICDataset get a dataset from the database
 func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model.MynahICDataset, error) {
 	dataset := model.MynahICDataset{
 		model.MynahDataset{
 			Uuid: *uuid,
 		},
-		make([]string, 0),
+		make(map[string]model.MynahICDatasetFile),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
@@ -290,7 +290,7 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 	return &dataset, nil
 }
 
-//get multiple ic datasets from the database
+// GetICDatasets get multiple ic datasets from the database
 func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (res []*model.MynahICDataset, err error) {
 	var datasets []*model.MynahICDataset
 
@@ -312,7 +312,7 @@ func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (res
 	return res, nil
 }
 
-//list all users
+// ListUsers list all users
 func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUser, err error) {
 	if commonErr := commonListUsers(requestor); commonErr != nil {
 		return users, commonErr
@@ -323,7 +323,7 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 	return users, err
 }
 
-//list all projects
+// ListProjects list all projects
 func (d *localDB) ListProjects(requestor *model.MynahUser) (projects []*model.MynahProject, err error) {
 	//list projects
 	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&projects)
@@ -331,7 +331,7 @@ func (d *localDB) ListProjects(requestor *model.MynahUser) (projects []*model.My
 	return commonListProjects(projects, requestor), err
 }
 
-//list all files, arg is requestor
+// ListFiles list all files, arg is requestor
 func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
 	//list files
 	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&files)
@@ -339,7 +339,7 @@ func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFil
 	return commonListFiles(files, requestor), err
 }
 
-//list all datasets, arg is requestor
+// ListDatasets list all datasets, arg is requestor
 func (d *localDB) ListDatasets(requestor *model.MynahUser) (datasets []*model.MynahDataset, err error) {
 	//list datasets
 	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&datasets)
@@ -347,7 +347,7 @@ func (d *localDB) ListDatasets(requestor *model.MynahUser) (datasets []*model.My
 	return commonListDatasets(datasets, requestor), err
 }
 
-//list all datasets, arg is requestor
+// ListICDatasets list all datasets, arg is requestor
 func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.MynahICDataset, err error) {
 	//list datasets
 	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&datasets)
@@ -355,7 +355,7 @@ func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.
 	return commonListICDatasets(datasets, requestor), err
 }
 
-//create a new user
+// CreateUser create a new user
 func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.MynahUser)) (*model.MynahUser, error) {
 	user, err := commonCreateUser(creator)
 
@@ -376,7 +376,7 @@ func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.Myn
 	return user, nil
 }
 
-//create a new project
+// CreateProject create a new project
 func (d *localDB) CreateProject(creator *model.MynahUser, precommit func(*model.MynahProject)) (*model.MynahProject, error) {
 	project := commonCreateProject(creator)
 	//call handler to make changes before commit
@@ -392,7 +392,7 @@ func (d *localDB) CreateProject(creator *model.MynahUser, precommit func(*model.
 	return project, nil
 }
 
-//create a new project, second arg is creator
+// CreateICProject create a new project, second arg is creator
 func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*model.MynahICProject)) (*model.MynahICProject, error) {
 	project := commonCreateICProject(creator)
 
@@ -408,7 +408,7 @@ func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*mode
 	return project, nil
 }
 
-//create a new file, second arg is creator
+// CreateFile create a new file, second arg is creator
 func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.MynahFile)) (*model.MynahFile, error) {
 	file := commonCreateFile(creator)
 
@@ -424,7 +424,7 @@ func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.Myn
 	return file, nil
 }
 
-//create a new dataset
+// CreateDataset create a new dataset
 func (d *localDB) CreateDataset(creator *model.MynahUser, precommit func(*model.MynahDataset)) (*model.MynahDataset, error) {
 	dataset := commonCreateDataset(creator)
 
@@ -440,7 +440,7 @@ func (d *localDB) CreateDataset(creator *model.MynahUser, precommit func(*model.
 	return dataset, nil
 }
 
-//create a new dataset
+// CreateICDataset create a new dataset
 func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*model.MynahICDataset)) (*model.MynahICDataset, error) {
 	dataset := commonCreateICDataset(creator)
 
@@ -456,7 +456,7 @@ func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*mode
 	return dataset, nil
 }
 
-//update a user in the database
+// UpdateUser update a user in the database
 func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
@@ -471,7 +471,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 	return nil
 }
 
-//update a project in the database
+// UpdateProject update a project in the database
 func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateProject(project, requestor, keys); commonErr != nil {
 		return commonErr
@@ -486,7 +486,7 @@ func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.My
 	return nil
 }
 
-//update a dataset
+// UpdateDataset update a dataset
 func (d *localDB) UpdateDataset(dataset *model.MynahDataset, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
@@ -501,7 +501,7 @@ func (d *localDB) UpdateDataset(dataset *model.MynahDataset, requestor *model.My
 	return nil
 }
 
-//update a dataset
+// UpdateICDataset update a dataset
 func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
@@ -516,7 +516,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 	return nil
 }
 
-//delete a user in the database
+// DeleteUser delete a user in the database
 func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
 	if commonErr := commonDeleteUser(uuid, requestor); commonErr != nil {
 		return commonErr
@@ -531,7 +531,7 @@ func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
 	return nil
 }
 
-//delete a project in the database
+// DeleteProject delete a project in the database
 func (d *localDB) DeleteProject(uuid *string, requestor *model.MynahUser) error {
 	project, getErr := d.GetProject(uuid, requestor)
 	if getErr != nil {
@@ -551,7 +551,7 @@ func (d *localDB) DeleteProject(uuid *string, requestor *model.MynahUser) error 
 	return nil
 }
 
-//delete a project in the database, second arg is requestor
+// DeleteICProject delete a project in the database, second arg is requestor
 func (d *localDB) DeleteICProject(uuid *string, requestor *model.MynahUser) error {
 	project, getErr := d.GetICProject(uuid, requestor)
 	if getErr != nil {
@@ -571,7 +571,7 @@ func (d *localDB) DeleteICProject(uuid *string, requestor *model.MynahUser) erro
 	return nil
 }
 
-//delete a file in the database, second arg is requestor
+// DeleteFile delete a file in the database, second arg is requestor
 func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
 	file, getErr := d.GetFile(uuid, requestor)
 	if getErr != nil {
@@ -592,7 +592,7 @@ func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
 	return nil
 }
 
-//delete a dataset
+// DeleteDataset delete a dataset
 func (d *localDB) DeleteDataset(uuid *string, requestor *model.MynahUser) error {
 	dataset, getErr := d.GetDataset(uuid, requestor)
 	if getErr != nil {
@@ -613,7 +613,7 @@ func (d *localDB) DeleteDataset(uuid *string, requestor *model.MynahUser) error 
 	return nil
 }
 
-//delete a dataset
+// DeleteICDataset delete a dataset
 func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) error {
 	dataset, getErr := d.GetICDataset(uuid, requestor)
 	if getErr != nil {
@@ -634,7 +634,7 @@ func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) erro
 	return nil
 }
 
-//close the client connection on shutdown
+// Close close the client connection on shutdown
 func (d *localDB) Close() {
 	log.Infof("local database engine shutdown")
 	d.engine.Close()

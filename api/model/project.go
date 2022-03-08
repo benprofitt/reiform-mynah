@@ -27,16 +27,14 @@ type MynahProject struct {
 	UserPermissions map[string]ProjectPermissions `json:"-" xorm:"TEXT 'user_permissions'"`
 	//the name of the project
 	ProjectName string `json:"project_name" xorm:"TEXT 'project_name'"`
-	//datasets that are part of this project (by id)
-	Datasets []string `json:"datasets" xorm:"TEXT 'datasets'"`
 }
 
-//get the base dataset for attributes
+// GetBaseProject get the base dataset for attributes
 func (d *MynahProject) GetBaseProject() *MynahProject {
 	return d
 }
 
-//Get the permissions that a user has on a given project
+// GetPermissions Get the permissions that a user has on a given project
 func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
 	if v, found := p.UserPermissions[user.Uuid]; found {
 		return v

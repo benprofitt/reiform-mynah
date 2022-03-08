@@ -28,42 +28,42 @@ func init() {
 	}
 }
 
-//log an error
+// Error log an error
 func Error(args ...interface{}) {
 	log.Error(args...)
 }
 
-//log a formatted error
+// Errorf log a formatted error
 func Errorf(format string, args ...interface{}) {
 	log.Errorf(format, args...)
 }
 
-//log a fatal error
+// Fatal log a fatal error
 func Fatal(args ...interface{}) {
 	log.Fatal(args...)
 }
 
-//log a formatted fatal error
+// Fatalf log a formatted fatal error
 func Fatalf(format string, args ...interface{}) {
 	log.Fatalf(format, args...)
 }
 
-//log info
+// Info log info
 func Info(args ...interface{}) {
 	log.Info(args)
 }
 
-//log formatted info
+// Infof log formatted info
 func Infof(format string, args ...interface{}) {
 	log.Infof(format, args...)
 }
 
-//log a warning
+// Warn log a warning
 func Warn(args ...interface{}) {
 	log.Warning(args...)
 }
 
-//log a formatted warning
+// Warnf log a formatted warning
 func Warnf(format string, args ...interface{}) {
 	log.Warningf(format, args...)
 }

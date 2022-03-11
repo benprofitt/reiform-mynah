@@ -54,7 +54,7 @@ type refCountGroup struct {
 	objects []*python3.PyObject
 }
 
-//get the python response as a string
+// GetResponse get the python response as a string
 func (r *localPython3_7Response) GetResponse(target interface{}) error {
 	if r.err != nil {
 		return r.err
@@ -63,7 +63,7 @@ func (r *localPython3_7Response) GetResponse(target interface{}) error {
 	return json.Unmarshal([]byte(r.res), target)
 }
 
-//call the function as a user
+// Call call the function as a user
 func (f *localPython3_7Function) Call(user *model.MynahUser, req interface{}) MynahPythonResponse {
 	var res localPython3_7Response
 
@@ -111,7 +111,7 @@ func newLocalPythonProvider(mynahSettings *settings.MynahSettings) *localPython3
 	}
 }
 
-//initialize a module function. First arg is module, second is function name
+// InitFunction initialize a module function. First arg is module, second is function name
 func (p *localPython3_7) InitFunction(module string, function string) (MynahPythonFunction, error) {
 	//lock goroutine to thread
 	runtime.LockOSThread()
@@ -312,7 +312,7 @@ func (p *localPython3_7) localCallFunction(module string, function string, args 
 	}
 }
 
-//on shutdown
+// Close on shutdown
 func (p *localPython3_7) Close() {
 	log.Infof("python engine shutdown")
 	python3.PyEval_RestoreThread(p.gilState)

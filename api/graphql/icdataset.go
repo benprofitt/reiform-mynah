@@ -21,8 +21,8 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 		graphql.ObjectConfig{
 			Name: "ICDatasetQuery",
 			Fields: graphql.Fields{
-				//Get ?query={dataset(uuid:""){dataset_name}}
-				"dataset": &graphql.Field{
+				//Get ?query={icdataset(uuid:""){dataset_name}}
+				"icdataset": &graphql.Field{
 					Type:        icDatasetType,
 					Description: "Get dataset by uuid",
 					Args: graphql.FieldConfigArgument{
@@ -31,8 +31,7 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						uuid, ok := p.Args["uuid"].(string)
-						if ok {
+						if uuid, ok := p.Args["uuid"].(string); ok {
 							//get the authenticated user from context
 							user := p.Context.Value(contextUserKey).(*model.MynahUser)
 							return dbProvider.GetICDataset(&uuid, user)
@@ -82,23 +81,22 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 
 					//request the dataset
 					if dataset, err := dbProvider.GetICDataset(&uuid, user); err == nil {
-						//new name to use
-						datasetName, datasetNameOk := p.Args["dataset_name"].(string)
-
+						updatedFields := make([]string, 0)
 						//update dataset
-						if datasetNameOk {
+						if datasetName, datasetNameOk := p.Args["dataset_name"].(string); datasetNameOk {
+							updatedFields = append(updatedFields, "dataset_name")
 							dataset.DatasetName = datasetName
 						}
 
 						//update the dataset
-						return dataset, dbProvider.UpdateICDataset(dataset, user)
+						return dataset, dbProvider.UpdateICDataset(dataset, user, updatedFields...)
 
 					} else {
 						return nil, err
 					}
 				},
 			},
-			//Delete a dataset by uuid ?query=mutation+_{delete(uuid:""){uuid,dataset_name}}
+			//Delete a dataset by uuid ?query=mutation+_{delete(uuid:""){uuid}}
 			"delete": &graphql.Field{
 				Type:        icDatasetType,
 				Description: "Delete ic dataset by uuid",
@@ -110,8 +108,7 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					//get the authenticated user from context to authorize db request
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-					uuid, ok := p.Args["uuid"].(string)
-					if ok {
+					if uuid, ok := p.Args["uuid"].(string); ok {
 						return nil, dbProvider.DeleteICDataset(&uuid, user)
 					}
 					return nil, errors.New("dataset delete request missing uuid")
@@ -133,7 +130,7 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 	}
 
 	//return a handler that executes queries
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from the request (used to authorize db requests)
 		user := middleware.GetUserFromRequest(request)
 
@@ -155,5 +152,5 @@ func ICDatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) 
 				writer.Header().Set("Content-Type", "application/json")
 			}
 		}
-	}), nil
+	}, nil
 }

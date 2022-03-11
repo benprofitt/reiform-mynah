@@ -24,10 +24,10 @@ var userType = graphql.NewObject(
 	},
 )
 
-//Mynah Projects (model.MynahProject)
-var projectType = graphql.NewObject(
+//Mynah Projects (model.MynahICProject)
+var icProjectType = graphql.NewObject(
 	graphql.ObjectConfig{
-		Name: "MynahProject",
+		Name: "MynahICProject",
 		Fields: graphql.Fields{
 			"uuid": &graphql.Field{
 				Type: graphql.String,
@@ -35,25 +35,6 @@ var projectType = graphql.NewObject(
 			"project_name": &graphql.Field{
 				Type: graphql.String,
 			},
-		},
-	},
-)
-
-//Mynah Datasets (model.MynahDataset)
-var datasetType = graphql.NewObject(
-	graphql.ObjectConfig{
-		Name: "MynahDataset",
-		Fields: graphql.Fields{
-			"uuid": &graphql.Field{
-				Type: graphql.String,
-			},
-			"dataset_name": &graphql.Field{
-				Type: graphql.String,
-			},
-			//TODO
-			// "referenced_files": &graphql.Field{
-			// 	Type: graphql.List,
-			// },
 		},
 	},
 )
@@ -69,10 +50,6 @@ var icDatasetType = graphql.NewObject(
 			"dataset_name": &graphql.Field{
 				Type: graphql.String,
 			},
-			//TODO
-			// "referenced_files": &graphql.Field{
-			// 	Type: graphql.List,
-			// },
 		},
 	},
 )

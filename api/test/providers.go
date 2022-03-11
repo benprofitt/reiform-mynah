@@ -40,6 +40,8 @@ type TestContext struct {
 	WebSocketProvider websockets.WebSocketProvider
 	AsyncProvider     async.AsyncProvider
 	Router            *middleware.MynahRouter
+
+	orgId string
 }
 
 //load test context and pass to test handler
@@ -101,6 +103,7 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		WebSocketProvider: websocketProvider,
 		AsyncProvider:     asyncProvider,
 		Router:            middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider),
+		orgId:             uuid.NewString(),
 	})
 }
 
@@ -108,7 +111,7 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser, string) error) error {
 	//create an admin to insert the admin (must have distinct id)
 	creator := model.MynahUser{
-		OrgId:   uuid.NewString(),
+		OrgId:   t.orgId,
 		IsAdmin: true,
 	}
 

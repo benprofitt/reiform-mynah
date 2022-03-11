@@ -12,6 +12,7 @@ import (
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/settings"
 	"sync"
+	"syscall"
 )
 
 const uuidLength = 36
@@ -30,14 +31,13 @@ type ipcServer struct {
 	cancel context.CancelFunc
 }
 
-//create a new ipc provider fomr settings
+// NewIPCProvider create a new ipc provider from settings
 func NewIPCProvider(mynahSettings *settings.MynahSettings) (IPCProvider, error) {
 	//bind to the socket address
 	log.Infof("IPC listening to unix socket %s", mynahSettings.IPCSettings.SocketAddr)
 
-	//remove any existing socket
-	if err := os.RemoveAll(mynahSettings.IPCSettings.SocketAddr); err != nil {
-		return nil, fmt.Errorf("failed to delete previous socket: %s", err)
+	if err := syscall.Unlink(mynahSettings.IPCSettings.SocketAddr); err != nil {
+		log.Warnf("failed to unlink ipc socket %s: %s", mynahSettings.IPCSettings.SocketAddr, err)
 	}
 
 	//listen to the unix socket
@@ -49,6 +49,8 @@ func NewIPCProvider(mynahSettings *settings.MynahSettings) (IPCProvider, error) 
 	//check that the file has been created
 	if _, statErr := os.Stat(mynahSettings.IPCSettings.SocketAddr); errors.Is(statErr, os.ErrNotExist) {
 		return nil, fmt.Errorf("ipc socket %s does not exist", mynahSettings.IPCSettings.SocketAddr)
+	} else if statErr != nil {
+		return nil, fmt.Errorf("failed to stat ipc socket: %s", statErr)
 	}
 
 	s := ipcServer{
@@ -95,12 +97,14 @@ func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte))
 				log.Warnf("ipc message contained less than %d bytes (%d)", uuidLength, len(contents))
 			}
 
-			conn.Close()
+			if err := conn.Close(); err != nil {
+				log.Warnf("failed to close ipc socket connection: %s", err)
+			}
 		}
 	}
 }
 
-//handle new events
+// HandleEvents handle new events
 func (s *ipcServer) HandleEvents(handler func(userUuid *string, msg []byte)) {
 	//start the connection worker
 	go s.connectionWorker(handler)
@@ -124,5 +128,8 @@ func (s *ipcServer) Close() {
 	s.cancel()
 	s.waitGroup.Wait()
 	log.Infof("closing ipc server")
-	s.listener.Close()
+
+	if err := s.listener.Close(); err != nil {
+		log.Warnf("failed to close ipc server: %s", err)
+	}
 }

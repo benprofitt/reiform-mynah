@@ -28,8 +28,7 @@ func checkDBFile(path string) (exists bool, err error) {
 		return true, nil
 	} else if errors.Is(err, os.ErrNotExist) {
 		if file, err := os.Create(filepath.Clean(path)); err == nil {
-			file.Close()
-			return false, nil
+			return false, file.Close()
 		} else {
 			return false, err
 		}
@@ -331,6 +330,14 @@ func (d *localDB) ListProjects(requestor *model.MynahUser) (projects []*model.My
 	return commonListProjects(projects, requestor), err
 }
 
+// ListICProjects list all projects, arg is requestor
+func (d *localDB) ListICProjects(requestor *model.MynahUser) (projects []*model.MynahICProject, err error) {
+	//list projects
+	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&projects)
+	//filter for the projects that this user can view
+	return commonListICProjects(projects, requestor), err
+}
+
 // ListFiles list all files, arg is requestor
 func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
 	//list files
@@ -473,6 +480,21 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 
 // UpdateProject update a project in the database
 func (d *localDB) UpdateProject(project *model.MynahProject, requestor *model.MynahUser, keys ...string) error {
+	if commonErr := commonUpdateProject(project, requestor, keys); commonErr != nil {
+		return commonErr
+	}
+	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(project)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("project %s not updated (no records affected)", project.Uuid)
+	}
+	return nil
+}
+
+// UpdateICProject update a project in the database
+func (d *localDB) UpdateICProject(project *model.MynahICProject, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateProject(project, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -637,5 +659,8 @@ func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) erro
 // Close close the client connection on shutdown
 func (d *localDB) Close() {
 	log.Infof("local database engine shutdown")
-	d.engine.Close()
+	err := d.engine.Close()
+	if err != nil {
+		log.Warnf("error closing database engine: %s", err)
+	}
 }

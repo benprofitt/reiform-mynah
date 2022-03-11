@@ -31,8 +31,7 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						uuid, ok := p.Args["uuid"].(string)
-						if ok {
+						if uuid, ok := p.Args["uuid"].(string); ok {
 							//get the authenticated user from context
 							user := p.Context.Value(contextUserKey).(*model.MynahUser)
 							return dbProvider.GetUser(&uuid, user)
@@ -83,22 +82,21 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 						return nil, errors.New("graphql update query missing user uuid")
 					}
 
-					//new name to use
-					nameFirst, nameFirstOk := p.Args["name_first"].(string)
-					nameLast, nameLastOk := p.Args["name_last"].(string)
-
 					//request the user
 					if updateUser, err := dbProvider.GetUser(&uuid, user); err == nil {
+						updatedFields := make([]string, 0)
 						//update user
-						if nameFirstOk {
+						if nameFirst, nameFirstOk := p.Args["name_first"].(string); nameFirstOk {
+							updatedFields = append(updatedFields, "name_first")
 							updateUser.NameFirst = nameFirst
 						}
-						if nameLastOk {
+						if nameLast, nameLastOk := p.Args["name_last"].(string); nameLastOk {
+							updatedFields = append(updatedFields, "name_last")
 							updateUser.NameLast = nameLast
 						}
 
 						//update the user
-						return updateUser, dbProvider.UpdateUser(updateUser, user)
+						return updateUser, dbProvider.UpdateUser(updateUser, user, updatedFields...)
 
 					} else {
 						return nil, err
@@ -117,8 +115,7 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					//get the authenticated user from context to authorize db request
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-					uuid, ok := p.Args["uuid"].(string)
-					if ok {
+					if uuid, ok := p.Args["uuid"].(string); ok {
 						return nil, dbProvider.DeleteUser(&uuid, user)
 					}
 					return nil, errors.New("user delete request missing uuid")
@@ -140,7 +137,7 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	}
 
 	//return a handler that executes queries
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from the request (used to authorize db requests)
 		user := middleware.GetUserFromRequest(request)
 
@@ -162,5 +159,5 @@ func UserQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				writer.Header().Set("Content-Type", "application/json")
 			}
 		}
-	}), nil
+	}, nil
 }

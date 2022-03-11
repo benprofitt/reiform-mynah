@@ -19,7 +19,7 @@ const (
 	External DBSetting = "external"
 )
 
-//defines settings for the database
+// MynahDBSettings defines settings for the database
 type MynahDBSettings struct {
 	//the database configuration (either external/local)
 	Type DBSetting `json:"type"`
@@ -29,7 +29,7 @@ type MynahDBSettings struct {
 	InitialOrgCount int `json:"initial_org_count"`
 }
 
-//defines settings for authentication
+// MynahAuthSettings defines settings for authentication
 type MynahAuthSettings struct {
 	//the path to the pem key for JWT validation and generation
 	PemFilePath string `json:"pem_file_path"`
@@ -37,7 +37,7 @@ type MynahAuthSettings struct {
 	JwtHeader string `json:"jwt_header"`
 }
 
-//defines settings for storage
+// MynahStorageSettings defines settings for storage
 type MynahStorageSettings struct {
 	//whether users can load/save data in s3
 	S3Storage bool `json:"s3_storage"`
@@ -47,7 +47,7 @@ type MynahStorageSettings struct {
 	MaxUpload int64 `json:"max_upload"`
 }
 
-//defines configuration settings for python
+// MynahPythonSettings defines configuration settings for python
 type MynahPythonSettings struct {
 	//the path where python modules are stored
 	ModulePath string `json:"module_path"`
@@ -55,7 +55,7 @@ type MynahPythonSettings struct {
 	ModuleName string `json:"module_name"`
 }
 
-//defines configuration settings for async task engine
+// MynahAsyncSettings defines configuration settings for async task engine
 type MynahAsyncSettings struct {
 	//how many async workers to use
 	Workers int `json:"workers"`
@@ -63,13 +63,13 @@ type MynahAsyncSettings struct {
 	BufferSize int `json:"buffer_size"`
 }
 
-//defines settings for ipc
+// MynahIPCSettings defines settings for ipc
 type MynahIPCSettings struct {
 	//the socket address to communicate on
 	SocketAddr string `json:"socket_addr"`
 }
 
-//Defines various settings for the application
+// MynahSettings Defines various settings for the application
 type MynahSettings struct {
 	//the prefix for api paths
 	ApiPrefix string `json:"api_prefix"`
@@ -92,7 +92,7 @@ type MynahSettings struct {
 	IPCSettings     MynahIPCSettings     `json:"ipc_settings"`
 }
 
-//get the default settings
+// DefaultSettings get the default settings
 func DefaultSettings() *MynahSettings {
 	return &MynahSettings{
 		ApiPrefix:           "/api/v1",
@@ -163,7 +163,7 @@ func settingsExist(path *string) bool {
 	}
 }
 
-//Load Mynah settings from a file
+// LoadSettings Load Mynah settings from a file
 func LoadSettings(path *string) (*MynahSettings, error) {
 	if !settingsExist(path) {
 		//generate default settings

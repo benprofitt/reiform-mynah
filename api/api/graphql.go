@@ -10,24 +10,26 @@ import (
 
 //register the graphql endpoints
 func registerGQLRoutes(router *middleware.MynahRouter, dbProvider db.DBProvider) error {
-	projectHandler, projectErr := graphql.ProjectQueryResolver(dbProvider)
-	if projectErr != nil {
-		return projectErr
-	}
-
 	userHandler, userErr := graphql.UserQueryResolver(dbProvider)
 	if userErr != nil {
 		return userErr
 	}
 
-	datasetHandler, datasetErr := graphql.DatasetQueryResolver(dbProvider)
-	if datasetErr != nil {
-		return datasetErr
-	}
+	//projectHandler, projectErr := graphql.ICProjectQueryResolver(dbProvider)
+	//if projectErr != nil {
+	//	return projectErr
+	//}
+	//
+	//datasetHandler, datasetErr := graphql.ICDatasetQueryResolver(dbProvider)
+	//if datasetErr != nil {
+	//	return datasetErr
+	//}
 
-	router.HandleHTTPRequest("POST", "graphql/project", projectHandler)
-	router.HandleHTTPRequest("POST", "graphql/user", userHandler)
-	router.HandleHTTPRequest("POST", "graphql/dataset", datasetHandler)
+	router.HandleHTTPRequest("GET", "graphql/user", userHandler)
+
+	// FIXME: known issue for anonymous struct composition: https://github.com/graphql-go/graphql/issues/553
+	//router.HandleHTTPRequest("graphql/icproject", projectHandler)
+	//router.HandleHTTPRequest("graphql/icdataset", datasetHandler)
 
 	return nil
 }

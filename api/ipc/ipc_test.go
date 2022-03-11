@@ -10,6 +10,7 @@ import (
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"testing"
+	"time"
 )
 
 //stores a message from python
@@ -51,6 +52,9 @@ func TestMain(m *testing.M) {
 func TestIPC(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 	mynahSettings.PythonSettings.ModulePath = "../../python"
+	// without this we seem to get intermittent failures where the domain socket file is not found
+	// this may be due to test collisions
+	mynahSettings.IPCSettings.SocketAddr = "/tmp/test_mynah.sock"
 
 	//create the ipc provider
 	ipcProvider, ipcErr := NewIPCProvider(mynahSettings)
@@ -87,6 +91,8 @@ func TestIPC(t *testing.T) {
 		}
 	})
 
+	time.Sleep(2 * time.Second)
+
 	//call python function
 	for i := 0; i < messagesToSend; i++ {
 		targetUuid := uuid.New().String()
@@ -109,6 +115,10 @@ func TestIPC(t *testing.T) {
 			var pythonResponse PyRes
 			if err := res.GetResponse(&pythonResponse); err != nil {
 				t.Errorf("error calling function: %s", err)
+
+				if _, err := os.Stat(mynahSettings.IPCSettings.SocketAddr); err != nil {
+					t.Errorf("(socket file doesn't exist: %s)", err)
+				}
 			} else {
 
 				if pythonResponse.Msg != targetContents {

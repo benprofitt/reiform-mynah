@@ -2,6 +2,8 @@ import socket
 import json
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 # from mynah import * # type: ignore
+from impl.services.modules.utils import image_utils
+
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):
@@ -41,3 +43,8 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
 def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
     return "{}"
+
+def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
+    '''Retrieve the image width, height, and channels'''
+    request = json.loads(request_str)
+    return json.dumps(image_utils.get_image_metadata(request['path']))

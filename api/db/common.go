@@ -174,7 +174,7 @@ func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 		Name:                "file_name",
 		Created:             time.Now().Unix(),
 		DetectedContentType: "none",
-		Metadata:            make(model.FileMetadata),
+		Versions:            make(map[model.MynahFileTag]model.MynahFileVersion),
 	}
 }
 

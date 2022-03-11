@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/posener/wstest"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +15,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/ipc"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/pyimpl"
@@ -141,21 +143,17 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, handler func(*model.MynahFile) error) error {
 
 	//create a new file
-	file, err := t.DBProvider.CreateFile(owner, func(*model.MynahFile) {})
+	file, err := t.DBProvider.CreateFile(owner, func(f *model.MynahFile) error {
+		//create the file in storage
+		return t.StorageProvider.StoreFile(f, owner, func(f *os.File) error {
+			//write contents to the file
+			_, err := f.WriteString(contents)
+			return err
+		})
+	})
 
 	if err != nil {
 		return fmt.Errorf("failed to create file in database: %s", err)
-	}
-
-	//create the file in storage
-	storeErr := t.StorageProvider.StoreFile(file, owner, func(f *os.File) error {
-		//write contents to the file
-		_, err := f.WriteString(contents)
-		return err
-	})
-
-	if storeErr != nil {
-		return fmt.Errorf("failed to write to file")
 	}
 
 	//pass to handler
@@ -250,6 +248,51 @@ func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*mo
 func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
 	//create a file
 	err := t.WithCreateFile(owner, "test_contents", func(f *model.MynahFile) error {
+
+		testTarget := "../../docs/test_image.jpg"
+
+		//write an image to the file
+		if err := t.StorageProvider.GetStoredFile(f, model.TagLatest, func(path *string) error {
+			//remove the placeholder
+			if err := os.Remove(*path); err != nil {
+				return err
+			}
+
+			//check that the file for testing exists
+			_, err := os.Stat(testTarget)
+			if err != nil {
+				return fmt.Errorf("missing test file %s: %s", testTarget, err)
+			}
+
+			//open the test file
+			source, err := os.Open(testTarget)
+			if err != nil {
+				return fmt.Errorf("failed to open test file %s: %s", testTarget, err)
+			}
+			defer func(source *os.File) {
+				err := source.Close()
+				if err != nil {
+					log.Warnf("failed to close test file %s: %s", testTarget, err)
+				}
+			}(source)
+
+			destination, err := os.Create(*path)
+			if err != nil {
+				return fmt.Errorf("failed to create target file %s: %s", *path, err)
+			}
+			defer func(destination *os.File) {
+				err := destination.Close()
+				if err != nil {
+					log.Warnf("failed to close test file %s: %s", *path, err)
+				}
+			}(destination)
+
+			_, err = io.Copy(destination, source)
+			return err
+
+		}); err != nil {
+			return fmt.Errorf("failed to overwrite test file with image: %s", err)
+		}
 
 		//create a dataset
 		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {

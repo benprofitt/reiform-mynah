@@ -4,6 +4,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"reiform.com/mynah/async"
@@ -61,9 +62,25 @@ func startICDiagnosisJobCreateReq(projectId string,
 
 				//check for metadata
 				if fileData, found := files[fileId]; found {
-					channels = fileData.Metadata.GetDefaultInt(model.MetadataChannels, 0)
-					width = fileData.Metadata.GetDefaultInt(model.MetadataWidth, 0)
-					height = fileData.Metadata.GetDefaultInt(model.MetadataHeight, 0)
+					//assume the latest version of the metadata
+					if version, found := fileData.Versions[model.TagLatest]; found {
+						channels = version.Metadata.GetDefaultInt(model.MetadataChannels, 0)
+						width = version.Metadata.GetDefaultInt(model.MetadataWidth, 0)
+						height = version.Metadata.GetDefaultInt(model.MetadataHeight, 0)
+					} else {
+						log.Warnf("unable to find file %s metadata using version tag: %s",
+							fileId, model.TagLatest)
+
+						//attempt to get original
+						if original, found := fileData.Versions[model.TagOriginal]; found {
+							channels = original.Metadata.GetDefaultInt(model.MetadataChannels, 0)
+							width = original.Metadata.GetDefaultInt(model.MetadataWidth, 0)
+							height = original.Metadata.GetDefaultInt(model.MetadataHeight, 0)
+						} else {
+							return nil, fmt.Errorf("unable to find file %s metadata using version tag: %s",
+								fileId, model.TagOriginal)
+						}
+					}
 				}
 
 				//add the class -> tmp file -> data mapping
@@ -120,7 +137,7 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 					for _, f := range files {
 						allFiles[f.Uuid] = f
 
-						if path, err := storageProvider.GetTmpPath(f); err == nil {
+						if path, err := storageProvider.GetTmpPath(f, model.TagLatest); err == nil {
 							fileTempPaths[f.Uuid] = path
 						} else {
 							log.Warnf("failed to get temporary path to file: %s", err)

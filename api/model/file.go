@@ -7,6 +7,15 @@ import "strconv"
 // FileLocation the permissions a user can have for a project
 type FileLocation string
 
+// MynahFileTag a tag on a file version
+type MynahFileTag string
+
+const (
+	TagLatest   MynahFileTag = "latest"
+	TagOriginal MynahFileTag = "original"
+)
+
+// MetadataKey a key into file metadata
 type MetadataKey string
 
 const (
@@ -18,6 +27,14 @@ const (
 
 // FileMetadata metadata type
 type FileMetadata map[MetadataKey]string
+
+// MynahFileVersion a version of the file
+type MynahFileVersion struct {
+	//whether the file version is available locally
+	ExistsLocally bool
+	//file metadata
+	Metadata FileMetadata `json:"metadata" xorm:"TEXT 'metadata'"`
+}
 
 // MynahFile Defines a file managed by Mynah
 type MynahFile struct {
@@ -31,10 +48,10 @@ type MynahFile struct {
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
 	Created int64 `json:"-" xorm:"INTEGER 'last_modified'"`
-	//the http detected content type
+	//the http detected content type (original)
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
-	//file metadata
-	Metadata FileMetadata `json:"metadata" xorm:"TEXT 'metadata'"`
+	//versions of the file
+	Versions map[MynahFileTag]MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
 
 // GetDefaultInt GetDefault returns a value if the key is found or the default value provided

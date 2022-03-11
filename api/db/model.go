@@ -44,9 +44,9 @@ type DBProvider interface {
 	CreateProject(*model.MynahUser, func(*model.MynahProject)) (*model.MynahProject, error)
 	// CreateICProject create a new project, arg is creator
 	CreateICProject(*model.MynahUser, func(*model.MynahICProject)) (*model.MynahICProject, error)
-	// CreateFile create a new file, arg is creator
-	CreateFile(*model.MynahUser, func(*model.MynahFile)) (*model.MynahFile, error)
-	// CreateDataset create a new dataset
+	//create a new file, arg is creator
+	CreateFile(*model.MynahUser, func(*model.MynahFile) error) (*model.MynahFile, error)
+	//create a new dataset
 	CreateDataset(*model.MynahUser, func(*model.MynahDataset)) (*model.MynahDataset, error)
 	// CreateICDataset create a new dataset
 	CreateICDataset(*model.MynahUser, func(*model.MynahICDataset)) (*model.MynahICDataset, error)

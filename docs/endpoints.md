@@ -41,7 +41,8 @@
 
 ## File endpoint
 - All files tracked by Mynah can be requested using:
-- `GET /api/v1/file/{uuid}`
+- `GET /api/v1/file/{uuid}/{tag}`
+- Where tag can be `original` or `latest`
 
 ## Admin Management Endpoints
 

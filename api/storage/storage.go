@@ -7,7 +7,7 @@ import (
 	"reiform.com/mynah/settings"
 )
 
-//Create a new storage provider based on the Mynah settings
+// NewStorageProvider Create a new storage provider based on the Mynah settings
 func NewStorageProvider(mynahSettings *settings.MynahSettings, pyimplProvider pyimpl.PyImplProvider) (StorageProvider, error) {
 	//for now just return local provider
 	return newLocalStorage(mynahSettings, pyimplProvider)

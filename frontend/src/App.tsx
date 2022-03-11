@@ -14,21 +14,19 @@ import Cookies from "universal-cookie";
 
 function App(): JSX.Element {
   const cookies = new Cookies();
-
-  const loggedIn = cookies.get(authCookieName);
-
-  console.log(loggedIn);
+  const jwt: string = cookies.get(authCookieName);
 
   return (
     <Router>
       <Routes>
-        {!loggedIn ? (
+        {!Boolean(jwt) ? (
           <>
-            <Route path="/mynah/login" element={<LoginPage />} />
             <Route path="*" element={<Navigate replace to="/mynah/login" />} />
+            <Route path="/mynah/login" element={<LoginPage />} />
           </>
         ) : (
           <>
+            <Route path="*" element={<PageNotFound />} />
             <Route
               path="/mynah/login"
               element={<Navigate replace to="/mynah" />}
@@ -39,8 +37,6 @@ function App(): JSX.Element {
               path="/mynah/account-settings"
               element={<AccountSettingsPage />}
             />
-            <Route path="/" element={<Navigate replace to={"/mynah"} />} />
-            <Route path="*" element={<PageNotFound />} />
           </>
         )}
       </Routes>

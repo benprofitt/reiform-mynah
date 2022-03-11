@@ -112,6 +112,7 @@ func TestAPIAdminEndpoints(t *testing.T) {
 
 func TestFileGetEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.ModulePath = "../../python"
 
 	//load the testing context
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
@@ -126,7 +127,7 @@ func TestFileGetEndpoint(t *testing.T) {
 			//create a file
 			return c.WithCreateFile(user, testContents, func(file *model.MynahFile) error {
 				//make a request for the file
-				req, reqErr := http.NewRequest("GET", filepath.Join(mynahSettings.ApiPrefix, "file", file.Uuid), nil)
+				req, reqErr := http.NewRequest("GET", filepath.Join(mynahSettings.ApiPrefix, "file", file.Uuid, "latest"), nil)
 				if reqErr != nil {
 					return reqErr
 				}

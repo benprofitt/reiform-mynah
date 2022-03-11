@@ -76,28 +76,19 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 			return
 		}
 
-		mynahFile, err := dbProvider.CreateFile(user, func(f *model.MynahFile) {
+		mynahFile, err := dbProvider.CreateFile(user, func(f *model.MynahFile) error {
 			f.Name = "<unknown>" //TODO read this from the multipart form
+
+			//write the contents of the file to storage
+			return storageProvider.StoreFile(f, user, func(f *os.File) error {
+				_, err := f.Write(fileContents)
+				return err
+			})
 		})
 
 		//create the file in the database
 		if err != nil {
 			log.Errorf("failed to add file to database %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		//write the contents of the file to storage
-		storeErr := storageProvider.StoreFile(mynahFile, user, func(f *os.File) error {
-			_, err := f.Write(fileContents)
-			return err
-		})
-
-		if storeErr != nil {
-			//try to delete file from database (ignore failure, already in a failure mode)
-			_ = dbProvider.DeleteFile(&mynahFile.Uuid, user)
-
-			log.Errorf("failed to write file to local storage %s", storeErr)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}

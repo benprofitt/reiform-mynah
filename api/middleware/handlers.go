@@ -25,6 +25,7 @@ const contextUserKey ctxKey = "user"
 const contextProjectKey ctxKey = "project"
 const projectKey string = "project"
 const fileKey string = "file"
+const fileTagKey string = "tag"
 
 // MynahUserHandler Handler for a request that requires the user
 type MynahUserHandler func(user *model.MynahUser) (*Response, error)
@@ -99,10 +100,16 @@ func (r *MynahRouter) fileHandler(writer http.ResponseWriter, request *http.Requ
 
 	//get the file id
 	if fileId, ok := mux.Vars(request)[fileKey]; ok {
+		fileTag := model.TagLatest
+		//check for the file tag
+		if tagStr, ok := mux.Vars(request)[fileTagKey]; ok {
+			fileTag = model.MynahFileTag(tagStr)
+		}
+
 		//load the file metadata
 		if file, fileErr := r.dbProvider.GetFile(&fileId, user); fileErr == nil {
 			//serve the file contents
-			storeErr := r.storageProvider.GetStoredFile(file, func(path *string) error {
+			storeErr := r.storageProvider.GetStoredFile(file, fileTag, func(path *string) error {
 				//open the file
 				osFile, osErr := os.Open(*path)
 				if osErr != nil {
@@ -163,7 +170,7 @@ func (r *MynahRouter) HandleProjectRequest(method string, path string, handler M
 
 // HandleFileRequest handle a request for a file
 func (r *MynahRouter) HandleFileRequest(path string) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path, fmt.Sprintf("{%s}", fileKey)),
+	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path, fmt.Sprintf("{%s}/{%s}", fileKey, fileTagKey)),
 		r.HttpMiddleware(r.fileHandler)).Methods("GET", http.MethodOptions)
 }
 
@@ -183,7 +190,7 @@ func (r *MynahRouter) ListenAndServe() {
 	log.Warnf("server exit: %s", r.server.ListenAndServe())
 }
 
-//Shutdown the server
+// Close Shutdown the server
 func (r *MynahRouter) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()

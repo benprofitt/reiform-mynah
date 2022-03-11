@@ -401,8 +401,9 @@ func TestBasicDBActionsFile(t *testing.T) {
 
 	for i := 0; i < rangeRequest; i++ {
 
-		_, err := dbProvider.CreateFile(&user, func(file *model.MynahFile) {
+		_, err := dbProvider.CreateFile(&user, func(file *model.MynahFile) error {
 			uuids = append(uuids, file.Uuid)
+			return nil
 		})
 
 		if err != nil {

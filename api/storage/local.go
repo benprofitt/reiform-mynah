@@ -4,6 +4,8 @@ package storage
 
 import (
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
+	"io"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/log"
@@ -20,6 +22,85 @@ type localStorage struct {
 	pyImplProvider pyimpl.PyImplProvider
 }
 
+//check if this is an image mime type
+func isImageType(mType *mimetype.MIME) bool {
+	switch mType.String() {
+	case "image/png":
+		return true
+	case "image/jpeg":
+		return true
+	case "image/tiff":
+		return true
+	default:
+		return false
+	}
+}
+
+// return a path for this file by tag
+func (s *localStorage) getTaggedPath(file *model.MynahFile, tag model.MynahFileTag) string {
+	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", file.Uuid, tag))
+}
+
+//copy the contents of a file to another with a different tag. Note: creates the new tag
+func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, dest model.MynahFileTag) error {
+	//check that the source tag exists locally
+	if version, ok := file.Versions[src]; !ok {
+		return fmt.Errorf("source tag for file copy doesn't exist")
+	} else if !version.ExistsLocally {
+		return fmt.Errorf("source for file copy doesn't exist locally")
+	}
+
+	file.Versions[dest] = model.MynahFileVersion{
+		ExistsLocally: true,
+		Metadata:      make(model.FileMetadata),
+	}
+
+	//copy metadata
+	for k, v := range file.Versions[src].Metadata {
+		file.Versions[dest].Metadata[k] = v
+	}
+
+	srcPath := s.getTaggedPath(file, src)
+
+	//verify that the source file exists
+	sourceFileStat, err := os.Stat(filepath.Clean(srcPath))
+	if err != nil {
+		return err
+	}
+
+	//check the mode
+	if !sourceFileStat.Mode().IsRegular() {
+		return fmt.Errorf("source file %s with tag %s is not a regular file", file.Uuid, src)
+	}
+
+	source, err := os.Open(filepath.Clean(srcPath))
+	if err != nil {
+		return err
+	}
+	defer func(source *os.File) {
+		err := source.Close()
+		if err != nil {
+			log.Warnf("failed to close file: %s", err)
+		}
+	}(source)
+
+	destPath := s.getTaggedPath(file, dest)
+
+	destination, err := os.Create(filepath.Clean(destPath))
+	if err != nil {
+		return err
+	}
+	defer func(destination *os.File) {
+		err := destination.Close()
+		if err != nil {
+			log.Warnf("failed to close file: %s", err)
+		}
+	}(destination)
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
 //create a new local storage provider
 func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimpl.PyImplProvider) (*localStorage, error) {
 	//create the storage directory if it doesn't exist
@@ -32,64 +113,106 @@ func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimp
 	}, nil
 }
 
-//Save a file to the storage target
+// StoreFile Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, handler func(*os.File) error) error {
+	//insert the default tag if not found
+	if _, ok := file.Versions[model.TagOriginal]; !ok {
+		file.Versions[model.TagOriginal] = model.MynahFileVersion{
+			ExistsLocally: true,
+			Metadata:      make(model.FileMetadata),
+		}
+	}
+
 	//create a local storage path for the file
-	fullPath := filepath.Join(s.localPath, file.Uuid)
+	fullPath := s.getTaggedPath(file, model.TagOriginal)
 
 	//create the local file to write to
 	if localFile, err := os.Create(filepath.Clean(fullPath)); err == nil {
-		defer func() {
-			if err := localFile.Close(); err != nil {
-				log.Errorf("error closing file %s: %s", file.Uuid, err)
-			}
-		}()
+
 		handlerErr := handler(localFile)
 
 		if handlerErr != nil {
-			//get the file size
-			if stat, err := localFile.Stat(); err == nil {
-				file.Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
-
-			} else {
-				log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)
-			}
-
-			//get metadata for image
-			metadataRes, err := s.pyImplProvider.ImageMetadata(user, &pyimpl.ImageMetadataRequest{
-				Path: fullPath,
-			})
-
-			if err == nil {
-				file.Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
-				file.Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
-				file.Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
-			} else {
-				log.Warnf("failed to get metadata for %s: %s", file.Uuid, err)
-			}
+			return handlerErr
 		}
 
-		return handlerErr
+		//get the file size
+		if stat, err := localFile.Stat(); err == nil {
+			file.Versions[model.TagOriginal].Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
+
+		} else {
+			log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)
+		}
+
+		//check the mime type for image metadata
+		if mimeType, err := mimetype.DetectFile(filepath.Clean(fullPath)); err == nil {
+
+			if isImageType(mimeType) {
+				//get metadata for image
+				metadataRes, err := s.pyImplProvider.ImageMetadata(user, &pyimpl.ImageMetadataRequest{
+					Path: fullPath,
+				})
+
+				if err == nil {
+					file.Versions[model.TagOriginal].Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
+					file.Versions[model.TagOriginal].Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
+					file.Versions[model.TagOriginal].Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
+				} else {
+					log.Warnf("failed to get metadata for %s: %s", file.Uuid, err)
+				}
+			} else {
+				log.Infof("skipping metadata read for non image file type: %s", mimeType.String())
+			}
+
+		} else {
+			log.Warnf("failed to read mime type for file %s: %s", file.Uuid, err)
+		}
+
+		//close the file before copying
+		if err := localFile.Close(); err != nil {
+			log.Errorf("error closing file %s: %s", file.Uuid, err)
+		}
+
 	} else {
 		return err
 	}
-}
 
-//get the contents of a stored file
-func (s *localStorage) GetStoredFile(file *model.MynahFile, handler func(*string) error) error {
-	fullPath := filepath.Join(s.localPath, file.Uuid)
+	//add the "latest" tag if not found
+	if _, ok := file.Versions[model.TagLatest]; !ok {
+		//copy the file
+		return s.copyToTag(file, model.TagOriginal, model.TagLatest)
 
-	//verify that the file exists
-	_, err := os.Stat(fullPath)
-	if err != nil {
-		return err
+	} else {
+		log.Infof("found latest tag when storing file, will not duplicate (if this is a new file, this is a bug)")
 	}
-	return handler(&fullPath)
+
+	return nil
 }
 
-//get the temporary path to a file
-func (s *localStorage) GetTmpPath(file *model.MynahFile) (string, error) {
-	fullPath := filepath.Join(s.localPath, file.Uuid)
+// GetStoredFile get the contents of a stored file
+func (s *localStorage) GetStoredFile(file *model.MynahFile, tag model.MynahFileTag, handler func(*string) error) error {
+	if location, ok := file.Versions[tag]; ok {
+		if !location.ExistsLocally {
+			return fmt.Errorf("file %s had a valid tag (%s) but is not available locally", file.Uuid, tag)
+		}
+
+		//create the full temp path
+		fullPath := s.getTaggedPath(file, tag)
+
+		//verify that the file exists
+		_, err := os.Stat(fullPath)
+		if err != nil {
+			return err
+		}
+		return handler(&fullPath)
+	} else {
+		return fmt.Errorf("invalid tag for file %s: %s", file.Uuid, tag)
+	}
+}
+
+// GetTmpPath get the temporary path to a file
+func (s *localStorage) GetTmpPath(file *model.MynahFile, tag model.MynahFileTag) (string, error) {
+
+	fullPath := s.getTaggedPath(file, tag)
 
 	//verify that the file exists
 	_, err := os.Stat(fullPath)
@@ -99,11 +222,24 @@ func (s *localStorage) GetTmpPath(file *model.MynahFile) (string, error) {
 	return fullPath, nil
 }
 
-//delete a stored file
+// DeleteFile delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
-	return os.Remove(filepath.Join(s.localPath, file.Uuid))
+	var err error
+
+	for tag, version := range file.Versions {
+		if version.ExistsLocally {
+			err = os.Remove(s.getTaggedPath(file, tag))
+			if err != nil {
+				log.Warnf("failed to delete file %s with tag %s locally: %s",
+					file.Uuid, tag, err)
+			}
+		}
+
+	}
+	return err
 }
 
+// Close the local storage provider (NOOP)
 func (s *localStorage) Close() {
 	log.Infof("local storage shutdown")
 }

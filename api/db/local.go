@@ -416,10 +416,13 @@ func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*mode
 }
 
 // CreateFile create a new file, second arg is creator
-func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.MynahFile)) (*model.MynahFile, error) {
+func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.MynahFile) error) (*model.MynahFile, error) {
 	file := commonCreateFile(creator)
 
-	precommit(file)
+	//since we can't update files once created, we may need to fail during creation when writing to local storage
+	if err := precommit(file); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(file)
 	if err != nil {

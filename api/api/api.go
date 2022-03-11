@@ -13,7 +13,7 @@ import (
 	"reiform.com/mynah/websockets"
 )
 
-//Register all api routes
+// RegisterRoutes Register all api routes
 func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	authProvider auth.AuthProvider,

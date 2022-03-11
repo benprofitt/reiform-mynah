@@ -14,60 +14,61 @@ import (
 	"reiform.com/mynah/model"
 )
 
-// DatasetQueryResolver Handle new graphql requests for datasets
-func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
-	//request datasets (query, list)
-	var datasetQueryType = graphql.NewObject(
+const contextUserKey = "user"
+
+// ICProjectQueryResolver ProjectQueryResolver Handle new graphql requests for projects
+func ICProjectQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
+	//request projects (query, list)
+	var icProjectQueryType = graphql.NewObject(
 		graphql.ObjectConfig{
-			Name: "DatasetQuery",
+			Name: "ICProjectQuery",
 			Fields: graphql.Fields{
-				//Get ?query={dataset(uuid:""){dataset_name}}
-				"dataset": &graphql.Field{
-					Type:        datasetType,
-					Description: "Get dataset by uuid",
+				//Get ?query={project(uuid:""){project_name}}
+				"icproject": &graphql.Field{
+					Type:        icProjectType,
+					Description: "Get project by uuid",
 					Args: graphql.FieldConfigArgument{
 						"uuid": &graphql.ArgumentConfig{
 							Type: graphql.NewNonNull(graphql.String),
 						},
 					},
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-						uuid, ok := p.Args["uuid"].(string)
-						if ok {
+						if uuid, ok := p.Args["uuid"].(string); ok {
 							//get the authenticated user from context
 							user := p.Context.Value(contextUserKey).(*model.MynahUser)
-							return dbProvider.GetDataset(&uuid, user)
+							return dbProvider.GetICProject(&uuid, user)
 						} else {
 							return nil, errors.New("graphql request missing uuid arg")
 						}
 					},
 				},
-				//Get list ?query={list{uuid,dataset_name}}
+				//Get list ?query={list{uuid,project_name}}
 				"list": &graphql.Field{
-					Type:        graphql.NewList(datasetType),
-					Description: "Get dataset list",
+					Type:        graphql.NewList(icProjectType),
+					Description: "Get project list",
 					Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 						//get the authenticated user from context
 						user := p.Context.Value(contextUserKey).(*model.MynahUser)
-						//request datasets
-						return dbProvider.ListDatasets(user)
+						//request projects
+						return dbProvider.ListICProjects(user)
 					},
 				},
 			},
 		})
 
-	//update datasets (create, update)
-	var datasetMutationType = graphql.NewObject(graphql.ObjectConfig{
-		Name: "DatasetMutation",
+	//update projects (create, update)
+	var icProjectMutationType = graphql.NewObject(graphql.ObjectConfig{
+		Name: "ICProjectMutation",
 		Fields: graphql.Fields{
-			//Update a dataset by uuid ?query=mutation+_{update(uuid:"",dataset_name:"update"){uuid,dataset_name}}
+			//Update a project by uuid ?query=mutation+_{update(uuid:"",project_name:"update"){uuid,project_name}}
 			"update": &graphql.Field{
-				Type:        datasetType,
-				Description: "Update a dataset by uuid",
+				Type:        icProjectType,
+				Description: "Update an ic project by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
 						Type: graphql.NewNonNull(graphql.String),
 					},
-					"dataset_name": &graphql.ArgumentConfig{
+					"project_name": &graphql.ArgumentConfig{
 						Type: graphql.String,
 					},
 				},
@@ -77,31 +78,30 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 
 					uuid, ok := p.Args["uuid"].(string)
 					if !ok {
-						return nil, errors.New("graphql update query missing dataset uuid")
+						return nil, errors.New("graphql update query missing project uuid")
 					}
 
-					//request the dataset
-					if dataset, err := dbProvider.GetDataset(&uuid, user); err == nil {
-						//new name to use
-						datasetName, datasetNameOk := p.Args["dataset_name"].(string)
-
-						//update dataset
-						if datasetNameOk {
-							dataset.DatasetName = datasetName
+					//request the project
+					if project, err := dbProvider.GetICProject(&uuid, user); err == nil {
+						updatedFields := make([]string, 0)
+						//update project
+						if projectName, projectNameOk := p.Args["project_name"].(string); projectNameOk {
+							updatedFields = append(updatedFields, "project_name")
+							project.ProjectName = projectName
 						}
 
-						//update the dataset
-						return dataset, dbProvider.UpdateDataset(dataset, user)
+						//update the project
+						return project, dbProvider.UpdateICProject(project, user, updatedFields...)
 
 					} else {
 						return nil, err
 					}
 				},
 			},
-			//Delete a dataset by uuid ?query=mutation+_{delete(uuid:""){uuid,dataset_name}}
+			//Delete a project by uuid ?query=mutation+_{delete(uuid:""){uuid}}
 			"delete": &graphql.Field{
-				Type:        datasetType,
-				Description: "Delete dataset by uuid",
+				Type:        icProjectType,
+				Description: "Delete ic project by uuid",
 				Args: graphql.FieldConfigArgument{
 					"uuid": &graphql.ArgumentConfig{
 						Type: graphql.NewNonNull(graphql.String),
@@ -110,11 +110,10 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					//get the authenticated user from context to authorize db request
 					user := p.Context.Value(contextUserKey).(*model.MynahUser)
-					uuid, ok := p.Args["uuid"].(string)
-					if ok {
-						return nil, dbProvider.DeleteDataset(&uuid, user)
+					if uuid, ok := p.Args["uuid"].(string); ok {
+						return nil, dbProvider.DeleteICProject(&uuid, user)
 					}
-					return nil, errors.New("dataset delete request missing uuid")
+					return nil, errors.New("project delete request missing uuid")
 				},
 			},
 		},
@@ -123,8 +122,8 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	//create the schema
 	schema, schemaErr := graphql.NewSchema(
 		graphql.SchemaConfig{
-			Query:    datasetQueryType,
-			Mutation: datasetMutationType,
+			Query:    icProjectQueryType,
+			Mutation: icProjectMutationType,
 		},
 	)
 
@@ -133,7 +132,7 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 	}
 
 	//return a handler that executes queries
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from the request (used to authorize db requests)
 		user := middleware.GetUserFromRequest(request)
 
@@ -155,5 +154,5 @@ func DatasetQueryResolver(dbProvider db.DBProvider) (http.HandlerFunc, error) {
 				writer.Header().Set("Content-Type", "application/json")
 			}
 		}
-	}), nil
+	}, nil
 }

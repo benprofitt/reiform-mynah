@@ -135,7 +135,7 @@ func TestFileGetEndpoint(t *testing.T) {
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
 					if code != http.StatusOK {
-						return fmt.Errorf("create user returned non-200: %v want %v", code, http.StatusOK)
+						return fmt.Errorf("get file returned non-200: %v want %v", code, http.StatusOK)
 					}
 
 					if rr.Result().ContentLength != int64(len(testContents)) {

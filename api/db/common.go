@@ -76,6 +76,17 @@ func commonListProjects(projects []*model.MynahProject, requestor *model.MynahUs
 	return filtered
 }
 
+//get ic projects that the user can view
+func commonListICProjects(projects []*model.MynahICProject, requestor *model.MynahUser) (filtered []*model.MynahICProject) {
+	//filter for projects that this user has permission to view
+	for _, p := range projects {
+		if e := commonGetProject(p, requestor); e == nil {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
 //get the files that the user can view
 func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filtered []*model.MynahFile) {
 	//filter for files that this user has permission to view
@@ -204,16 +215,17 @@ func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys []
 }
 
 //update a project in the database
-func commonUpdateProject(project *model.MynahProject, requestor *model.MynahUser, keys []string) error {
+func commonUpdateProject(project model.MynahAbstractProject, requestor *model.MynahUser, keys []string) error {
 	//check that keys are not restricted
 	if restrictedKeys(keys) {
 		return errors.New("project update contained restricted keys")
 	}
 
-	if requestor.IsAdmin || project.GetPermissions(requestor) >= model.Read {
+	if requestor.IsAdmin || project.GetBaseProject().GetPermissions(requestor) >= model.Read {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to update project %s", requestor.Uuid, project.Uuid)
+	return fmt.Errorf("user %s does not have permission to update project %s",
+		requestor.Uuid, project.GetBaseProject().Uuid)
 }
 
 //update a dataset in the database

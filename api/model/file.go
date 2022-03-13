@@ -31,9 +31,9 @@ type FileMetadata map[MetadataKey]string
 // MynahFileVersion a version of the file
 type MynahFileVersion struct {
 	//whether the file version is available locally
-	ExistsLocally bool
+	ExistsLocally bool `json:"exists_locally"`
 	//file metadata
-	Metadata FileMetadata `json:"metadata" xorm:"TEXT 'metadata'"`
+	Metadata FileMetadata `json:"metadata"`
 }
 
 // MynahFile Defines a file managed by Mynah

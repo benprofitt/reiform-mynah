@@ -47,7 +47,7 @@ func generateJWTKeyFile(path string) error {
 	}
 
 	//generate key bytes
-	var pkBytes []byte = x509.MarshalPKCS1PrivateKey(privatekey)
+	var pkBytes = x509.MarshalPKCS1PrivateKey(privatekey)
 	pkBlock := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: pkBytes,
@@ -65,7 +65,9 @@ func generateJWTKeyFile(path string) error {
 		return fmt.Errorf("failed to encode private key %s: %s", path, err)
 	}
 
-	pemFile.Close()
+	if err := pemFile.Close(); err != nil {
+		return fmt.Errorf("failed to close jwt signing pem file %s: %s", path, err)
+	}
 	return nil
 }
 
@@ -92,7 +94,7 @@ func newLocalAuth(mynahSettings *settings.MynahSettings) (*localAuth, error) {
 	}
 }
 
-//generate a jwt for the user
+// GetUserAuth generate a jwt for the user
 func (a *localAuth) GetUserAuth(user *model.MynahUser) (string, error) {
 	//create a new token
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -101,7 +103,7 @@ func (a *localAuth) GetUserAuth(user *model.MynahUser) (string, error) {
 	return token.SignedString(a.secret)
 }
 
-//check the validity of the jwt in the header, if valid, return user uuid
+// IsAuthReq check the validity of the jwt in the header, if valid, return user uuid
 func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
 	//get the jwt from the header
 	jwtToken := req.Header.Get(a.jwtHeader)
@@ -131,7 +133,7 @@ func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
 	}
 }
 
-//close the auth provider
+// Close close the auth provider
 func (a *localAuth) Close() {
 	log.Infof("local authentication shutdown")
 }

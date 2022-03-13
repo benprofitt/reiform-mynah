@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"github.com/gorilla/mux"
 	"net"
 	"net/http"
 	"reiform.com/mynah/log"
@@ -101,31 +100,6 @@ func (r *MynahRouter) adminMiddleware(handler http.HandlerFunc) http.HandlerFunc
 			handler.ServeHTTP(writer, request)
 		} else {
 			writer.WriteHeader(http.StatusUnauthorized)
-		}
-	})
-}
-
-//load requested project and check for user permissions
-//Endpoint path must have {project}
-func (r *MynahRouter) projectMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//get the project key from the request path
-		if projectId, ok := mux.Vars(request)[projectKey]; ok {
-			//get the user (already authenticated)
-			user := GetUserFromRequest(request)
-			//request the project from the database
-			if project, projectErr := r.dbProvider.GetProject(&projectId, user); projectErr == nil {
-				//execute the handler, adding the project as context
-				handler.ServeHTTP(writer, request.WithContext(
-					context.WithValue(request.Context(), contextProjectKey, &project)))
-
-			} else {
-				log.Errorf("error retrieving project %s: %s", projectId, projectErr)
-				writer.WriteHeader(http.StatusBadRequest)
-			}
-		} else {
-			log.Errorf("project request path missing %s", projectKey)
-			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})
 }

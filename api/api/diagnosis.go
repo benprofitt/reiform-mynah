@@ -125,7 +125,7 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 
 				// add files
 				for _, dataset := range icDatasets {
-					for fileid, _ := range dataset.Files {
+					for fileid := range dataset.Files {
 						fileUuidSet.Union(fileid)
 					}
 				}

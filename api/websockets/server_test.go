@@ -64,9 +64,16 @@ func testHarnessE2E(path string,
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer func(c *websocket.Conn) {
+		err := c.Close()
+		if err != nil {
+			log.Warnf("failed to close websocket connection: %s", err)
+		}
+	}(c)
 
-	c.SetReadDeadline(time.Now().Add(2 * time.Second))
+	if err := c.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
+		return err
+	}
 
 	messagesToSend := 100
 

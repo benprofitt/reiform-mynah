@@ -176,10 +176,10 @@ func (d *localDB) GetProject(uuid *string, requestor *model.MynahUser) (*model.M
 // GetICProject get a project by id or return an error, second arg is requestor
 func (d *localDB) GetICProject(uuid *string, requestor *model.MynahUser) (*model.MynahICProject, error) {
 	project := model.MynahICProject{
-		model.MynahProject{
+		MynahProject: model.MynahProject{
 			Uuid: *uuid,
 		},
-		make([]string, 0),
+		Datasets: make([]string, 0),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&project)
@@ -267,10 +267,10 @@ func (d *localDB) GetDataset(uuid *string, requestor *model.MynahUser) (*model.M
 // GetICDataset get a dataset from the database
 func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model.MynahICDataset, error) {
 	dataset := model.MynahICDataset{
-		model.MynahDataset{
+		MynahDataset: model.MynahDataset{
 			Uuid: *uuid,
 		},
-		make(map[string]model.MynahICDatasetFile),
+		Files: make(map[string]model.MynahICDatasetFile),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)

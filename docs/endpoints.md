@@ -1,7 +1,7 @@
 # API Endpoint Specification
 
 ## Repeated Types
-- `MynahUser`
+###`MynahUser`
   ```json
   {
     "uuid" : "",
@@ -9,10 +9,69 @@
     "name_last" : ""
   }
   ```
-
-## GraphQL Endpoints
-- `GET/POST /api/v1/graphql/project`
-- `GET/POST /api/v1/graphql/user`
+###`MynahICDataset`
+  ```json
+  {
+    "dataset" : {
+      "uuid" : "",
+      "owner_uuid": "",
+      "dataset_name": "",
+      "files" : {
+        "some fileid" : {
+          "current_class" : "",
+          "original_class" : "",
+          "confidence_vectors" : [[]]
+        },
+        ...
+      }  
+    }
+  }
+  ```
+###`MynahICProject`
+  ```json
+  {
+    "project" : {
+      "uuid" : "",
+      "user_permissions" : {
+        "some uuid" : 0,
+        ...
+      },
+      "project_name" : "",
+      "datasets" : [
+        "dataset id",
+        ...
+      ]    
+    }
+  }
+  ```
+###`MynahFile`
+  ```json
+  {
+    "uuid" : "",
+    "owner_uuid" : "",
+    "name" : "",
+    "versions" : {
+      "original" : {
+        "exists_locally": true,
+        "metadata" : {
+          "width" : "",
+          "length" : "",
+          "channels" : "",
+          ...      
+        }
+      },
+      "latest" : {
+         "exists_locally" : true,
+         "metadata" : {
+           "width" : "",
+           "length" : "",
+           "channels" : "",
+           ...      
+        }     
+      } 
+    }
+  }
+  ```
 
 ## WebSocket Endpoint
 - `GET/POST /api/v1/websocket`
@@ -22,17 +81,7 @@
 - In the multipart form, `file` must contain the file contents
 - Returns the file:
   ```json
-  {
-    "uuid" : "",
-    "owner_uuid" : "",
-    "name" : "",
-    "metadata" : {
-      "width" : "",
-      "length" : "",
-      "channels" : "",
-      ...
-    }
-  }
+  type: MynahFile
   ```
     - `uuid`: The uuid of the file
     - `owner_uuid`: the uuid of the owner
@@ -48,7 +97,7 @@
 
 ### Creating a User
 - `POST /api/v1/admin/user/create`
-  - Request body
+- Request body
   ```json
   {
     "name_first" : "",
@@ -57,22 +106,20 @@
   ```
     - `name_first`: The first name to assign to the user
     - `name_last`: The last name to assign to the user
-  - Response body
+- Response body
   ```json
   {
     "jwt" : "",
     "user" : {
-      "uuid" : "",
-      "name_first" : "",
-      "name_last" : ""
+      type: MynahUser
     }
   }
   ```
-    - `jwt`: The JSON web token that the user must use for authentication
-    - `user`: The created user (type `MynahUser`)
-      - `uuid`: The unique id of the user
-      - `name_first`: The first name to assign to the user
-      - `name_last`: The last name to assign to the user
+  - `jwt`: The JSON web token that the user must use for authentication
+  - `user`: The created user (type `MynahUser`)
+    - `uuid`: The unique id of the user
+    - `name_first`: The first name to assign to the user
+    - `name_last`: The last name to assign to the user
 
 ## Dataset Action Endpoints
 
@@ -92,20 +139,7 @@
   - `files` : mapping from fileid to class
 - Response body:
   ```json
-  {
-    "dataset" : {
-      "uuid" : "",
-      "owner_uuid": "",
-      "dataset_name": "",
-      "files" : {
-        "some fileid" : {
-          "current_class" : "",
-          "original_class" : "",
-          "confidence_vectors" : [[]]
-        }     
-      }  
-    }
-  }
+  type: MynahICDataset
   ```
 - `dataset`: the created dataset
 
@@ -124,25 +158,15 @@
   ```
   - `name`: the name to assign the project
   - `datasets` : datasets by id to include:
+- Response:
   ```json
-  {
-    "project" : {
-      "uuid" : "",
-      "user_permissions" : {
-        "some uuid" : 0
-      },
-      "project_name" : "",
-      "datasets" : [
-        "dataset id"
-      ]    
-    }
-  }
+  type: MynahICProject
   ```
 - `project`: the created project
 
 ### Starting an image classification diagnosis job
 - `POST /api/v1/ic/diagnosis/start`
-  - Request body
+- Request body
   ```json
   {
     "project_uuid" : "uuid"

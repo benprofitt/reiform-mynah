@@ -152,13 +152,13 @@ func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
 //create a new project
 func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 	project := model.MynahICProject{
-		model.MynahProject{
+		MynahProject: model.MynahProject{
 			Uuid:            uuid.NewString(),
 			OrgId:           creator.OrgId,
 			UserPermissions: make(map[string]model.ProjectPermissions),
 			ProjectName:     "name",
 		},
-		make([]string, 0),
+		Datasets: make([]string, 0),
 	}
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
@@ -191,13 +191,13 @@ func commonCreateDataset(creator *model.MynahUser) *model.MynahDataset {
 //create an ic dataset
 func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
 	return &model.MynahICDataset{
-		model.MynahDataset{
+		MynahDataset: model.MynahDataset{
 			Uuid:        uuid.NewString(),
 			OrgId:       creator.OrgId,
 			OwnerUuid:   creator.Uuid,
 			DatasetName: "name",
 		},
-		make(map[string]model.MynahICDatasetFile),
+		Files: make(map[string]model.MynahICDatasetFile),
 	}
 }
 

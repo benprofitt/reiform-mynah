@@ -116,8 +116,10 @@ func TestFileGetEndpoint(t *testing.T) {
 
 	//load the testing context
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		filePath := fmt.Sprintf("file/{%s}/{%s}", fileKey, fileTagKey)
+
 		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
-		c.Router.HandleFileRequest("file")
+		c.Router.HandleHTTPRequest("GET", filePath, handleViewFile(c.DBProvider, c.StorageProvider))
 
 		testContents := "test contents"
 		expectedType := "text/plain; charset=utf-8"

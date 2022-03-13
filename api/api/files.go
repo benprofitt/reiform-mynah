@@ -3,6 +3,8 @@
 package api
 
 import (
+	"fmt"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -12,7 +14,11 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
+	"time"
 )
+
+const fileKey string = "file"
+const fileTagKey string = "tag"
 
 //check if a file is of a valid type
 func validFiletype(filetype *string) bool {
@@ -99,4 +105,58 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})
+}
+
+//handler that loads a file and serves the contents
+func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		//get the user from context
+		user := middleware.GetUserFromRequest(request)
+
+		//get the file id
+		if fileId, ok := mux.Vars(request)[fileKey]; ok {
+			fileTag := model.TagLatest
+			//check for the file tag
+			if tagStr, ok := mux.Vars(request)[fileTagKey]; ok {
+				fileTag = model.MynahFileTag(tagStr)
+			}
+
+			//load the file metadata
+			if file, fileErr := dbProvider.GetFile(&fileId, user); fileErr == nil {
+				//serve the file contents
+				storeErr := storageProvider.GetStoredFile(file, fileTag, func(path *string) error {
+					//open the file
+					osFile, osErr := os.Open(*path)
+					if osErr != nil {
+						return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
+					}
+
+					defer func() {
+						if err := osFile.Close(); err != nil {
+							log.Errorf("error closing file %s: %s", file.Uuid, err)
+						}
+					}()
+
+					modTime := time.Unix(file.Created, 0)
+
+					//determine the last modified time
+					http.ServeContent(writer, request, file.Name, modTime, osFile)
+					return nil
+				})
+
+				if storeErr != nil {
+					log.Errorf("error writing file to response: %s", storeErr)
+					writer.WriteHeader(http.StatusInternalServerError)
+				}
+
+			} else {
+				log.Warnf("error retrieving file %s: %s", fileId, fileErr)
+				writer.WriteHeader(http.StatusBadRequest)
+			}
+
+		} else {
+			log.Errorf("file request path missing %s", fileKey)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+	}
 }

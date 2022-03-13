@@ -46,7 +46,7 @@ type connectedClient struct {
 	connManager *webSocketServer
 }
 
-//create a new websocket provider
+// NewWebSocketProvider create a new websocket provider
 func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvider {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &webSocketServer{
@@ -69,21 +69,26 @@ func (c *connectedClient) clientWrite() {
 		//deregister the client
 		c.connManager.deregisterClientChan <- c
 		//close the client connection
-		c.conn.Close()
+		if err := c.conn.Close(); err != nil {
+			log.Warnf("error closing websocket client connection: %s", err)
+		}
 	}()
 
 	//set the pong reader
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	if err := c.conn.SetReadDeadline(time.Now().Add(60 * time.Second)); err != nil {
+		log.Warnf("error setting websocket connection read deadline to 60 seconds: %s", err)
+	}
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-		return nil
+		return c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	})
 
 	//write messages to the connected client
 	for {
 		select {
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				log.Warnf("error setting websocket connection write deadline to 10 seconds: %s", err)
+			}
 
 			//send a ping message to the client
 			if pingErr := c.conn.WriteMessage(websocket.PingMessage, nil); pingErr != nil {
@@ -93,14 +98,19 @@ func (c *connectedClient) clientWrite() {
 			}
 
 		case msg := <-c.outgoing:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil {
+				log.Warnf("error setting websocket connection write deadline to 10 seconds: %s", err)
+			}
 
 			//get the next websocket writer
 			if writer, writerErr := c.conn.NextWriter(websocket.TextMessage); writerErr == nil {
 				if _, err := writer.Write(msg); err != nil {
 					log.Errorf("failed to write to websocket client: %s", err)
 				}
-				writer.Close()
+				err := writer.Close()
+				if err != nil {
+					log.Warnf("error closing websocket connection writer: %s", err)
+				}
 
 			} else {
 				log.Warnf("error sending message to websocket client: %s", writerErr)
@@ -111,7 +121,7 @@ func (c *connectedClient) clientWrite() {
 	}
 }
 
-//return a handler used in a rest endpoint
+// ServerHandler return a handler used in a rest endpoint
 func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 	//listen for new client data to distribute
 	go func() {
@@ -177,7 +187,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 	})
 }
 
-//accept data to send to a connected client
+// Send accept data to send to a connected client
 func (w *webSocketServer) Send(uuid *string, msg []byte) {
 	if (msg != nil) || (len(msg) == 0) {
 		w.dataChan <- queueEntry{
@@ -189,7 +199,7 @@ func (w *webSocketServer) Send(uuid *string, msg []byte) {
 	}
 }
 
-//close connected clients
+// Close close connected clients
 func (w *webSocketServer) Close() {
 	log.Infof("closing websocket connections")
 	w.cancel()

@@ -3,6 +3,7 @@
 package api
 
 import (
+	"fmt"
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
@@ -23,17 +24,10 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	asyncProvider async.AsyncProvider,
 	settings *settings.MynahSettings) error {
 
-	//register graphql routes
-	if gqlErr := registerGQLRoutes(router, dbProvider); gqlErr != nil {
-		return gqlErr
-	}
-
 	//register the websocket endpoint
 	router.HandleHTTPRequest("GET", "websocket", wsProvider.ServerHandler())
 
-	//register the file viewer endpoint
-	router.HandleFileRequest("file")
-
+	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileTagKey), handleViewFile(dbProvider, storageProvider))
 	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 	router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("POST", "icproject/create", icProjectCreate(dbProvider))

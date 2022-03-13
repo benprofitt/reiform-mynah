@@ -5,9 +5,9 @@ package test
 import (
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/posener/wstest"
 	"io"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -24,11 +24,6 @@ import (
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
 )
-
-type wsRecorder struct {
-	httptest.ResponseRecorder
-	server net.Conn
-}
 
 //maintains the context for testing
 type TestContext struct {
@@ -143,9 +138,9 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, handler func(*model.MynahFile) error) error {
 
 	//create a new file
-	file, err := t.DBProvider.CreateFile(owner, func(f *model.MynahFile) error {
+	file, err := t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
 		//create the file in storage
-		return t.StorageProvider.StoreFile(f, owner, func(f *os.File) error {
+		return t.StorageProvider.StoreFile(mynahFile, owner, func(f *os.File) error {
 			//write contents to the file
 			_, err := f.WriteString(contents)
 			return err
@@ -362,7 +357,12 @@ func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan s
 		errChan <- err
 		return
 	}
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Warnf("error closing websocket connection: %s", err)
+		}
+	}(conn)
 
 	//server is ready
 	close(readyChan)

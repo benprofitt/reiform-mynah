@@ -63,14 +63,14 @@ func TestJWTAuth(t *testing.T) {
 	req.Header.Add(testSettings.AuthSettings.JwtHeader, jwt)
 
 	//authenticate the request
-	uuid, authErr := authProvider.IsAuthReq(&req)
+	userUuid, authErr := authProvider.IsAuthReq(&req)
 	if authErr != nil {
 		t.Errorf("error authenticating request: %s", authErr)
 		return
 	}
 
 	//verify the uuid
-	if uuid != user.Uuid {
-		t.Errorf("uuids don't match (%s != %s)", uuid, user.Uuid)
+	if userUuid != user.Uuid {
+		t.Errorf("uuids don't match (%s != %s)", userUuid, user.Uuid)
 	}
 }

@@ -142,8 +142,8 @@ func generateSettings(path *string) {
 	}
 
 	//write to file
-	if json, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {
-		if ioErr := ioutil.WriteFile(*path, json, 0600); ioErr != nil {
+	if jsonContents, jsonErr := json.MarshalIndent(m, "", "  "); jsonErr == nil {
+		if ioErr := ioutil.WriteFile(*path, jsonContents, 0600); ioErr != nil {
 			log.Errorf("failed to write default settings: %s", ioErr)
 		}
 	} else {

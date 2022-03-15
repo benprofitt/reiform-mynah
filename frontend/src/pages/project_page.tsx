@@ -9,7 +9,7 @@ import DataCleaning from "../project_tabs/data_cleaning";
 import CleaningReport from "../project_tabs/cleaning_report";
 import DataEgress from "../project_tabs/data_egress";
 import clsx from "clsx";
-import { Routes, Route, Link, useLocation } from "react-router-dom";
+import { Switch, Route, Link, RouteComponentProps } from "wouter";
 
 type TabName =
   | "Data Ingest"
@@ -18,10 +18,6 @@ type TabName =
   | "Data Cleaning"
   | "Cleaning Report"
   | "Data Egress";
-
-function toRouteName(tabName: TabName): string {
-  return tabName.toLocaleLowerCase().replace(" ", "-");
-}
 
 const tabs: TabName[] = [
   "Data Ingest",
@@ -32,32 +28,45 @@ const tabs: TabName[] = [
   "Data Egress",
 ];
 
-const tabElements: JSX.Element[] = [
-  <DataIngest />,
-  <DataDiagnosis />,
-  <DiagnosisReport />,
-  <DataCleaning />,
-  <CleaningReport />,
-  <DataEgress />,
+const tabElements: React.ComponentType<
+  RouteComponentProps<{
+    [x: string]: string;
+  }>
+>[] = [
+  DataIngest,
+  DataDiagnosis,
+  DiagnosisReport,
+  DataCleaning,
+  CleaningReport,
+  DataEgress,
 ];
+
+
+const pathPrefix = "/project/";
+
+function toRouteName(tabName: TabName): string {
+  return pathPrefix + tabName.toLocaleLowerCase().replace(" ", "-");
+}
 
 const routes: string[] = tabs.map((tabName) => toRouteName(tabName));
 // [data-ingest, data-diagnosis, ...]
 
-const pathPrefix = "/mynah/project/";
 
-export default function ProjectPage(): JSX.Element {
+export interface ProjectPageProps {
+  route: string;
+}
+
+export default function ProjectPage(props: ProjectPageProps): JSX.Element {
   const [projectTitle, setProjectTitle] = useState("Template Project Title");
 
-  const { pathname } = useLocation();
-  // '/mynah/project/data-ingest' => 'data-ingest'
-  const curRouteName = pathname.slice(pathPrefix.length);
-  const curRouteIndex = routes.indexOf(curRouteName);
+  const { route } = props;
+  const curFullPath = pathPrefix + route
+  const curRouteIndex = routes.indexOf(curFullPath);
   const isFinalTab = curRouteIndex === routes.length - 1;
-  const nextRoutePath = !isFinalTab
-    ? routes[curRouteIndex + 1]
-    : curRouteName // 'data-egress' since its the final tab;
-  const isInvalidRoute = !routes.includes(curRouteName);
+  const nextRoutePath = !isFinalTab ? routes[curRouteIndex + 1] : curFullPath; // 'data-egress' since its the final tab;
+  const isInvalidRoute = !routes.includes(curFullPath);
+
+  console.log(curRouteIndex, nextRoutePath)
 
   return (
     <PageContainer>
@@ -88,7 +97,7 @@ export default function ProjectPage(): JSX.Element {
               key={tabName}
               className={clsx(
                 "border-t-2 border-b-2 border-black mb-5 p-2 cursor-pointer h-16",
-                curRouteName === routes[index] && "font-bold"
+                curFullPath === routes[index] && "font-bold"
               )}
             >
               <Link to={routes[index]}>{tabName}</Link>
@@ -96,11 +105,11 @@ export default function ProjectPage(): JSX.Element {
           ))}
         </SideBar>
         <div className="w-full">
-          <Routes>
+          <Switch>
             {tabElements.map((element, index) => (
-              <Route key={index} path={routes[index]} element={element} />
+              <Route key={index} path={routes[index]} component={element} />
             ))}
-          </Routes>
+          </Switch>
           {isInvalidRoute && (
             <div className="mt-3 text-center">This is not a valid path</div>
           )}

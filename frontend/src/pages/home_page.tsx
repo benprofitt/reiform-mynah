@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import PageContainer from "./../components/page_container";
 import TopBar from "../components/topbar";
 import SideBar from "../components/sidebar";
-import { Link } from "react-router-dom";
+import { Link } from "wouter";
 
 type Options = "Projects" | "Datasets";
 
@@ -37,7 +37,7 @@ export default function HomePage(): JSX.Element {
           {/* this will change in the future to accomodate a model for datasets,
           and will also eventually be generating unique project ids */}
           <Link
-            to={mode === "Projects" ? "/mynah/project/data-ingest" : "/mynah"}
+            to={mode === "Projects" ? "/project/data-ingest" : "/"}
             className="border border-black w-36 h-full py-2 text-center"
           >
             + New {mode.slice(0, -1)}

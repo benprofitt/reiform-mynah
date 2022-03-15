@@ -14,9 +14,7 @@ export default function AccountSettingsPage(): JSX.Element {
   const clearCookies = () => {
     cookies.remove(authCookieName, authCookieOptions);
     setIsLoggingOut(true);
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+    setTimeout(() => window.location.reload(), 300);
   };
 
   const [isModalOpen, setModalOpen] = useState(false);
@@ -38,7 +36,7 @@ export default function AccountSettingsPage(): JSX.Element {
         </button>
         {isLoggingOut ? <h3 className="text-center">Goodbye!</h3> : <></>}
       </div>
-      <AddUserModal open={isModalOpen} onClose={() => setModalOpen(false)}/>
+      <AddUserModal open={isModalOpen} onClose={() => setModalOpen(false)} />
     </PageContainer>
   );
 }

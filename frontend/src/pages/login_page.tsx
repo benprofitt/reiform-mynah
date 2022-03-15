@@ -9,7 +9,7 @@ export default function LoginPage(): JSX.Element {
 
   const [jwt, setJwt] = useState("");
 
-  const onSubmit = () => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     cookies.set(authCookieName, jwt, authCookieOptions);
   };
 

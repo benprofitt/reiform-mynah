@@ -4,11 +4,13 @@ package middleware
 
 import (
 	"net/http"
+	"path/filepath"
+
 	"reiform.com/mynah/log"
 )
 
 //Log requests for static resources
-func (r *MynahRouter) staticLogger(handler http.Handler) http.HandlerFunc {
+func (r *MynahRouter) staticLogger(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		res := logResponse{
 			ResponseWriter: writer,
@@ -33,11 +35,21 @@ func (r *MynahRouter) serveStaticSite() {
 		r.settings.StaticResourcesPath,
 		r.settings.StaticPrefix)
 
-	//serve static files
+	//redirect root -> static root index html
+	r.Handle("/", http.RedirectHandler(filepath.Join(r.settings.StaticPrefix, "index.html"), 301))
+
+	//create a file server that replaces the static directory with the mynah prefix
 	fs := http.StripPrefix(r.settings.StaticPrefix,
 		http.FileServer(http.Dir(r.settings.StaticResourcesPath)))
-	r.PathPrefix(r.settings.StaticPrefix).Handler(r.staticLogger(fs))
 
-	//redirect root
-	r.Handle("/", http.RedirectHandler(r.settings.StaticPrefix, 301))
+	//static react resources
+	r.PathPrefix(filepath.Join(r.settings.StaticPrefix, "static/")).Handler(r.staticLogger(func(writer http.ResponseWriter, request *http.Request) {
+		fs.ServeHTTP(writer, request)
+	}))
+
+	//react routes
+	r.PathPrefix(r.settings.StaticPrefix).Handler(r.staticLogger(func(writer http.ResponseWriter, request *http.Request) {
+		//serve the react index resource
+		http.ServeFile(writer, request, filepath.Join(r.settings.StaticResourcesPath, "index.html"))
+	}))
 }

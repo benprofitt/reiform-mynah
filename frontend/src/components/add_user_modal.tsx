@@ -1,8 +1,7 @@
 import { Dialog } from "@headlessui/react";
 import clsx from "clsx";
 import React, { useEffect, useRef, useState } from "react";
-import Cookies from "universal-cookie";
-import { authCookieName } from "../pages/login_page";
+import makeRequest from "../utils/apiFetch";
 
 export interface AddUserModalProps {
   open: boolean;
@@ -27,8 +26,6 @@ export default function AddUserModal(props: AddUserModalProps): JSX.Element {
   const [lastName, setLastName] = useState("");
   const [displayedJWT, setDisplayedJWT] = useState("");
   const [awaitingJWT, setAwaitingJWT] = useState(false);
-  const cookies = new Cookies();
-  const jwt: string = cookies.get(authCookieName);
 
   const isValid = Boolean(firstName) && Boolean(lastName);
 
@@ -36,16 +33,11 @@ export default function AddUserModal(props: AddUserModalProps): JSX.Element {
     e.preventDefault();
     if (!isValid || awaitingJWT) return;
     setAwaitingJWT(true);
-    const requestOptions: RequestInit = {
-      method: "POST",
-      headers: { "api-key": jwt, "Content-Type": "application/json" }, // need application/json in here
-      body: JSON.stringify({ name_first: firstName, name_last: lastName }),
-    };
-    fetch("http://localhost:8080/api/v1/admin/user/create", requestOptions)
-      .then((res) => {
-        console.log("got the res to json!", res);
-        return res.json();
-      })
+    makeRequest<CreateUserResponse>(
+      "POST",
+      JSON.stringify({ name_first: firstName, name_last: lastName }),
+      "/api/v1/admin/user/create"
+    )
       .then((res: CreateUserResponse) => {
         console.log("valid response!", res);
         setDisplayedJWT(res.jwt);
@@ -123,7 +115,14 @@ export default function AddUserModal(props: AddUserModalProps): JSX.Element {
         {displayedJWT !== "" && (
           <div className="mb-5 w-full text-center">
             <h4>User's JWT:</h4>
-            <p onClick={() => {navigator.clipboard.writeText(displayedJWT)}} className="px-3 w-full break-words">{displayedJWT}</p>
+            <p
+              onClick={() => {
+                navigator.clipboard.writeText(displayedJWT);
+              }}
+              className="px-3 w-full break-words"
+            >
+              {displayedJWT}
+            </p>
           </div>
         )}
       </main>

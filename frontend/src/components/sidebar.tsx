@@ -1,20 +1,24 @@
+import clsx from "clsx";
 import React from "react";
 import { Link } from "wouter";
+import SidebarTab from "./sidebar_tab";
 
 export interface SideBarProps {
   children?: JSX.Element | JSX.Element[];
+  homePage?: boolean;
 }
 
 export default function SideBar(props: SideBarProps): JSX.Element {
-  const { children = <></> } = props;
+  const { children = <></>, homePage = false } = props;
   return (
-    <div className="w-24 h-full shrink-0 object-contain border-r-2 border-black flex flex-col relative text-center pt-4">
+    <div
+      className={clsx(
+        "w-32 shrink-0 h-full flex flex-col items-center",
+        homePage && "border-r-2 border-black"
+      )}
+    >
       {children}
-      <Link to="/account-settings">
-        <div className="absolute bottom-0 h-fit border-t-2 border-black p-2">
-          Account Settings
-        </div>
-      </Link>
+      <SidebarTab path="/account-settings" title="Account Settings" />
     </div>
   );
 }

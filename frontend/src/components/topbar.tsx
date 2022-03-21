@@ -9,11 +9,14 @@ export default function TopBar(props: TopBarProps): JSX.Element {
   const { children } = props;
 
   return (
-    <div className="w-full h-20 border-b-2 border-black flex">
+    <div className="w-full h-20 flex pr-3 mt-3">
       <Link to="/">
-        <ReiformLogo className="ml-3 h-20 w-20" />
+        <ReiformLogo className="ml-6 h-20 w-20 mr-6" />
       </Link>
-      {children}
+
+      <div className="border border-black w-full ml-4 flex items-center justify-between px-10 rounded">
+        {children}
+      </div>
     </div>
   );
 }

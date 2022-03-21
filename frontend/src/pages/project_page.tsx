@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import PageContainer from "../components/page_container";
 import SideBar from "../components/sidebar";
 import TopBar from "../components/topbar";
-import DataIngest from "../project_tabs/data_ingest";
+import CreateProject from "../project_tabs/create_project";
 import DataDiagnosis from "../project_tabs/data_diagnosis";
 import DiagnosisReport from "../project_tabs/diagnosis_report";
 import DataCleaning from "../project_tabs/data_cleaning";
@@ -12,7 +12,7 @@ import clsx from "clsx";
 import { Switch, Route, Link, RouteComponentProps } from "wouter";
 
 type TabName =
-  | "Data Ingest"
+  | "Create Project"
   | "Data Diagnosis"
   | "Diagnosis Report"
   | "Data Cleaning"
@@ -20,7 +20,7 @@ type TabName =
   | "Data Egress";
 
 const tabs: TabName[] = [
-  "Data Ingest",
+  "Create Project",
   "Data Diagnosis",
   "Diagnosis Report",
   "Data Cleaning",
@@ -33,7 +33,7 @@ const tabElements: React.ComponentType<
     [x: string]: string;
   }>
 >[] = [
-  DataIngest,
+  CreateProject,
   DataDiagnosis,
   DiagnosisReport,
   DataCleaning,

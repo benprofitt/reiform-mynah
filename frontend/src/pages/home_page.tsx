@@ -1,6 +1,5 @@
 import clsx from "clsx";
 import React, { useState } from "react";
-import PageContainer from "./../components/page_container";
 import TopBar from "../components/topbar";
 import SideBar from "../components/sidebar";
 import { Link } from "wouter";
@@ -13,14 +12,14 @@ export default function HomePage(): JSX.Element {
   const headers = ["Name", "Datasets", "Date Created", "Download"];
 
   return (
-    <PageContainer>
+    <>
       <TopBar>
-        <div className="border-r-2 border-black w-full p-2 flex">
+        <div className="w-full flex h-full items-center">
           {options.map((options) => {
             return (
               <div
                 className={clsx(
-                  "h-full w-1/3 border border-black ml-10 font-bold pt-4 pl-4",
+                  "h-14 w-2/5 border border-black ml-10 font-bold pl-4 flex items-center",
                   mode === options
                     ? "bg-blue-300 pointer-events-none"
                     : "cursor-pointer"
@@ -44,12 +43,25 @@ export default function HomePage(): JSX.Element {
           </Link>
         </div>
       </TopBar>
-      <div className="flex grow relative">
-        {/* All the sidebar is doing here is making the vertical line.
-        Since the elemenets in the main section stretch over and across,
-        the bar is just here for show. */}
-        <SideBar />
-        <div className="w-full absolute">
+      <div className="flex relative">
+        <SideBar homePage>
+          {[0, 1, 2, 3, 4, 5].map((ix) => (
+            <div
+              key={ix}
+              className={clsx(
+                "w-full h-20 border-b-2 border-black flex items-center justify-center",
+                ix === 0 ? "h-16" : "h-24" // first row shorter than the rest
+              )}
+            >
+              {ix !== 0 && (
+                <div className="w-6 h-6 shrink-0 border-2 border-black" />
+              )}
+            </div>
+          ))}
+        </SideBar>
+        {/* if i wanna make this x scrollable i need breakpoints, where i'll have it be scrollable when skinny but once its wide enough to fit it,
+        it'll witch from w-fit to w-full*/}
+        <div className="w-full">
           {[0, 1, 2, 3, 4, 5].map((ix) => (
             <div
               key={ix}
@@ -58,11 +70,10 @@ export default function HomePage(): JSX.Element {
                 ix === 0 ? "h-16" : "h-24" // first row shorter than the rest
               )}
             >
-              <div className="ml-[35px] w-6 h-6 shrink-0 border-2 border-black" />
-              {ix === 0 && ( // only show header names on the first row
-                <div className="ml-24 mr-10 flex justify-between w-full">
+              {ix === 0 ? ( // only show header names on the first row
+                <div className="ml-24 mr-10 flex justify-between w-full /space-x-20">
                   {headers.map((header) => (
-                    <div className="w-56" key={header}>
+                    <div className="w-40" key={header}>
                       <div
                         className={clsx(
                           "border-2 border-black text-center",
@@ -76,11 +87,28 @@ export default function HomePage(): JSX.Element {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="ml-24 mr-10 flex justify-between w-full">
+                  {headers.map((header) => (
+                    <div className="w-40" key={header}>
+                      <div
+                        className={clsx(
+                          "text-center",
+                          mode === "Datasets" &&
+                            ["Datasets", "Download"].includes(header) &&
+                            "hidden"
+                        )}
+                      >
+                        ...
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           ))}
         </div>
       </div>
-    </PageContainer>
+    </>
   );
 }

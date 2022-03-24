@@ -3,6 +3,7 @@ module reiform.com/mynah
 go 1.17
 
 require (
+	github.com/gabriel-vasile/mimetype v1.4.0
 	github.com/go-python/cpy3 v0.0.0-20211127141159-9ab339a58efd
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.3.0
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/gabriel-vasile/mimetype v1.4.0 // indirect
 	github.com/goccy/go-json v0.7.4 // indirect
 	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/json-iterator/go v1.1.11 // indirect

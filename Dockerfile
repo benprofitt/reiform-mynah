@@ -20,19 +20,27 @@ COPY python/requirements.txt /mynah/python/
 COPY python/py_install.sh /mynah/
 RUN ./py_install.sh
 
+ENV GOOS=linux
+ENV PKG_CONFIG_PATH=/mynah/python
+ENV GOPATH=$HOME/go
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV GO111MODULE=on
+
+WORKDIR /mynah
+COPY api/go.mod .
+COPY api/go.sum .
+RUN /usr/local/go/bin/go mod download
+
+WORKDIR /mynah
 COPY api/ api/
 COPY python/ python/
 COPY frontend/ frontend/
 COPY Makefile Makefile
 COPY run.sh run.sh
 
-ENV GOOS=linux
-ENV PKG_CONFIG_PATH=/mynah/python
-ENV GOPATH=$HOME/go
-ENV XDG_CACHE_HOME=/tmp/.cache
 RUN make GO=/usr/local/go/bin/go all
 
-#TODO copy binaries + static web resources to next stage
+#TODO multistage
 
 EXPOSE 8080
 

@@ -26,18 +26,21 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 
 		//create the dataset, set the name and the files
-		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) {
+		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
-			dataset.Files = make(map[string]model.MynahICDatasetFile)
+			dataset.Files = make(map[string]*model.MynahICDatasetFile)
 
 			//add the file id -> class name mappings
 			for fileId, className := range req.Files {
-				dataset.Files[fileId] = model.MynahICDatasetFile{
+				dataset.Files[fileId] = &model.MynahICDatasetFile{
 					CurrentClass:      className,
 					OriginalClass:     className,
 					ConfidenceVectors: make(model.ConfidenceVectors, 0),
+					Projections:       make(map[string][]int),
 				}
 			}
+
+			return nil
 		})
 
 		if err != nil {
@@ -46,13 +49,8 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		//the response to return to the frontend
-		res := createICDatasetResponse{
-			Dataset: *dataset,
-		}
-
 		//write the response
-		if err := responseWriteJson(writer, &res); err != nil {
+		if err := responseWriteJson(writer, dataset); err != nil {
 			log.Warnf("failed to write response as json: %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}

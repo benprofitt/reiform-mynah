@@ -47,11 +47,11 @@ type MynahFile struct {
 	//the name of the file
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
-	Created int64 `json:"-" xorm:"INTEGER 'last_modified'"`
+	Created int64 `json:"-" xorm:"INTEGER 'created'"`
 	//the http detected content type (original)
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
 	//versions of the file
-	Versions map[MynahFileTag]MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
+	Versions map[MynahFileTag]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
 
 // GetDefaultInt GetDefault returns a value if the key is found or the default value provided

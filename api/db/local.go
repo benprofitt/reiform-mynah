@@ -46,8 +46,9 @@ func (d *localDB) createLocalOrg(authProvider auth.AuthProvider) error {
 	}
 
 	//create an admin
-	admin, err := d.CreateUser(&tempAdmin, func(user *model.MynahUser) {
+	admin, err := d.CreateUser(&tempAdmin, func(user *model.MynahUser) error {
 		user.IsAdmin = true
+		return nil
 	})
 
 	if err != nil {
@@ -92,7 +93,8 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahProject{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
-			&model.MynahDataset{})
+			&model.MynahDataset{},
+			&model.MynahICDiagnosisReport{})
 
 		if tableErr != nil {
 			return nil, tableErr
@@ -103,7 +105,8 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahProject{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
-			&model.MynahDataset{})
+			&model.MynahDataset{},
+			&model.MynahICDiagnosisReport{})
 
 		if syncErr != nil {
 			return nil, syncErr
@@ -221,19 +224,21 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 }
 
 // GetFiles get multiple files by id
-func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (res []*model.MynahFile, err error) {
+func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (map[string]*model.MynahFile, error) {
 	var files []*model.MynahFile
 
+	res := make(map[string]*model.MynahFile)
+
 	//request a set of uuids within the org
-	if err = d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&files); err != nil {
+	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&files); err != nil {
 		return nil, err
 	}
 
 	for _, f := range files {
 		//check that the user has permission
 		if commonErr := commonGetFile(f, requestor); commonErr == nil {
-			//add to the filtered list
-			res = append(res, f)
+			//add to the filtered map
+			res[f.Uuid] = f
 		} else {
 			log.Warnf("user %s failed to view file %s", requestor.Uuid, f.Uuid)
 		}
@@ -270,7 +275,7 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 		MynahDataset: model.MynahDataset{
 			Uuid: *uuid,
 		},
-		Files: make(map[string]model.MynahICDatasetFile),
+		Files: make(map[string]*model.MynahICDatasetFile),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
@@ -290,25 +295,51 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 }
 
 // GetICDatasets get multiple ic datasets from the database
-func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (res []*model.MynahICDataset, err error) {
+func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (map[string]*model.MynahICDataset, error) {
 	var datasets []*model.MynahICDataset
 
+	res := make(map[string]*model.MynahICDataset)
+
 	//request a set of uuids within the org
-	if err = d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
+	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
 		return nil, err
 	}
 
 	for _, d := range datasets {
 		//check that the user has permission
 		if commonErr := commonGetDataset(d, requestor); commonErr == nil {
-			//add to the filtered list
-			res = append(res, d)
+			//add to the filtered map
+			res[d.Uuid] = d
 		} else {
 			log.Warnf("user %s failed to view ic dataset %s", requestor.Uuid, d.Uuid)
 		}
 	}
 
 	return res, nil
+}
+
+// GetICDiagnosisReport get a diagnosis report
+func (d *localDB) GetICDiagnosisReport(uuid *string, requestor *model.MynahUser) (*model.MynahICDiagnosisReport, error) {
+	report := model.MynahICDiagnosisReport{
+		MynahReport: model.MynahReport{
+			Uuid: *uuid,
+		},
+	}
+
+	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&report)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("report %s not found", *uuid)
+	}
+
+	//check that the user has permission
+	if commonErr := commonGetReport(&report, requestor); commonErr != nil {
+		return nil, commonErr
+	}
+
+	return &report, nil
 }
 
 // ListUsers list all users
@@ -363,7 +394,7 @@ func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.
 }
 
 // CreateUser create a new user
-func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.MynahUser)) (*model.MynahUser, error) {
+func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.MynahUser) error) (*model.MynahUser, error) {
 	user, err := commonCreateUser(creator)
 
 	if err != nil {
@@ -371,7 +402,9 @@ func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.Myn
 	}
 
 	//call handler to make changes before commit
-	precommit(user)
+	if err := precommit(user); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(user)
 	if err != nil {
@@ -384,10 +417,12 @@ func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.Myn
 }
 
 // CreateProject create a new project
-func (d *localDB) CreateProject(creator *model.MynahUser, precommit func(*model.MynahProject)) (*model.MynahProject, error) {
+func (d *localDB) CreateProject(creator *model.MynahUser, precommit func(*model.MynahProject) error) (*model.MynahProject, error) {
 	project := commonCreateProject(creator)
 	//call handler to make changes before commit
-	precommit(project)
+	if err := precommit(project); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(project)
 	if err != nil {
@@ -400,10 +435,12 @@ func (d *localDB) CreateProject(creator *model.MynahUser, precommit func(*model.
 }
 
 // CreateICProject create a new project, second arg is creator
-func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*model.MynahICProject)) (*model.MynahICProject, error) {
+func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*model.MynahICProject) error) (*model.MynahICProject, error) {
 	project := commonCreateICProject(creator)
 
-	precommit(project)
+	if err := precommit(project); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(project)
 	if err != nil {
@@ -435,10 +472,12 @@ func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.Myn
 }
 
 // CreateDataset create a new dataset
-func (d *localDB) CreateDataset(creator *model.MynahUser, precommit func(*model.MynahDataset)) (*model.MynahDataset, error) {
+func (d *localDB) CreateDataset(creator *model.MynahUser, precommit func(*model.MynahDataset) error) (*model.MynahDataset, error) {
 	dataset := commonCreateDataset(creator)
 
-	precommit(dataset)
+	if err := precommit(dataset); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(dataset)
 	if err != nil {
@@ -451,10 +490,12 @@ func (d *localDB) CreateDataset(creator *model.MynahUser, precommit func(*model.
 }
 
 // CreateICDataset create a new dataset
-func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*model.MynahICDataset)) (*model.MynahICDataset, error) {
+func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*model.MynahICDataset) error) (*model.MynahICDataset, error) {
 	dataset := commonCreateICDataset(creator)
 
-	precommit(dataset)
+	if err := precommit(dataset); err != nil {
+		return nil, err
+	}
 
 	affected, err := d.engine.Insert(dataset)
 	if err != nil {
@@ -464,6 +505,24 @@ func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*mode
 		return nil, fmt.Errorf("dataset %s not created (no records affected)", dataset.Uuid)
 	}
 	return dataset, nil
+}
+
+// CreateICDiagnosisReport creates a new ic diagnosis report in the database
+func (d *localDB) CreateICDiagnosisReport(creator *model.MynahUser, precommit func(*model.MynahICDiagnosisReport) error) (*model.MynahICDiagnosisReport, error) {
+	report := commonCreateICDiagnosisReport(creator)
+
+	if err := precommit(report); err != nil {
+		return nil, err
+	}
+
+	affected, err := d.engine.Insert(report)
+	if err != nil {
+		return nil, err
+	}
+	if affected == 0 {
+		return nil, fmt.Errorf("report %s not created (no records affected)", report.Uuid)
+	}
+	return report, nil
 }
 
 // UpdateUser update a user in the database

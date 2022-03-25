@@ -1,7 +1,7 @@
 # API Endpoint Specification
 
 ## Repeated Types
-###`MynahUser`
+### `MynahUser`
   ```json
   {
     "uuid" : "",
@@ -9,42 +9,38 @@
     "name_last" : ""
   }
   ```
-###`MynahICDataset`
+### `MynahICDataset`
   ```json
   {
-    "dataset" : {
-      "uuid" : "",
-      "owner_uuid": "",
-      "dataset_name": "",
-      "files" : {
-        "some fileid" : {
-          "current_class" : "",
-          "original_class" : "",
-          "confidence_vectors" : [[]]
-        },
-        ...
-      }  
-    }
-  }
-  ```
-###`MynahICProject`
-  ```json
-  {
-    "project" : {
-      "uuid" : "",
-      "user_permissions" : {
-        "some uuid" : 0,
-        ...
+    "uuid" : "",
+    "owner_uuid": "",
+    "dataset_name": "",
+    "files" : {
+      "some fileid" : {
+        "current_class" : "",
+        "original_class" : "",
+        "confidence_vectors" : [[]]
       },
-      "project_name" : "",
-      "datasets" : [
-        "dataset id",
-        ...
-      ]    
+    ...
     }
   }
   ```
-###`MynahFile`
+### `MynahICProject`
+  ```json
+  {
+    "uuid" : "",
+    "user_permissions" : {
+      "some uuid" : 0,
+      ...
+    },
+    "project_name" : "",
+    "datasets" : [
+      "dataset id",
+      ...
+    ]
+  }
+  ```
+### `MynahFile`
   ```json
   {
     "uuid" : "",
@@ -57,6 +53,7 @@
           "width" : "",
           "length" : "",
           "channels" : "",
+          "size": "",
           ...      
         }
       },
@@ -66,9 +63,56 @@
            "width" : "",
            "length" : "",
            "channels" : "",
+           "size": "",
            ...      
         }     
       } 
+    }
+  }
+  ```
+
+### `MynahICDiagnosisReport`
+  ```json
+  {
+    "uuid": "",
+    "image_ids" : [
+      "fileid1",
+      "fileid2",
+      ...
+    ],
+    "image_data": {
+      "fileid1": {
+        "class": "class1",
+        "mislabeled": true,
+        "point": {
+          "x": 0,
+          "y": 0
+        },
+        "outlier_sets": [
+          "lighting"
+        ]
+      },
+      "fileid2": {
+        "class": "class2",
+        "mislabeled": false,
+        "point": {
+          "x": 20,
+          "y": 55
+        },
+        "outlier_sets": []
+      },
+      ...
+    },
+    "breakdown": {
+      "class1" : {
+        "bad": 30,
+        "acceptable": 100
+      },
+      "class2" : {
+        "bad": 500,
+        "acceptable": 250
+      },
+      ...
     }
   }
   ```
@@ -141,7 +185,6 @@
   ```json
   type: MynahICDataset
   ```
-- `dataset`: the created dataset
 
 ## Project Action Endpoints
 
@@ -162,7 +205,6 @@
   ```json
   type: MynahICProject
   ```
-- `project`: the created project
 
 ### Starting an image classification diagnosis job
 - `POST /api/v1/ic/diagnosis/start`
@@ -174,3 +216,14 @@
   ```
     - `project_uuid`: The id of the project to diagnose
       - Combines datasets in the project and analyzes all files
+
+### Getting an image classification diagnosis report
+- `GET /api/v1/icproject/report/{reportid}`
+- Params
+  - `bad_images=true`
+  - `class=class1&class=class2 ...`
+  - Example: `GET /api/v1/icproject/report/1?bad_images=true&class=class1&class=class2`
+- Response:
+  ```json
+  type: MynahICDiagnosisReport
+  ```

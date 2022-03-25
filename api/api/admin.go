@@ -27,10 +27,11 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 		}
 
 		//try to create the user
-		user, err := dbProvider.CreateUser(admin, func(user *model.MynahUser) {
+		user, err := dbProvider.CreateUser(admin, func(user *model.MynahUser) error {
 			//update attributes
 			user.NameFirst = req.NameFirst
 			user.NameLast = req.NameLast
+			return nil
 		})
 
 		if err != nil {

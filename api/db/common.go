@@ -6,12 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"time"
 )
 
 //check if any of the update keys are restricted
 func restrictedKeys(keys []string) bool {
+	if len(keys) == 0 {
+		log.Warn("warning, database update has empty col key list")
+	}
 	for _, s := range keys {
 		if (s == "org_id") || (s == "uuid") {
 			return true
@@ -55,6 +59,15 @@ func commonGetDataset(dataset model.MynahAbstractDataset, requestor *model.Mynah
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to request dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
+}
+
+//get a report
+func commonGetReport(report model.MynahAbstractReport, requestor *model.MynahUser) error {
+	//check that the user is the report owner (or admin)
+	if requestor.IsAdmin || report.GetBaseReport().GetPermissions(requestor) >= model.Read {
+		return nil
+	}
+	return fmt.Errorf("user %s does not have permission to request report %s", requestor.Uuid, report.GetBaseReport().Uuid)
 }
 
 //check that the user is an admin (org checked in query)
@@ -140,7 +153,7 @@ func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
 	project := model.MynahProject{
 		Uuid:            uuid.NewString(),
 		OrgId:           creator.OrgId,
-		UserPermissions: make(map[string]model.ProjectPermissions),
+		UserPermissions: make(map[string]model.Permissions),
 		ProjectName:     "name",
 	}
 
@@ -155,10 +168,11 @@ func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 		MynahProject: model.MynahProject{
 			Uuid:            uuid.NewString(),
 			OrgId:           creator.OrgId,
-			UserPermissions: make(map[string]model.ProjectPermissions),
+			UserPermissions: make(map[string]model.Permissions),
 			ProjectName:     "name",
 		},
 		Datasets: make([]string, 0),
+		Reports:  make([]string, 0),
 	}
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
@@ -174,7 +188,7 @@ func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 		Name:                "file_name",
 		Created:             time.Now().Unix(),
 		DetectedContentType: "none",
-		Versions:            make(map[model.MynahFileTag]model.MynahFileVersion),
+		Versions:            make(map[model.MynahFileTag]*model.MynahFileVersion),
 	}
 }
 
@@ -197,8 +211,24 @@ func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
 			OwnerUuid:   creator.Uuid,
 			DatasetName: "name",
 		},
-		Files: make(map[string]model.MynahICDatasetFile),
+		Files: make(map[string]*model.MynahICDatasetFile),
 	}
+}
+
+//create a new ic diagnosis report
+func commonCreateICDiagnosisReport(creator *model.MynahUser) *model.MynahICDiagnosisReport {
+	report := model.MynahICDiagnosisReport{
+		MynahReport: model.MynahReport{
+			Uuid:            uuid.NewString(),
+			OrgId:           creator.OrgId,
+			UserPermissions: make(map[string]model.Permissions),
+		},
+		ImageIds:  make([]string, 0),
+		ImageData: make(map[string]*model.MynahICDiagnosisReportImageMetadata),
+		Breakdown: make(map[string]*model.MynahICDiagnosisReportBucket),
+	}
+	report.UserPermissions[creator.Uuid] = model.Owner
+	return &report
 }
 
 //update a user in the database

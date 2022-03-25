@@ -53,14 +53,14 @@ func (r *MynahRouter) HttpMiddleware(handler http.HandlerFunc) http.HandlerFunc 
 }
 
 // HandleHTTPRequest handle a basic http request (authenticated user passed in request context)
-func (r *MynahRouter) HandleHTTPRequest(method, path string, handler http.HandlerFunc) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
+func (r *MynahRouter) HandleHTTPRequest(method, path string, handler http.HandlerFunc) *mux.Route {
+	return r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
 		r.HttpMiddleware(handler)).Methods(method, http.MethodOptions)
 }
 
 // HandleAdminRequest Handle an admin request (passes authenticated admin)
-func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) {
-	r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
+func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) *mux.Route {
+	return r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
 		r.HttpMiddleware(r.adminMiddleware(handler))).Methods(method, http.MethodOptions)
 }
 
@@ -68,6 +68,11 @@ func (r *MynahRouter) HandleAdminRequest(method string, path string, handler htt
 func (r *MynahRouter) ListenAndServe() {
 	//serve static resources
 	r.serveStaticSite()
+
+	//set the 404 handler
+	r.NotFoundHandler = r.logMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	})
 
 	r.server = &http.Server{
 		Handler:      r,

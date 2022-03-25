@@ -2,11 +2,11 @@
 
 package model
 
-// ProjectPermissions the permissions a user can have for a project
-type ProjectPermissions int
+// Permissions the permissions a user can have for a project
+type Permissions int
 
 const (
-	None ProjectPermissions = iota
+	None Permissions = iota
 	Read
 	Edit
 	Owner
@@ -24,7 +24,7 @@ type MynahProject struct {
 	//the id of the organization this project is part of
 	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//permissions that various users have
-	UserPermissions map[string]ProjectPermissions `json:"-" xorm:"TEXT 'user_permissions'"`
+	UserPermissions map[string]Permissions `json:"-" xorm:"TEXT 'user_permissions'"`
 	//the name of the project
 	ProjectName string `json:"project_name" xorm:"TEXT 'project_name'"`
 }
@@ -35,7 +35,7 @@ func (d *MynahProject) GetBaseProject() *MynahProject {
 }
 
 // GetPermissions Get the permissions that a user has on a given project
-func (p *MynahProject) GetPermissions(user *MynahUser) ProjectPermissions {
+func (p *MynahProject) GetPermissions(user *MynahUser) Permissions {
 	if v, found := p.UserPermissions[user.Uuid]; found {
 		return v
 	} else {

@@ -2,6 +2,8 @@
 
 package api
 
+import "reflect"
+
 type void struct{}
 
 var setMember void
@@ -13,8 +15,8 @@ type UniqueSet struct {
 }
 
 // NewUniqueSet creates a new unique set
-func NewUniqueSet() *UniqueSet {
-	return &UniqueSet{
+func NewUniqueSet() UniqueSet {
+	return UniqueSet{
 		s: make(map[string]void),
 	}
 }
@@ -37,4 +39,20 @@ func (s *UniqueSet) Vals() []string {
 	}
 
 	return keys
+}
+
+// Contains checks if the set contains a particular value
+func (s *UniqueSet) Contains(key string) bool {
+	_, ok := s.s[key]
+	return ok
+}
+
+// Merge merges a second unique set into this
+func (s *UniqueSet) Merge(other UniqueSet) {
+	s.Union(other.Vals()...)
+}
+
+// Equals checks set equality
+func (s *UniqueSet) Equals(other UniqueSet) bool {
+	return reflect.DeepEqual(s.s, other.s)
 }

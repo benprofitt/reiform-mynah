@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -178,12 +179,66 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				readyChan := make(chan struct{})
 
 				//listen for websocket response
-				go c.WebsocketListener(jwt, 1, readyChan, errChan, func(res string) error {
-					//TODO check more
-					if res == "{}" {
+				go c.WebsocketListener(jwt, 1, readyChan, errChan, func(res []byte) error {
+					var report model.MynahICDiagnosisReport
+					//parse as a report
+					if err := json.Unmarshal(res, &report); err == nil {
+						expectedFileIds := NewUniqueSet()
+						expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
+
+						reportFileIds := NewUniqueSet()
+						reportFileIds.Union(report.ImageIds...)
+
+						if !expectedFileIds.Equals(reportFileIds) {
+							return fmt.Errorf("unexpected fileids set: %v vs %v", expectedFileIds.Vals(), reportFileIds.Vals())
+						}
+
+						expectedBreakdown := make(map[string]*model.MynahICDiagnosisReportBucket)
+						expectedBreakdown["class1"] = &model.MynahICDiagnosisReportBucket{
+							Bad:        0,
+							Acceptable: 2,
+						}
+						expectedBreakdown["class2"] = &model.MynahICDiagnosisReportBucket{
+							Bad:        2,
+							Acceptable: 0,
+						}
+
+						if !reflect.DeepEqual(report.Breakdown, expectedBreakdown) {
+							return fmt.Errorf("unexpected breakdown map: %v vs %v", report.Breakdown, expectedBreakdown)
+						}
+
+						expectedFileData1 := &model.MynahICDiagnosisReportImageMetadata{
+							Class:      "class1",
+							Mislabeled: false,
+							Point: model.MynahICDiagnosisReportPoint{
+								X: 0,
+								Y: 0,
+							},
+							OutlierSets: []string{},
+						}
+
+						if !reflect.DeepEqual(report.ImageData["fileuuid1"], expectedFileData1) {
+							return fmt.Errorf("unexpected fileid1 data: %v vs %v", report.ImageData["fileuuid1"], expectedFileData1)
+						}
+
+						expectedFileData3 := &model.MynahICDiagnosisReportImageMetadata{
+							Class:      "class2",
+							Mislabeled: true,
+							Point: model.MynahICDiagnosisReportPoint{
+								X: 0,
+								Y: 0,
+							},
+							OutlierSets: []string{"mislabeled_images"},
+						}
+
+						if !reflect.DeepEqual(report.ImageData["fileuuid3"], expectedFileData3) {
+							return fmt.Errorf("unexpected fileid3 data: %v vs %v", report.ImageData["fileuuid3"], expectedFileData3)
+						}
+
 						return nil
+					} else {
+						return err
 					}
-					return fmt.Errorf("unexpected response: %s", res)
 				})
 
 				//wait for the websocket server to be up
@@ -269,14 +324,14 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 					}
 
 					//check that the user was inserted into the database
-					var res createICDatasetResponse
+					var res model.MynahICDataset
 					//check the body
 					if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 						return fmt.Errorf("failed to decode response %s", err)
 					}
 
 					//check for the user in the database (as a known admin)
-					dbDataset, dbErr := c.DBProvider.GetICDataset(&res.Dataset.Uuid, user)
+					dbDataset, dbErr := c.DBProvider.GetICDataset(&res.Uuid, user)
 					if dbErr != nil {
 						return fmt.Errorf("new user not found in database %s", dbErr)
 					}
@@ -345,14 +400,14 @@ func TestICProjectCreationEndpoint(t *testing.T) {
 					}
 
 					//check that the user was inserted into the database
-					var res createICProjectResponse
+					var res model.MynahICProject
 					//check the body
 					if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 						return fmt.Errorf("failed to decode response %s", err)
 					}
 
 					//check for the user in the database (as a known admin)
-					dbProject, dbErr := c.DBProvider.GetICProject(&res.Project.Uuid, user)
+					dbProject, dbErr := c.DBProvider.GetICProject(&res.Uuid, user)
 					if dbErr != nil {
 						return fmt.Errorf("new user not found in database %s", dbErr)
 					}
@@ -374,6 +429,94 @@ func TestICProjectCreationEndpoint(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("TestICProjectCreationEndpoint error: %s", err)
+	}
+}
+
+func TestAPIReportFilter(t *testing.T) {
+	mynahSettings := settings.DefaultSettings()
+
+	//load the testing context
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			return c.WithCreateICDiagnosisReport(user, func(report *model.MynahICDiagnosisReport) error {
+
+				c.Router.HandleHTTPRequest("GET",
+					fmt.Sprintf("icproject/report/{%s}", icReportKey),
+					icDiagnosisReportView(c.DBProvider))
+
+				//make a standard request
+				requestPath := filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid)
+				req, reqErr := http.NewRequest("GET", requestPath, nil)
+				if reqErr != nil {
+					return reqErr
+				}
+
+				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+					var res model.MynahICDiagnosisReport
+					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
+						if len(res.ImageData) != 0 || len(res.ImageIds) != 0 || len(res.Breakdown) != 0 {
+							return errors.New("unexpected data in report")
+						}
+						return nil
+					} else {
+						return err
+					}
+
+				}); err != nil {
+					return err
+				}
+
+				//add class filter
+				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid), "?class=class1")
+				req, reqErr = http.NewRequest("GET", requestPath, nil)
+				if reqErr != nil {
+					return reqErr
+				}
+
+				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+					var res model.MynahICDiagnosisReport
+					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
+						if len(res.ImageData) != 1 || len(res.ImageIds) != 1 || len(res.Breakdown) != 1 {
+							return errors.New("unexpected data in report")
+						}
+						return nil
+					} else {
+						return err
+					}
+
+				}); err != nil {
+					return err
+				}
+
+				//add bad images filter
+				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid), "?class=class1&class=class2&bad_images=true")
+				req, reqErr = http.NewRequest("GET", requestPath, nil)
+				if reqErr != nil {
+					return reqErr
+				}
+
+				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+					var res model.MynahICDiagnosisReport
+					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
+						if len(res.ImageData) != 1 || len(res.ImageIds) != 1 || len(res.Breakdown) != 2 {
+							return errors.New("unexpected data in report")
+						}
+						return nil
+					} else {
+						return err
+					}
+
+				}); err != nil {
+					return err
+				}
+
+				return nil
+			})
+		})
+	})
+
+	if err != nil {
+		t.Fatalf("TestAPIReportFilter error: %s", err)
 	}
 }
 

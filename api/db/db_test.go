@@ -56,10 +56,11 @@ func TestBasicDBActionsUser(t *testing.T) {
 		OrgId:   uuid.New().String(),
 	}
 
-	localUser, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) {
+	localUser, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) error {
 		user.NameFirst = "test_user_first"
 		user.NameLast = "test_user_last"
 		user.IsAdmin = false
+		return nil
 	})
 
 	//create the user in the database
@@ -72,8 +73,9 @@ func TestBasicDBActionsUser(t *testing.T) {
 	}
 
 	//try to create a user with the same uuid
-	_, err = dbProvider.CreateUser(&admin, func(user *model.MynahUser) {
+	_, err = dbProvider.CreateUser(&admin, func(user *model.MynahUser) error {
 		user.Uuid = localUser.Uuid
+		return nil
 	})
 
 	//create a second user (should error)
@@ -164,8 +166,9 @@ func TestBasicDBActionsProject(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	project, err := dbProvider.CreateProject(&user, func(project *model.MynahProject) {
+	project, err := dbProvider.CreateProject(&user, func(project *model.MynahProject) error {
 		project.ProjectName = "project_test"
+		return nil
 	})
 
 	//create the project in the database
@@ -254,8 +257,9 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	dataset, err := dbProvider.CreateDataset(&user, func(dataset *model.MynahDataset) {
+	dataset, err := dbProvider.CreateDataset(&user, func(dataset *model.MynahDataset) error {
 		dataset.DatasetName = "dataset_test"
+		return nil
 	})
 
 	//create the projects in the database
@@ -263,8 +267,9 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		t.Fatalf("failed to create test dataset %s", err)
 	}
 
-	icDataset, err := dbProvider.CreateICDataset(&user, func(icDataset *model.MynahICDataset) {
+	icDataset, err := dbProvider.CreateICDataset(&user, func(icDataset *model.MynahICDataset) error {
 		icDataset.DatasetName = "ic_dataset_test"
+		return nil
 	})
 
 	//create the projects in the database

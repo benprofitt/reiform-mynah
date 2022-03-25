@@ -6,6 +6,8 @@ import (
 	"reiform.com/mynah/model"
 )
 
+const MislabeledTaskName = "mislabeled_images"
+
 // PyImplProvider provider interface
 type PyImplProvider interface {
 	// GetMynahImplVersion get the current version

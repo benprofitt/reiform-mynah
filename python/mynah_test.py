@@ -3,6 +3,7 @@ import json
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 # from mynah import * # type: ignore
 from impl.services.modules.utils import image_utils
+from string import Template
 
 
 def test0(_int : int, _float : float) -> str:
@@ -42,7 +43,78 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
 
 def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
-    return "{}"
+
+    contents = json.loads(request_str)
+    project_uuid = contents['project_uuid']
+    t = Template('''{
+"project_uuid": "${project_uuid}",
+"tasks" : [
+    {
+        "name" : "mislabeled_images",
+        "datasets": {
+            "outliers" : {
+                "classes" : ["class1", "class2"],
+                "class_files" : {
+                    "class1" : {
+                    },
+                    "class2" : {
+                        "fileuuid3" : {
+                            "uuid": "uuid3",
+                            "current_class": "class2",
+                            "original_class": "class",
+                            "width": 32,
+                            "height": 32,
+                            "channels": 3,
+                            "projections": {},
+                            "confidence_vectors": [[1.0, 2.0]]
+                        },
+                        "fileuuid4" : {
+                            "uuid": "uuid4",
+                            "current_class": "class2",
+                            "original_class": "class",
+                            "width": 32,
+                            "height": 32,
+                            "channels": 3,
+                            "projections": {},
+                            "confidence_vectors": [[1.0, 2.0]]
+                        }
+                    }
+                }
+            },
+            "inliers" : {
+                "classes" : ["class1", "class2"],
+                "class_files" : {
+                    "class1" : {
+                        "fileuuid1" : {
+                            "uuid": "uuid1",
+                            "current_class": "class1",
+                            "original_class": "class",
+                            "width": 32,
+                            "height": 32,
+                            "channels": 3,
+                            "projections": {"2d": [1, 2]},
+                            "confidence_vectors": [[1.0, 2.0]]
+                        },
+                        "fileuuid2" : {
+                            "uuid": "uuid2",
+                            "current_class": "class1",
+                            "original_class": "class2",
+                            "width": 32,
+                            "height": 32,
+                            "channels": 3,
+                            "projections": {"2d": [1, 2]},
+                            "confidence_vectors": [[1.0, 2.0]]
+                        }
+                    },
+                    "class2" : {
+                    }
+                }
+            }
+        }
+    }
+]
+}''')
+    return t.substitute(project_uuid=project_uuid)
 
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''

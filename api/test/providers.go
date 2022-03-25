@@ -25,7 +25,7 @@ import (
 	"reiform.com/mynah/websockets"
 )
 
-//maintains the context for testing
+// TestContext maintains the context for testing
 type TestContext struct {
 	Settings          *settings.MynahSettings
 	DBProvider        db.DBProvider
@@ -41,7 +41,7 @@ type TestContext struct {
 	orgId string
 }
 
-//load test context and pass to test handler
+// WithTestContext load test context and pass to test handler
 func WithTestContext(mynahSettings *settings.MynahSettings,
 	handler func(t *TestContext) error) error {
 	//initialize auth
@@ -104,7 +104,7 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	})
 }
 
-//create a user and pass to handler
+// WithCreateUser create a user and pass to handler
 func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser, string) error) error {
 	//create an admin to insert the admin (must have distinct id)
 	creator := model.MynahUser{
@@ -112,8 +112,9 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 		IsAdmin: true,
 	}
 
-	user, err := t.DBProvider.CreateUser(&creator, func(user *model.MynahUser) {
+	user, err := t.DBProvider.CreateUser(&creator, func(user *model.MynahUser) error {
 		user.IsAdmin = isAdmin
+		return nil
 	})
 	if err != nil {
 		return err
@@ -134,7 +135,7 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 	return err
 }
 
-//create a file and pass to the handler
+// WithCreateFile create a file and pass to the handler
 func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, handler func(*model.MynahFile) error) error {
 
 	//create a new file
@@ -166,10 +167,10 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	return err
 }
 
-//create an icdataset and pass to the handler
+// WithCreateICDataset create an icdataset and pass to the handler
 func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
 
-	dataset, err := t.DBProvider.CreateICDataset(owner, func(*model.MynahICDataset) {})
+	dataset, err := t.DBProvider.CreateICDataset(owner, func(*model.MynahICDataset) error { return nil })
 	if err != nil {
 		return fmt.Errorf("failed to create dataset in database: %s", err)
 	}
@@ -185,9 +186,9 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*
 	return err
 }
 
-//create a project and pass to the handler
+// WithCreateProject create a project and pass to the handler
 func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*model.MynahProject) error) error {
-	project, err := t.DBProvider.CreateProject(owner, func(*model.MynahProject) {})
+	project, err := t.DBProvider.CreateProject(owner, func(*model.MynahProject) error { return nil })
 	if err != nil {
 		return fmt.Errorf("failed to create project in database: %s", err)
 	}
@@ -203,9 +204,9 @@ func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*mo
 	return err
 }
 
-//create a project and pass to the handler
+// WithCreateICProject create a project and pass to the handler
 func (t *TestContext) WithCreateICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
-	project, err := t.DBProvider.CreateICProject(owner, func(*model.MynahICProject) {})
+	project, err := t.DBProvider.CreateICProject(owner, func(*model.MynahICProject) error { return nil })
 	if err != nil {
 		return fmt.Errorf("failed to create project in database: %s", err)
 	}
@@ -221,11 +222,11 @@ func (t *TestContext) WithCreateICProject(owner *model.MynahUser, handler func(*
 	return err
 }
 
-//create a dataset and pass to the handler
+// WithCreateDataset create a dataset and pass to the handler
 func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*model.MynahDataset) error) error {
-	dataset, err := t.DBProvider.CreateDataset(owner, func(*model.MynahDataset) {})
+	dataset, err := t.DBProvider.CreateDataset(owner, func(*model.MynahDataset) error { return nil })
 	if err != nil {
-		return fmt.Errorf("failed to create project in database: %s", err)
+		return fmt.Errorf("failed to create dataset in database: %s", err)
 	}
 
 	//pass to handler
@@ -239,7 +240,44 @@ func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*mo
 	return err
 }
 
-//create a complete ic project with a dataset and file and pass to the handler
+// WithCreateICDiagnosisReport create a diagnosis report
+func (t *TestContext) WithCreateICDiagnosisReport(owner *model.MynahUser, handler func(report *model.MynahICDiagnosisReport) error) error {
+	report, err := t.DBProvider.CreateICDiagnosisReport(owner, func(report *model.MynahICDiagnosisReport) error {
+		report.ImageData["imageid"] = &model.MynahICDiagnosisReportImageMetadata{
+			Class:      "class1",
+			Mislabeled: true,
+			Point: model.MynahICDiagnosisReportPoint{
+				X: 0,
+				Y: 0,
+			},
+			OutlierSets: []string{"lighting"},
+		}
+		report.ImageData["imageid2"] = &model.MynahICDiagnosisReportImageMetadata{
+			Class:      "class2",
+			Mislabeled: false,
+			Point: model.MynahICDiagnosisReportPoint{
+				X: 0,
+				Y: 0,
+			},
+			OutlierSets: []string{},
+		}
+		report.Breakdown["class1"] = &model.MynahICDiagnosisReportBucket{}
+		report.Breakdown["class2"] = &model.MynahICDiagnosisReportBucket{}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create report in database: %s", err)
+	}
+
+	//pass to handler
+	err = handler(report)
+
+	//TODO clean report?
+
+	return err
+}
+
+// WithCreateFullICProject create a complete ic project with a dataset and file and pass to the handler
 func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
 	//create a file
 	err := t.WithCreateFile(owner, "test_contents", func(f *model.MynahFile) error {
@@ -290,21 +328,23 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 		}
 
 		//create a dataset
-		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) {
-			d.Files[f.Uuid] = model.MynahICDatasetFile{
+		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
+			d.Files[f.Uuid] = &model.MynahICDatasetFile{
 				CurrentClass:      "class1",
 				OriginalClass:     "class1",
 				ConfidenceVectors: make(model.ConfidenceVectors, 0),
 			}
+			return nil
 		})
 		if err != nil {
 			return fmt.Errorf("failed to create dataset in database: %s", err)
 		}
 
 		//create a project
-		project, err := t.DBProvider.CreateICProject(owner, func(p *model.MynahICProject) {
+		project, err := t.DBProvider.CreateICProject(owner, func(p *model.MynahICProject) error {
 			//add the dataset
 			p.Datasets = append(p.Datasets, dataset.Uuid)
+			return nil
 		})
 
 		if err != nil {
@@ -330,7 +370,7 @@ func (t *TestContext) WithCreateFullICProject(owner *model.MynahUser, handler fu
 	return err
 }
 
-//make a request using the mynah router
+// WithHTTPRequest make a request using the mynah router
 func (t *TestContext) WithHTTPRequest(req *http.Request, jwt string, handler func(int, *httptest.ResponseRecorder) error) error {
 	//create a recorder for the response
 	rr := httptest.NewRecorder()
@@ -345,8 +385,8 @@ func (t *TestContext) WithHTTPRequest(req *http.Request, jwt string, handler fun
 	return handler(rr.Code, rr)
 }
 
-//expect a websocket message for the given user
-func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan struct{}, errChan chan error, handler func(string) error) {
+// WebsocketListener expect a websocket message for the given user
+func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan struct{}, errChan chan error, handler func([]byte) error) {
 	dialer := wstest.NewDialer(t.Router.HttpMiddleware(t.WebSocketProvider.ServerHandler()))
 
 	headers := make(http.Header)
@@ -367,19 +407,17 @@ func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan s
 	//server is ready
 	close(readyChan)
 
-	var resErr error
-
 	for i := 0; i < expect; i++ {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			errChan <- resErr
+			errChan <- err
 			return
 		}
-		if err = handler(string(message)); err != nil {
-			errChan <- resErr
+		if err = handler(message); err != nil {
+			errChan <- err
 			return
 		}
 	}
 
-	errChan <- resErr
+	close(errChan)
 }

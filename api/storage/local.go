@@ -50,7 +50,7 @@ func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, 
 		return fmt.Errorf("source for file copy doesn't exist locally")
 	}
 
-	file.Versions[dest] = model.MynahFileVersion{
+	file.Versions[dest] = &model.MynahFileVersion{
 		ExistsLocally: true,
 		Metadata:      make(model.FileMetadata),
 	}
@@ -117,7 +117,7 @@ func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimp
 func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, handler func(*os.File) error) error {
 	//insert the default tag if not found
 	if _, ok := file.Versions[model.TagOriginal]; !ok {
-		file.Versions[model.TagOriginal] = model.MynahFileVersion{
+		file.Versions[model.TagOriginal] = &model.MynahFileVersion{
 			ExistsLocally: true,
 			Metadata:      make(model.FileMetadata),
 		}
@@ -224,19 +224,15 @@ func (s *localStorage) GetTmpPath(file *model.MynahFile, tag model.MynahFileTag)
 
 // DeleteFile delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
-	var err error
-
 	for tag, version := range file.Versions {
 		if version.ExistsLocally {
-			err = os.Remove(s.getTaggedPath(file, tag))
-			if err != nil {
-				log.Warnf("failed to delete file %s with tag %s locally: %s",
+			if err := os.Remove(s.getTaggedPath(file, tag)); err != nil {
+				return fmt.Errorf("failed to delete file %s with tag %s locally: %s",
 					file.Uuid, tag, err)
 			}
 		}
-
 	}
-	return err
+	return nil
 }
 
 // Close the local storage provider (NOOP)

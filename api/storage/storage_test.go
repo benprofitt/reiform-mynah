@@ -56,7 +56,7 @@ func TestBasicStorageActions(t *testing.T) {
 
 	file := model.MynahFile{
 		Uuid:     "mynah_test_file",
-		Versions: make(map[model.MynahFileTag]model.MynahFileVersion),
+		Versions: make(map[model.MynahFileTag]*model.MynahFileVersion),
 	}
 
 	user := model.MynahUser{

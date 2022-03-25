@@ -158,7 +158,7 @@ func TestWSServerE2E(t *testing.T) {
 		OrgId:   uuid.New().String(),
 	}
 
-	user, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) {})
+	user, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) error { return nil })
 
 	if err != nil {
 		t.Errorf("error creating user: %s", err)

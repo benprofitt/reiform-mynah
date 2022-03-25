@@ -26,9 +26,10 @@ func icProjectCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 
 		//create the project, set the name and the files
-		project, err := dbProvider.CreateICProject(user, func(project *model.MynahICProject) {
+		project, err := dbProvider.CreateICProject(user, func(project *model.MynahICProject) error {
 			project.ProjectName = req.Name
 			project.Datasets = req.Datasets
+			return nil
 		})
 
 		if err != nil {
@@ -37,14 +38,9 @@ func icProjectCreate(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		//the response to return to the frontend
-		res := createICProjectResponse{
-			Project: *project,
-		}
-
 		//write the response
-		if err := responseWriteJson(writer, &res); err != nil {
-			log.Warnf("failed to write response as json: %s", err)
+		if err := responseWriteJson(writer, &project); err != nil {
+			log.Errorf("failed to write response as json: %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})

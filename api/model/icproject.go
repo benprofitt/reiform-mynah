@@ -5,7 +5,7 @@ package model
 // MynahICProject Defines a project specifically for image classification
 type MynahICProject struct {
 	//underlying mynah project
-	MynahProject `json:"dataset" xorm:"extends"`
+	MynahProject `xorm:"extends"`
 	//datasets that are part of this project: model.MynahICDataset
 	Datasets []string `json:"datasets" xorm:"TEXT 'datasets'"`
 	//reports generated for this project: model.MynahICDiagnosisReport

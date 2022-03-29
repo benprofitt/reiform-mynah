@@ -20,7 +20,7 @@ type MynahICDatasetFile struct {
 // MynahICDataset Defines a dataset specifically for image classification
 type MynahICDataset struct {
 	//underlying mynah dataset
-	MynahDataset `json:"dataset" xorm:"extends"`
+	MynahDataset `xorm:"extends"`
 	//map of fileid -> file + class info
 	Files map[string]*MynahICDatasetFile `json:"files" xorm:"TEXT 'files'"`
 }

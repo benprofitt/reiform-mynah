@@ -60,7 +60,7 @@ func requestParseJson(writer http.ResponseWriter, request *http.Request, target 
 			return errors.New("request body must not be empty")
 
 		case err.Error() == "http: request body too large":
-			return errors.New("Request body must not be larger than 1MB")
+			return errors.New("request body must not be larger than 1MB")
 
 		default:
 			return err

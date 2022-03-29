@@ -29,7 +29,7 @@ type MynahICDiagnosisReportImageMetadata struct {
 // MynahICDiagnosisReport a mynah image classification diagnosis report
 type MynahICDiagnosisReport struct {
 	//underlying mynah dataset
-	MynahReport `json:"report" xorm:"extends"`
+	MynahReport `xorm:"extends"`
 	//all of the images, in the order to display
 	ImageIds []string `json:"image_ids" xorm:"TEXT 'image_ids'"`
 	//the images included in this report, map fileid to metadata

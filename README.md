@@ -48,6 +48,9 @@ This repository combines the frontend interface and the backend api for Mynah.
 make test
 ```
 
+### Extensions
+- [Mynah Extensions](docs/extensions.md)
+
 ## Setup
 
 ### Running the API

@@ -1,9 +1,10 @@
 .PHONY: frontend mynah format test data-test clean all lint
 GO=/usr/local/go/bin/go
+GO_ARGS= #-tags s3
 
 all: frontend mynah
 mynah:
-	cd api ; $(GO) build . && mv mynah ../
+	cd api ; $(GO) build $(GO_ARGS) . && mv mynah ../
 frontend:
 	rm -r static || true
 	cd frontend ; npm install && npm run build && mv build ../static

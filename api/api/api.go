@@ -33,6 +33,8 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 	router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("POST", "icproject/create", icProjectCreate(dbProvider))
+	//router.HandleHTTPRequest("POST", "ocdataset/create", ocDatasetCreate(dbProvider))
+	router.HandleHTTPRequest("POST", "odproject/create", odProjectCreate(dbProvider))
 
 	router.HandleHTTPRequest("GET",
 		fmt.Sprintf("icproject/report/{%s}", icReportKey),

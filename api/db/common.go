@@ -100,6 +100,17 @@ func commonListICProjects(projects []*model.MynahICProject, requestor *model.Myn
 	return filtered
 }
 
+//get od projects that the user can view
+func commonListODProjects(projects []*model.MynahODProject, requestor *model.MynahUser) (filtered []*model.MynahODProject) {
+	//filter for projects that this user has permission to view
+	for _, p := range projects {
+		if e := commonGetProject(p, requestor); e == nil {
+			filtered = append(filtered, p)
+		}
+	}
+	return filtered
+}
+
 //get the files that the user can view
 func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filtered []*model.MynahFile) {
 	//filter for files that this user has permission to view
@@ -113,7 +124,7 @@ func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filt
 
 //get the datasets that the user can view
 func commonListDatasets(datasets []*model.MynahDataset, requestor *model.MynahUser) (filtered []*model.MynahDataset) {
-	//filter for files that this user has permission to view
+	//filter for datasets that this user has permission to view
 	for _, d := range datasets {
 		if e := commonGetDataset(d, requestor); e == nil {
 			filtered = append(filtered, d)
@@ -124,7 +135,18 @@ func commonListDatasets(datasets []*model.MynahDataset, requestor *model.MynahUs
 
 //get the datasets that the user can view
 func commonListICDatasets(datasets []*model.MynahICDataset, requestor *model.MynahUser) (filtered []*model.MynahICDataset) {
-	//filter for files that this user has permission to view
+	//filter for datasets that this user has permission to view
+	for _, d := range datasets {
+		if e := commonGetDataset(d, requestor); e == nil {
+			filtered = append(filtered, d)
+		}
+	}
+	return filtered
+}
+
+//get the datasets that the user can view
+func commonListODDatasets(datasets []*model.MynahODDataset, requestor *model.MynahUser) (filtered []*model.MynahODDataset) {
+	//filter for datasets that this user has permission to view
 	for _, d := range datasets {
 		if e := commonGetDataset(d, requestor); e == nil {
 			filtered = append(filtered, d)
@@ -179,6 +201,22 @@ func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 	return &project
 }
 
+//create a new project
+func commonCreateODProject(creator *model.MynahUser) *model.MynahODProject {
+	project := model.MynahODProject{
+		MynahProject: model.MynahProject{
+			Uuid:            uuid.NewString(),
+			OrgId:           creator.OrgId,
+			UserPermissions: make(map[string]model.Permissions),
+			ProjectName:     "name",
+		},
+		Datasets: make([]string, 0),
+	}
+	//give ownership permissions to the user
+	project.UserPermissions[creator.Uuid] = model.Owner
+	return &project
+}
+
 //create a new file
 func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 	return &model.MynahFile{
@@ -212,6 +250,21 @@ func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
 			DatasetName: "name",
 		},
 		Files: make(map[string]*model.MynahICDatasetFile),
+	}
+}
+
+//create an od dataset
+func commonCreateODDataset(creator *model.MynahUser) *model.MynahODDataset {
+	return &model.MynahODDataset{
+		MynahDataset: model.MynahDataset{
+			Uuid:        uuid.NewString(),
+			OrgId:       creator.OrgId,
+			OwnerUuid:   creator.Uuid,
+			DatasetName: "name",
+		},
+		Entities:     make(map[string]*model.MynahODDatasetEntity),
+		Files:        make(map[string]*model.MynahODDatasetFile),
+		FileEntities: make(map[string][]string),
 	}
 }
 

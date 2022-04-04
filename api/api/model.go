@@ -37,6 +37,14 @@ type createICProjectRequest struct {
 	Datasets []string `json:"datasets"`
 }
 
+//request type for creating an od project
+type createODProjectRequest struct {
+	//the name for the project
+	Name string `json:"name"`
+	//datasets to link to this project
+	Datasets []string `json:"datasets"`
+}
+
 //request type for start diagnosis job
 type startDiagnosisJobRequest struct {
 	//the project id

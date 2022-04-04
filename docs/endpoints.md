@@ -25,6 +25,65 @@
     }
   }
   ```
+### `MynahODDataset`
+  ```json
+  {
+    "uuid" : "",
+    "owner_uuid": "",
+    "dataset_name": "",
+    "entities" : {
+      "uuid1" : {
+        "current_label" : "label1",
+        "original_label" : "label2",
+        "vertices" : [[3,4], [3,7], [8,7], [8,4]]
+      },
+      "uuid2" : {
+        "current_label" : "label3",
+        "original_label" : "label1",
+        "vertices" : [[10,4], [7,54], [7,12], [4,6]]
+      },
+      ...
+    },
+    "files" : {
+      "fileid1" : {
+        "entities" : {
+          "label1" : [
+            "uuid1",
+            "uuid2"
+          ],
+          ...
+        }
+      },
+      "fileid2" : {
+        "entities" : {
+          "label2" : [
+            "uuid1"
+          ],
+          "label3" : [
+            "uuid2"
+          ],
+          ...
+        } 
+      },
+      ...
+    },
+    "file_entities" : {
+      "label1" : [
+        "fileid1",
+        ...
+      ],
+      "label2" : [
+        "fileid2",
+        ...
+      ],
+      "label3" : [
+        "fileid3",
+        ...
+      ],
+      ...
+    }
+  }
+  ```
 ### `MynahICProject`
   ```json
   {
@@ -35,11 +94,33 @@
     },
     "project_name" : "",
     "datasets" : [
-      "dataset id",
+      "ic dataset id",
+      ...
+    ],
+    "reports" : [
+      "reportid1",
+      "reportid2",
       ...
     ]
   }
   ```
+
+### `MynahODProject`
+  ```json
+  {
+    "uuid" : "",
+    "user_permissions" : {
+      "some uuid" : 0,
+      ...
+    },
+    "project_name" : "",
+    "datasets" : [
+      "od dataset id",
+      ...
+    ]
+  }
+  ```
+
 ### `MynahFile`
   ```json
   {
@@ -204,6 +285,24 @@
 - Response:
   ```json
   type: MynahICProject
+  ```
+
+### Creating an object detection project
+- `POST /api/v1/odproject/create`
+- Request body:
+  ```json
+  {
+    "name" : "",
+    "datasets" : [
+      "some id"
+    ]
+  }
+  ```
+  - `name`: the name to assign the project
+  - `datasets` : datasets by id to include:
+- Response:
+  ```json
+  type: MynahODProject
   ```
 
 ### Starting an image classification diagnosis job

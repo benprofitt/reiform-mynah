@@ -17,6 +17,10 @@ type MynahDataset struct {
 	OwnerUuid string `json:"owner_uuid" xorm:"TEXT not null 'owner_uuid'"`
 	//the name of the dataset
 	DatasetName string `json:"dataset_name" xorm:"TEXT 'dataset_name'"`
+	//the date created as a unix timestamp
+	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
+	//the date modified as a unix timestamp
+	DateModified int64 `json:"date_modified" xorm:"INTEGER 'date_modified'"`
 }
 
 // GetBaseDataset get the base dataset for attributes

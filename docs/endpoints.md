@@ -15,6 +15,8 @@
     "uuid" : "",
     "owner_uuid": "",
     "dataset_name": "",
+    "date_created" : 12341212,
+    "date_modified" : 124123412,
     "files" : {
       "some fileid" : {
         "current_class" : "",
@@ -31,6 +33,8 @@
     "uuid" : "",
     "owner_uuid": "",
     "dataset_name": "",
+    "date_created" : 12341212,
+    "date_modified" : 124123412,
     "entities" : {
       "uuid1" : {
         "current_label" : "label1",
@@ -93,6 +97,8 @@
       ...
     },
     "project_name" : "",
+    "date_created" : 12341212,
+    "date_modified" : 124123412,
     "datasets" : [
       "ic dataset id",
       ...
@@ -109,6 +115,8 @@
   ```json
   {
     "uuid" : "",
+    "date_created" : 12341212,
+    "date_modified" : 124123412,
     "user_permissions" : {
       "some uuid" : 0,
       ...
@@ -127,6 +135,7 @@
     "uuid" : "",
     "owner_uuid" : "",
     "name" : "",
+    "date_created": 1231312,
     "versions" : {
       "original" : {
         "exists_locally": true,

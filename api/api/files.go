@@ -137,7 +137,7 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 						}
 					}()
 
-					modTime := time.Unix(file.Created, 0)
+					modTime := time.Unix(file.DateCreated, 0)
 
 					//determine the last modified time
 					http.ServeContent(writer, request, file.Name, modTime, osFile)

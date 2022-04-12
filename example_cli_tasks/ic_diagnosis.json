@@ -13,6 +13,18 @@
         ],
         "multithread" : true
       }
+    },
+    {
+      "task_id": "create_ic_dataset",
+      "task_type": "mynah::ic::dataset::create",
+      "task_data": {
+        "from_existing" : {},
+        "from_upload_tasks" : [
+          "upload_files"
+        ],
+        "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
+        "dataset_name": "test"
+      }
     }
   ]
 }

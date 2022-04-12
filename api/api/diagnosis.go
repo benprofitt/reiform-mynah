@@ -295,7 +295,7 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		user := middleware.GetUserFromRequest(request)
 
-		var req startDiagnosisJobRequest
+		var req StartDiagnosisJobRequest
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {
@@ -360,7 +360,7 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 		}
 
 		//create a response
-		res := startDiagnosisJobResponse{}
+		res := StartDiagnosisJobResponse{}
 
 		//write the response
 		if err := responseWriteJson(writer, &res); err != nil {

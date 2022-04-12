@@ -8,6 +8,7 @@ This repository combines the frontend interface and the backend api for Mynah.
 ### Links
 - [API Design Document](docs/api_design_doc.md)
 - [API Endpoint Specification](docs/endpoints.md)
+- [CLI Format Specification](docs/cli_tool.md)
 
 ### Development
 #### Merging and Issues
@@ -60,7 +61,7 @@ make test
 
 To run the api with a fresh database and configuration file:
 ```
-make clean && make mynah && ./mynah
+make clean && make api && ./mynah
 ```
 
 ### Using Docker (for frontend development)

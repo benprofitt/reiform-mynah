@@ -22,7 +22,7 @@ import (
 type localAuth struct {
 	//the jwt key loaded from file
 	secret []byte
-	//the header user to pass the jwt
+	//the header used to pass the jwt
 	jwtHeader string
 }
 

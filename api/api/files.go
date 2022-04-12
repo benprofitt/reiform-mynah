@@ -19,6 +19,7 @@ import (
 
 const fileKey string = "file"
 const fileTagKey string = "tag"
+const MultipartFormFileKey = "file"
 
 //check if a file is of a valid type
 func validFiletype(filetype *string) bool {
@@ -47,7 +48,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 		}
 
 		//get the file
-		file, fileHeader, formErr := request.FormFile("file")
+		file, fileHeader, formErr := request.FormFile(MultipartFormFileKey)
 		if formErr != nil {
 			log.Warnf("failed to get file from form: %s", formErr)
 			writer.WriteHeader(http.StatusBadRequest)

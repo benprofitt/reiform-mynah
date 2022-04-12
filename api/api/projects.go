@@ -16,7 +16,7 @@ func icProjectCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
 
-		var req createICProjectRequest
+		var req CreateICProjectRequest
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {
@@ -52,7 +52,7 @@ func odProjectCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
 
-		var req createODProjectRequest
+		var req CreateODProjectRequest
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {

@@ -59,7 +59,7 @@ func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) e
 		}
 
 		//check that the user was inserted into the database
-		var res adminCreateUserResponse
+		var res AdminCreateUserResponse
 		//check the body
 		if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
 			return fmt.Errorf("failed to decode response %s", err)
@@ -245,7 +245,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				<-readyChan
 
 				//create the request body
-				reqBody := startDiagnosisJobRequest{
+				reqBody := StartDiagnosisJobRequest{
 					ProjectUuid: project.Uuid,
 				}
 
@@ -297,7 +297,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 
 			return c.WithCreateFile(user, "test_contents", func(file *model.MynahFile) error {
 				//create the request
-				reqContents := createICDatasetRequest{
+				reqContents := CreateICDatasetRequest{
 					Name:  "test_dataset",
 					Files: make(map[string]string),
 				}
@@ -374,7 +374,7 @@ func TestICProjectCreationEndpoint(t *testing.T) {
 
 			return c.WithCreateICDataset(user, func(dataset *model.MynahICDataset) error {
 
-				reqContents := createICProjectRequest{
+				reqContents := CreateICProjectRequest{
 					Name: "test_project",
 					Datasets: []string{
 						dataset.Uuid,

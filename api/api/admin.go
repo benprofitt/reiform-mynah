@@ -17,7 +17,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 		//get the admin user from context
 		admin := middleware.GetUserFromRequest(request)
 
-		var req adminCreateUserRequest
+		var req AdminCreateUserRequest
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {
@@ -43,7 +43,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 		//get the jwt for the user
 		if jwt, err := authProvider.GetUserAuth(user); err == nil {
 			//the response to return to the frontend
-			res := adminCreateUserResponse{
+			res := AdminCreateUserResponse{
 				Jwt:  jwt,
 				User: *user,
 			}

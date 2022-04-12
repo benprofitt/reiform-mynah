@@ -7,13 +7,13 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Defines the interface the auth client must implement
+// AuthProvider Defines the interface the auth client must implement
 type AuthProvider interface {
-	//Generate a jwt for the user
+	// GetUserAuth Generate a jwt for the user
 	GetUserAuth(*model.MynahUser) (string, error)
-	//Takes an http request and checks whether the request is correctly
+	// IsAuthReq Takes an http request and checks whether the request is correctly
 	//authenticated
 	IsAuthReq(*http.Request) (string, error)
-	//close the auth provider
+	// Close close the auth provider
 	Close()
 }

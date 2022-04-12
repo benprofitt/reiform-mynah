@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
-	"path/filepath"
+	"path"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
@@ -53,14 +53,14 @@ func (r *MynahRouter) HttpMiddleware(handler http.HandlerFunc) http.HandlerFunc 
 }
 
 // HandleHTTPRequest handle a basic http request (authenticated user passed in request context)
-func (r *MynahRouter) HandleHTTPRequest(method, path string, handler http.HandlerFunc) *mux.Route {
-	return r.HandleFunc(filepath.Join(r.settings.ApiPrefix, path),
+func (r *MynahRouter) HandleHTTPRequest(method, urlPath string, handler http.HandlerFunc) *mux.Route {
+	return r.HandleFunc(path.Join(r.settings.ApiPrefix, urlPath),
 		r.HttpMiddleware(handler)).Methods(method, http.MethodOptions)
 }
 
 // HandleAdminRequest Handle an admin request (passes authenticated admin)
-func (r *MynahRouter) HandleAdminRequest(method string, path string, handler http.HandlerFunc) *mux.Route {
-	return r.HandleFunc(filepath.Join(r.settings.ApiPrefix, "admin", path),
+func (r *MynahRouter) HandleAdminRequest(method string, urlPath string, handler http.HandlerFunc) *mux.Route {
+	return r.HandleFunc(path.Join(r.settings.ApiPrefix, "admin", urlPath),
 		r.HttpMiddleware(r.adminMiddleware(handler))).Methods(method, http.MethodOptions)
 }
 

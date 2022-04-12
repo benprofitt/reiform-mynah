@@ -1,0 +1,18 @@
+{
+  "tasks" : [
+    {
+      "task_id": "upload_files",
+      "task_type": "mynah::upload",
+      "task_data": {
+        "file_paths" : [
+          "docs/test_image.jpg",
+          "docs/test_image.jpg",
+          "docs/test_image.jpg",
+          "docs/test_image.jpg",
+          "docs/test_image.jpg"
+        ],
+        "multithread" : true
+      }
+    }
+  ]
+}

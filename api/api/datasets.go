@@ -16,7 +16,7 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
 
-		var req createICDatasetRequest
+		var req CreateICDatasetRequest
 
 		//attempt to parse the request body
 		if err := requestParseJson(writer, request, &req); err != nil {

@@ -1,4 +1,5 @@
 mynah
+mynah-cli
 *.pem
 *.db
 mynah.json

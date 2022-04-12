@@ -1,6 +1,6 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package api
+package server
 
 import (
 	"encoding/json"
@@ -11,30 +11,21 @@ import (
 	"strings"
 )
 
-const maxBodySize1MB = 1048576
-
-//verify that the content type of a request is json
-func jsonContentType(request *http.Request) bool {
-	return request.Header.Get("Content-Type") == "application/json"
-}
-
-// requestParseJson parse the contents of a request into a structure
-func requestParseJson(writer http.ResponseWriter, request *http.Request, target interface{}) error {
+// RequestParseJson parse the contents of a request into a structure
+func RequestParseJson(response *http.Response, target interface{}) error {
+	contentType := response.Header.Get("Content-Type")
 	//verify the content type
-	if !jsonContentType(request) {
-		return errors.New("invalid content type (not application/json)")
+	if contentType != "application/json" {
+		return fmt.Errorf("invalid response content type: %s", contentType)
 	}
 
 	//check for an empty/nil body
-	if (request.Body == nil) || (request.Body == http.NoBody) {
+	if (response.Body == nil) || (response.Body == http.NoBody) {
 		return errors.New("no body to decode")
 	}
 
-	//max size is 1MB
-	request.Body = http.MaxBytesReader(writer, request.Body, maxBodySize1MB)
-
 	//create a json decoder
-	decoder := json.NewDecoder(request.Body)
+	decoder := json.NewDecoder(response.Body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(target); err != nil {
@@ -72,19 +63,4 @@ func requestParseJson(writer http.ResponseWriter, request *http.Request, target 
 		return errors.New("request body must only contain a single JSON object")
 	}
 	return nil
-}
-
-// responseWriteJson write a struct to a json response
-func responseWriteJson(writer http.ResponseWriter, target interface{}) error {
-	//marshal the response
-	if jsonResp, jsonErr := json.Marshal(target); jsonErr == nil {
-		//respond with json
-		writer.Header().Add("Content-Type", "application/json")
-
-		_, writeErr := writer.Write(jsonResp)
-		return writeErr
-
-	} else {
-		return fmt.Errorf("failed to generate json response %s", jsonErr)
-	}
 }

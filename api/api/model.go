@@ -25,7 +25,7 @@ type AdminCreateUserResponse struct {
 type CreateICDatasetRequest struct {
 	//the name of the dataset
 	Name string `json:"name"`
-	//the files to include
+	//the files to include (map from fileid to class name)
 	Files map[string]string `json:"files"`
 }
 

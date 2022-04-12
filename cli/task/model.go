@@ -15,7 +15,7 @@ type contextKey string
 
 const (
 	UploadTask          MynahTaskType = "mynah::upload"
-	CreateICDatasetTask MynahTaskType = "mynah::icdataset::create"
+	CreateICDatasetTask MynahTaskType = "mynah::ic::dataset::create"
 )
 
 // create new task data structs by type identifier

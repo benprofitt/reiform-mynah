@@ -3,6 +3,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -63,4 +64,15 @@ func RequestParseJson(response *http.Response, target interface{}) error {
 		return errors.New("request body must only contain a single JSON object")
 	}
 	return nil
+}
+
+// RequestSerializeJson write a struct to a request
+func RequestSerializeJson(val interface{}) (io.Reader, error) {
+	//marshal the response
+	if jsonData, jsonErr := json.Marshal(val); jsonErr == nil {
+		//respond with json
+		return bytes.NewBuffer(jsonData), nil
+	} else {
+		return nil, fmt.Errorf("failed to generate json response %s", jsonErr)
+	}
 }

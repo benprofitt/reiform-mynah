@@ -186,24 +186,6 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*
 	return err
 }
 
-// WithCreateProject create a project and pass to the handler
-func (t *TestContext) WithCreateProject(owner *model.MynahUser, handler func(*model.MynahProject) error) error {
-	project, err := t.DBProvider.CreateProject(owner, func(*model.MynahProject) error { return nil })
-	if err != nil {
-		return fmt.Errorf("failed to create project in database: %s", err)
-	}
-
-	//pass to handler
-	err = handler(project)
-
-	//clean the project
-	if deleteErr := t.DBProvider.DeleteProject(&project.Uuid, owner); deleteErr != nil {
-		return fmt.Errorf("failed to delete project: %s", deleteErr)
-	}
-
-	return err
-}
-
 // WithCreateICProject create a project and pass to the handler
 func (t *TestContext) WithCreateICProject(owner *model.MynahUser, handler func(*model.MynahICProject) error) error {
 	project, err := t.DBProvider.CreateICProject(owner, func(*model.MynahICProject) error { return nil })
@@ -217,24 +199,6 @@ func (t *TestContext) WithCreateICProject(owner *model.MynahUser, handler func(*
 	//clean the project
 	if deleteErr := t.DBProvider.DeleteICProject(&project.Uuid, owner); deleteErr != nil {
 		return fmt.Errorf("failed to delete project: %s", deleteErr)
-	}
-
-	return err
-}
-
-// WithCreateDataset create a dataset and pass to the handler
-func (t *TestContext) WithCreateDataset(owner *model.MynahUser, handler func(*model.MynahDataset) error) error {
-	dataset, err := t.DBProvider.CreateDataset(owner, func(*model.MynahDataset) error { return nil })
-	if err != nil {
-		return fmt.Errorf("failed to create dataset in database: %s", err)
-	}
-
-	//pass to handler
-	err = handler(dataset)
-
-	//clean the dataset
-	if deleteErr := t.DBProvider.DeleteDataset(&dataset.Uuid, owner); deleteErr != nil {
-		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
 	}
 
 	return err

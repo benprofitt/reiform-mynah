@@ -166,7 +166,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	project, err := dbProvider.CreateProject(&user, func(project *model.MynahProject) error {
+	project, err := dbProvider.CreateICProject(&user, func(project *model.MynahICProject) error {
 		project.ProjectName = "project_test"
 		return nil
 	})
@@ -185,7 +185,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 	}
 
 	//list projects and verify same
-	if projectList, listErr := dbProvider.ListProjects(&user); listErr == nil {
+	if projectList, listErr := dbProvider.ListICProjects(&user); listErr == nil {
 		//should only be one project
 		if !reflect.DeepEqual(*projectList[0], *project) {
 			t.Fatalf("project in list (%v) not identical to local (%v)", *projectList[0], project)
@@ -198,7 +198,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 	}
 
 	//get the project and verify same
-	if dbProject, getErr := dbProvider.GetProject(&project.Uuid, &user); getErr == nil {
+	if dbProject, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
 		//compare
 		if !reflect.DeepEqual(*dbProject, *project) {
 			t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
@@ -212,9 +212,9 @@ func TestBasicDBActionsProject(t *testing.T) {
 	project.ProjectName = "new_project_name"
 
 	//update the project
-	if updateErr := dbProvider.UpdateProject(project, &user, "project_name", "user_permissions"); updateErr == nil {
+	if updateErr := dbProvider.UpdateICProject(project, &user, "project_name", "user_permissions"); updateErr == nil {
 		//get the project and verify same
-		if dbProject, getErr := dbProvider.GetProject(&project.Uuid, &user); getErr == nil {
+		if dbProject, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
 			//compare
 			if !reflect.DeepEqual(*dbProject, *project) {
 				t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
@@ -227,9 +227,9 @@ func TestBasicDBActionsProject(t *testing.T) {
 	}
 
 	//delete the project
-	if deleteErr := dbProvider.DeleteProject(&project.Uuid, &user); deleteErr == nil {
+	if deleteErr := dbProvider.DeleteICProject(&project.Uuid, &user); deleteErr == nil {
 		//verify deleted
-		if _, getErr := dbProvider.GetProject(&project.Uuid, &user); getErr == nil {
+		if _, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
 			t.Fatalf("failed to delete project from db")
 		}
 	} else {
@@ -237,7 +237,7 @@ func TestBasicDBActionsProject(t *testing.T) {
 	}
 }
 
-func TestBasicDBActionsDataset(t *testing.T) {
+func TestBasicDBActionsICDataset(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
 	if authPErr != nil {
@@ -257,16 +257,6 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		IsAdmin: false,
 	}
 
-	dataset, err := dbProvider.CreateDataset(&user, func(dataset *model.MynahDataset) error {
-		dataset.DatasetName = "dataset_test"
-		return nil
-	})
-
-	//create the projects in the database
-	if err != nil {
-		t.Fatalf("failed to create test dataset %s", err)
-	}
-
 	icDataset, err := dbProvider.CreateICDataset(&user, func(icDataset *model.MynahICDataset) error {
 		icDataset.DatasetName = "ic_dataset_test"
 		return nil
@@ -277,21 +267,8 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		t.Fatalf("failed to create test dataset %s", err)
 	}
 
-	if (dataset.OrgId != user.OrgId) || (icDataset.OrgId != user.OrgId) {
-		t.Fatalf("project did not inherit user org id")
-	}
-
-	//list datasets and verify same
-	if datasetList, listErr := dbProvider.ListDatasets(&user); listErr == nil {
-		//should only be one project
-		if !reflect.DeepEqual(*datasetList[0], *dataset) {
-			t.Fatalf("dataset in list (%v) not identical to local (%v)", *datasetList[0], dataset)
-		}
-		if len(datasetList) > 1 {
-			t.Fatalf("more than one dataset in list (%d)", len(datasetList))
-		}
-	} else {
-		t.Fatalf("failed to list datasets %s", listErr)
+	if icDataset.OrgId != user.OrgId {
+		t.Fatalf("dataset did not inherit user org id")
 	}
 
 	//list datasets and verify same
@@ -307,16 +284,6 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		t.Fatalf("failed to list ic datasets %s", listErr)
 	}
 
-	//get the datasets and verify same
-	if dbDataset, getErr := dbProvider.GetDataset(&dataset.Uuid, &user); getErr == nil {
-		//compare
-		if !reflect.DeepEqual(*dbDataset, *dataset) {
-			t.Fatalf("dataset from db (%v) not identical to local (%v)", *dbDataset, dataset)
-		}
-	} else {
-		t.Fatalf("failed to get dataset %s", getErr)
-	}
-
 	if dbDataset, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
 		//compare
 		if !reflect.DeepEqual(*dbDataset, *icDataset) {
@@ -327,23 +294,7 @@ func TestBasicDBActionsDataset(t *testing.T) {
 	}
 
 	//update some fields
-	dataset.DatasetName = "new_dataset_name"
 	icDataset.DatasetName = "new_icdataset_name"
-
-	//update the dataset
-	if updateErr := dbProvider.UpdateDataset(dataset, &user, "dataset_name"); updateErr == nil {
-		//get the dataset and verify same
-		if dbDataset, getErr := dbProvider.GetDataset(&dataset.Uuid, &user); getErr == nil {
-			//compare
-			if !reflect.DeepEqual(*dbDataset, *dataset) {
-				t.Fatalf("dataset from db (%v) not identical to local (%v)", *dbDataset, dataset)
-			}
-		} else {
-			t.Fatalf("failed to get dataset (after update) %s", getErr)
-		}
-	} else {
-		t.Fatalf("failed to update dataset %s", updateErr)
-	}
 
 	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, "dataset_name"); updateErr == nil {
 		//get the dataset and verify same
@@ -357,16 +308,6 @@ func TestBasicDBActionsDataset(t *testing.T) {
 		}
 	} else {
 		t.Fatalf("failed to update ic dataset %s", updateErr)
-	}
-
-	//delete the dataset
-	if deleteErr := dbProvider.DeleteDataset(&dataset.Uuid, &user); deleteErr == nil {
-		//verify deleted
-		if _, getErr := dbProvider.GetDataset(&dataset.Uuid, &user); getErr == nil {
-			t.Fatalf("failed to delete dataset from db")
-		}
-	} else {
-		t.Fatalf("failed to delete dataset %s", deleteErr)
 	}
 
 	if deleteErr := dbProvider.DeleteICDataset(&icDataset.Uuid, &user); deleteErr == nil {

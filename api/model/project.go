@@ -27,6 +27,10 @@ type MynahProject struct {
 	UserPermissions map[string]Permissions `json:"-" xorm:"TEXT 'user_permissions'"`
 	//the name of the project
 	ProjectName string `json:"project_name" xorm:"TEXT 'project_name'"`
+	//the date created as a unix timestamp
+	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
+	//the date modified as a unix timestamp
+	DateModified int64 `json:"date_modified" xorm:"INTEGER 'date_modified'"`
 }
 
 // GetBaseProject get the base dataset for attributes

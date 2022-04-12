@@ -12,11 +12,11 @@ import (
 )
 
 //check if any of the update keys are restricted
-func restrictedKeys(keys []string) bool {
-	if len(keys) == 0 {
+func restrictedKeys(keys *[]string) bool {
+	if len(*keys) == 0 {
 		log.Warn("warning, database update has empty col key list")
 	}
-	for _, s := range keys {
+	for _, s := range *keys {
 		if (s == "org_id") || (s == "uuid") {
 			return true
 		}
@@ -78,17 +78,6 @@ func commonListUsers(requestor *model.MynahUser) error {
 	return fmt.Errorf("user %s does not have permission to list users", requestor.Uuid)
 }
 
-//get the projects that the user can view
-func commonListProjects(projects []*model.MynahProject, requestor *model.MynahUser) (filtered []*model.MynahProject) {
-	//filter for projects that this user has permission to view
-	for _, p := range projects {
-		if e := commonGetProject(p, requestor); e == nil {
-			filtered = append(filtered, p)
-		}
-	}
-	return filtered
-}
-
 //get ic projects that the user can view
 func commonListICProjects(projects []*model.MynahICProject, requestor *model.MynahUser) (filtered []*model.MynahICProject) {
 	//filter for projects that this user has permission to view
@@ -117,17 +106,6 @@ func commonListFiles(files []*model.MynahFile, requestor *model.MynahUser) (filt
 	for _, f := range files {
 		if e := commonGetFile(f, requestor); e == nil {
 			filtered = append(filtered, f)
-		}
-	}
-	return filtered
-}
-
-//get the datasets that the user can view
-func commonListDatasets(datasets []*model.MynahDataset, requestor *model.MynahUser) (filtered []*model.MynahDataset) {
-	//filter for datasets that this user has permission to view
-	for _, d := range datasets {
-		if e := commonGetDataset(d, requestor); e == nil {
-			filtered = append(filtered, d)
 		}
 	}
 	return filtered
@@ -177,6 +155,8 @@ func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
 		OrgId:           creator.OrgId,
 		UserPermissions: make(map[string]model.Permissions),
 		ProjectName:     "name",
+		DateCreated:     time.Now().Unix(),
+		DateModified:    time.Now().Unix(),
 	}
 
 	//give ownership permissions to the user
@@ -187,14 +167,9 @@ func commonCreateProject(creator *model.MynahUser) *model.MynahProject {
 //create a new project
 func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 	project := model.MynahICProject{
-		MynahProject: model.MynahProject{
-			Uuid:            uuid.NewString(),
-			OrgId:           creator.OrgId,
-			UserPermissions: make(map[string]model.Permissions),
-			ProjectName:     "name",
-		},
-		Datasets: make([]string, 0),
-		Reports:  make([]string, 0),
+		MynahProject: *commonCreateProject(creator),
+		Datasets:     make([]string, 0),
+		Reports:      make([]string, 0),
 	}
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
@@ -204,13 +179,8 @@ func commonCreateICProject(creator *model.MynahUser) *model.MynahICProject {
 //create a new project
 func commonCreateODProject(creator *model.MynahUser) *model.MynahODProject {
 	project := model.MynahODProject{
-		MynahProject: model.MynahProject{
-			Uuid:            uuid.NewString(),
-			OrgId:           creator.OrgId,
-			UserPermissions: make(map[string]model.Permissions),
-			ProjectName:     "name",
-		},
-		Datasets: make([]string, 0),
+		MynahProject: *commonCreateProject(creator),
+		Datasets:     make([]string, 0),
 	}
 	//give ownership permissions to the user
 	project.UserPermissions[creator.Uuid] = model.Owner
@@ -224,7 +194,7 @@ func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 		OrgId:               creator.OrgId,
 		OwnerUuid:           creator.Uuid,
 		Name:                "file_name",
-		Created:             time.Now().Unix(),
+		DateCreated:         time.Now().Unix(),
 		DetectedContentType: "none",
 		Versions:            make(map[model.MynahFileTag]*model.MynahFileVersion),
 	}
@@ -233,35 +203,27 @@ func commonCreateFile(creator *model.MynahUser) *model.MynahFile {
 //create a new dataset
 func commonCreateDataset(creator *model.MynahUser) *model.MynahDataset {
 	return &model.MynahDataset{
-		Uuid:        uuid.NewString(),
-		OrgId:       creator.OrgId,
-		OwnerUuid:   creator.Uuid,
-		DatasetName: "name",
+		Uuid:         uuid.NewString(),
+		OrgId:        creator.OrgId,
+		OwnerUuid:    creator.Uuid,
+		DatasetName:  "name",
+		DateCreated:  time.Now().Unix(),
+		DateModified: time.Now().Unix(),
 	}
 }
 
 //create an ic dataset
 func commonCreateICDataset(creator *model.MynahUser) *model.MynahICDataset {
 	return &model.MynahICDataset{
-		MynahDataset: model.MynahDataset{
-			Uuid:        uuid.NewString(),
-			OrgId:       creator.OrgId,
-			OwnerUuid:   creator.Uuid,
-			DatasetName: "name",
-		},
-		Files: make(map[string]*model.MynahICDatasetFile),
+		MynahDataset: *commonCreateDataset(creator),
+		Files:        make(map[string]*model.MynahICDatasetFile),
 	}
 }
 
 //create an od dataset
 func commonCreateODDataset(creator *model.MynahUser) *model.MynahODDataset {
 	return &model.MynahODDataset{
-		MynahDataset: model.MynahDataset{
-			Uuid:        uuid.NewString(),
-			OrgId:       creator.OrgId,
-			OwnerUuid:   creator.Uuid,
-			DatasetName: "name",
-		},
+		MynahDataset: *commonCreateDataset(creator),
 		Entities:     make(map[string]*model.MynahODDatasetEntity),
 		Files:        make(map[string]*model.MynahODDatasetFile),
 		FileEntities: make(map[string][]string),
@@ -285,7 +247,7 @@ func commonCreateICDiagnosisReport(creator *model.MynahUser) *model.MynahICDiagn
 }
 
 //update a user in the database
-func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys []string) error {
+func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys *[]string) error {
 	//check that keys are not restricted
 	if restrictedKeys(keys) {
 		return errors.New("user update contained restricted keys")
@@ -298,11 +260,14 @@ func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys []
 }
 
 //update a project in the database
-func commonUpdateProject(project model.MynahAbstractProject, requestor *model.MynahUser, keys []string) error {
+func commonUpdateProject(project model.MynahAbstractProject, requestor *model.MynahUser, keys *[]string) error {
 	//check that keys are not restricted
 	if restrictedKeys(keys) {
 		return errors.New("project update contained restricted keys")
 	}
+
+	project.GetBaseProject().DateModified = time.Now().Unix()
+	*keys = append(*keys, "date_modified")
 
 	if requestor.IsAdmin || project.GetBaseProject().GetPermissions(requestor) >= model.Read {
 		return nil
@@ -312,11 +277,14 @@ func commonUpdateProject(project model.MynahAbstractProject, requestor *model.My
 }
 
 //update a dataset in the database
-func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser, keys []string) error {
+func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser, keys *[]string) error {
 	//check that keys are not restricted
 	if restrictedKeys(keys) {
 		return errors.New("dataset update contained restricted keys")
 	}
+
+	dataset.GetBaseDataset().DateModified = time.Now().Unix()
+	*keys = append(*keys, "date_modified")
 
 	if requestor.IsAdmin || requestor.Uuid == dataset.GetBaseDataset().OwnerUuid {
 		return nil

@@ -47,7 +47,7 @@ type MynahFile struct {
 	//the name of the file
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
-	Created int64 `json:"-" xorm:"INTEGER 'created'"`
+	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
 	//the http detected content type (original)
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
 	//versions of the file

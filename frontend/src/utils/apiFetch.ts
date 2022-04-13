@@ -1,27 +1,24 @@
 import Cookies from "universal-cookie";
 import { authCookieName } from "../pages/login_page";
+import axios, { Method } from "axios";
 
 export default async function makeRequest<T>(
-  method: string,
-  body: string,
-  endpoint: string
+  method: Method,
+  body: any,
+  endpoint: string,
+  contentType: string,
 ) {
   const cookies = new Cookies();
   const jwt: string = cookies.get(authCookieName);
-  const requestOptions: RequestInit = {
+  return axios(({
+    // eslint-disable-next-line no-restricted-globals
+    url: `http://${location.host}${endpoint}`,
     method: method,
-    headers: { "api-key": jwt, "Content-Type": "application/json" },
-    body: body,
-  };
-
-  // eslint-disable-next-line no-restricted-globals
-  return fetch(`http://${location.host}${endpoint}`, requestOptions)
+    headers: { "api-key": jwt, "Content-Type": contentType },
+    data: body
+  }))
     .then((res) => {
-      console.log("got the res to json!", res);
-      return res.json();
+      const data: T = res.data
+      return data
     })
-    .then((res: T) => {
-      console.log("valid response!", res);
-      return res;
-    });
 }

@@ -8,7 +8,7 @@ import DataCleaning from "../project_tabs/data_cleaning";
 import CleaningReport from "../project_tabs/cleaning_report";
 import DataEgress from "../project_tabs/data_egress";
 import clsx from "clsx";
-import { Switch, Route, Link, RouteComponentProps } from "wouter";
+import { Switch, Route } from "wouter";
 import SidebarTab from "../components/sidebar_tab";
 
 type TabName =
@@ -26,19 +26,6 @@ const tabs: TabName[] = [
   "Data Cleaning",
   "Cleaning Report",
   "Data Egress",
-];
-
-const tabElements: React.ComponentType<
-  RouteComponentProps<{
-    [x: string]: string;
-  }>
->[] = [
-  CreateProject,
-  DataDiagnosis,
-  DiagnosisReport,
-  DataCleaning,
-  CleaningReport,
-  DataEgress,
 ];
 
 const pathPrefix = "/project/";
@@ -62,24 +49,19 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
   const nextRoutePath = !isFinalTab ? routes[curRouteIndex + 1] : curFullPath; // 'data-egress' since its the final tab;
   const isInvalidRoute = !routes.includes(curFullPath);
 
-  console.log(curRouteIndex, nextRoutePath);
+  const tabElements = [
+    <CreateProject nextPath={nextRoutePath}/>,
+    <DataDiagnosis />,
+    <DiagnosisReport />,
+    <DataCleaning />,
+    <CleaningReport />,
+    <DataEgress />,
+  ];
 
   return (
     <>
       <TopBar>
         <h1 className="text-3xl ml-10 font-bold">{tabs[curRouteIndex]} Page</h1>
-        {!isFinalTab ? (
-          <Link
-            className={clsx(
-              "text-center text-black h-12 w-56 flex items-center justify-center bg-green-300 rounded"
-            )}
-            to={nextRoutePath}
-          >
-            Proceed to {tabs[curRouteIndex + 1]}
-          </Link>
-        ) : (
-          <></>
-        )}
       </TopBar>
       <div className="flex grow">
         <SideBar>
@@ -95,7 +77,9 @@ export default function ProjectPage(props: ProjectPageProps): JSX.Element {
         <div className="w-full">
           <Switch>
             {tabElements.map((element, index) => (
-              <Route key={index} path={routes[index]} component={element} />
+              <Route key={index} path={routes[index]}>
+                <div className="relative">{element}</div>
+              </Route>
             ))}
           </Switch>
           {isInvalidRoute && (

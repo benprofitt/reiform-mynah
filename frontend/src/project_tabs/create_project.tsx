@@ -1,94 +1,90 @@
-import React from "react";
-export default function CreateProject(): JSX.Element {
+import React, { useState } from "react";
+import makeRequest from "../utils/apiFetch";
+import {
+  CreateICProject,
+  MynahICDataset,
+  MynahICProject,
+} from "../utils/types";
+import ImportData from "../components/import_data";
+import ChooseDataset from "../components/choose_dataset";
+import NextButton from "../components/next_button";
+import { useLocation } from "wouter";
+declare module "react" {
+  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+    // extends React's HTMLAttributes
+    directory?: string;
+    webkitdirectory?: string;
+  }
+}
+
+export interface CreateProjectProps {
+  nextPath: string;
+}
+
+export default function CreateProject(props: CreateProjectProps): JSX.Element {
+  const { nextPath } = props;
+
+  const [, setLocation] = useLocation();
+
+  // this will come from the backend in the future
+  const [datasets, setDatasets] = useState<MynahICDataset[]>([]);
+
+  // project creation state
+  const [projectName, setProjectName] = useState("");
+  const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
+
+  // project submission
+  const toSubmit: CreateICProject = {
+    name: projectName,
+    datasets: selectedDatasets,
+  };
+  const isValid = toSubmit.name.length > 3 && toSubmit.datasets.length > 0;
+
   return (
-    <div className="grid grid-cols-2 divide-x divide-black h-full">
-      <div>
-        <div className="ml-4 font-bold text-lg">Project Settings</div>
-        <div className="mb-3 pt-0">
-          <input
-            type="text"
-            placeholder="Name"
-            className="ml-4 mt-4 px-3 py-3 placeholder-black text-black rounded text-sm border-2 border-black outline-none focus:outline-none focus:ring w-2/3"
-          />
-        </div>
+    <div className="grid grid-cols-2 divice-x-r divide-black h-full">
+      <NextButton
+        onClick={() => {
+          makeRequest<MynahICProject>(
+            "POST",
+            toSubmit,
+            "/api/v1/icproject/create",
+            "application/json"
+          )
+            .then((res) => {
+              setLocation(nextPath);
+            })
+            .catch((err) => {
+              alert('err creating project')
+              console.log(err);
+            });
+        }}
+        text="Create Project"
+        active={isValid}
+      />
+      {/* left side */}
+      <div className="flex flex-col items-start w-full px-4">
+        <h1 className="font-bold text-lg">Project Settings</h1>
+        <input
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          type="text"
+          placeholder="Name"
+          className="mt-4 px-3 py-3 placeholder-black text-black rounded text-sm border-2 border-black outline-none focus:outline-none focus:ring w-96"
+        />
       </div>
-      <div>
-        <div className="ml-4 font-bold text-lg">Project Data</div>
-        <div className="mt-4 ml-28 w-3/4 h-56 border-2 border-black place-content-center">
-          <div className="h-8 text-center border-b-2 border-black">
-            {" "}
-            New Dataset{" "}
-          </div>
-          <div className="mt-4 ml-20 w-3/4 border-2 border-black text-center">
-            {" "}
-            Source{" "}
-          </div>
-          <div className="flex space-x-4">
-            <input
-              type="text"
-              placeholder="Device"
-              className="ml-24 mt-8 h-8 px-3 py-3 placeholder-black text-black rounded text-sm border-2 border-black outline-none focus:outline-none focus:ring w-1/2"
-            />
-            <button className="bg-blue-500 hover:bg-blue-700 text-white text-sm rounded px-2 h-8 mt-8">
-              {" "}
-              Choose{" "}
-            </button>
-          </div>
-          <div className="flex space-x-4">
-            <input
-              type="text"
-              placeholder="AWS: S3"
-              className="ml-24 mt-4 h-8 px-3 py-3 placeholder-black text-black rounded text-sm border-2 border-black outline-none focus:outline-none focus:ring w-1/2"
-            />
-            <button className="bg-blue-500 hover:bg-blue-700 text-white text-sm rounded px-2 h-8 mt-4">
-              {" "}
-              Choose{" "}
-            </button>
-          </div>
-        </div>
-        <div className="mt-8 ml-28 w-3/4 h-96 border-2 border-black">
-          <div className="h-8 text-center border-b-2 border-black">
-            {" "}
-            Choose Dataset{" "}
-          </div>
-          <div className="h-10 border-b-2 border-black flex flex-row space-x-64">
-            <div className="ml-24 mt-2 h-6 w-16 text-center border-2 border-black">
-              {" "}
-              Name{" "}
-            </div>
-            <div className="text-center mt-2 w-32 h-6 border-2 border-black">
-              Date Created
-            </div>
-          </div>
-          <form>
-            <div className="h-12 border-b-2 border-black">
-              <div className="h-12 w-12 border-r-2 border-black">
-                <div className="form-check">
-                  <input
-                    className="ml-4 mt-4 form-check-input appearance-none rounded-full h-4 w-4 border border-black checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                    type="radio"
-                    name='source'
-                    id="flexRadioDefault1"
-                  />
-                  <label className="form-check-label inline-block"></label>
-                </div>
-              </div>
-            </div>
-            <div className="h-12 border-b-2 border-black">
-              <div className="h-12 w-12 border-r-2 border-black">
-                <div className="form-check">
-                  <input
-                    className="ml-4 mt-4 form-check-input appearance-none rounded-full h-4 w-4 border border-black checked:bg-blue-600 checked:border-blue-600 focus:outline-none transition duration-200 align-top bg-no-repeat bg-center bg-contain float-left mr-2 cursor-pointer"
-                    type="radio"
-                    name="source"
-                    id="flexRadioDefault2"
-                  />
-                  <label className="form-check-label inline-block"></label>
-                </div>
-              </div>
-            </div>
-          </form>
-        </div>
+
+      {/* right side */}
+      <div className="flex flex-col justify-center items-center w-full px-4 border-black border-l">
+        <h1 className="font-bold text-lg w-full text-left">Project Data</h1>
+        <ImportData
+          setDatasets={setDatasets}
+          setSelectedDatasets={setSelectedDatasets}
+        />
+        <ChooseDataset
+          selectedDatasets={selectedDatasets}
+          setSelectedDatasets={setSelectedDatasets}
+          datasets={datasets}
+        />
       </div>
     </div>
   );

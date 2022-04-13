@@ -2,21 +2,11 @@ import { Dialog } from "@headlessui/react";
 import clsx from "clsx";
 import React, { useEffect, useRef, useState } from "react";
 import makeRequest from "../utils/apiFetch";
+import { CreateUserResponse } from "../utils/types";
 
 export interface AddUserModalProps {
   open: boolean;
   onClose: () => void;
-}
-
-interface User {
-  uuid: string;
-  name_first: string;
-  name_last: string;
-}
-
-interface CreateUserResponse {
-  jwt: string;
-  user: User;
 }
 
 export default function AddUserModal(props: AddUserModalProps): JSX.Element {
@@ -35,14 +25,17 @@ export default function AddUserModal(props: AddUserModalProps): JSX.Element {
     setAwaitingJWT(true);
     makeRequest<CreateUserResponse>(
       "POST",
-      JSON.stringify({ name_first: firstName, name_last: lastName }),
-      "/api/v1/admin/user/create"
+      { name_first: firstName, name_last: lastName },
+      "/api/v1/admin/user/create",
+      'application/json'
     )
-      .then((res: CreateUserResponse) => {
-        console.log("valid response!", res);
+      .then((res) => {
+        // console.log("valid response!", res);
         setDisplayedJWT(res.jwt);
       })
-      .catch((err) => console.log("oopsie error", err))
+      .catch((_err) => {
+        // console.log("oopsie error", _err)
+      })
       .finally(() => setAwaitingJWT(false));
     // submit names
   };

@@ -1,29 +1,59 @@
 {
   "tasks" : [
     {
-      "task_id": "upload_files",
+      "task_id": "upload_files1",
       "task_type": "mynah::upload",
       "task_data": {
-        "file_paths" : [
-          "docs/test_image.jpg",
-          "docs/test_image.jpg",
-          "docs/test_image.jpg",
-          "docs/test_image.jpg",
-          "docs/test_image.jpg"
+        "folder_paths" : [
+          "docs"
         ],
         "multithread" : true
       }
     },
     {
-      "task_id": "create_ic_dataset",
+      "task_id": "upload_files2",
+      "task_type": "mynah::upload",
+      "task_data": {
+        "folder_paths" : [
+          "platform"
+        ],
+        "multithread" : true
+      }
+    },
+    {
+      "task_id": "create_ic_dataset1",
       "task_type": "mynah::ic::dataset::create",
       "task_data": {
         "from_existing" : {},
-        "from_upload_tasks" : [
-          "upload_files"
+        "from_tasks" : [
+          "upload_files1"
         ],
         "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
-        "dataset_name": "test"
+        "dataset_name": "test dataset 1"
+      }
+    },
+    {
+      "task_id": "create_ic_dataset2",
+      "task_type": "mynah::ic::dataset::create",
+      "task_data": {
+        "from_existing" : {},
+        "from_tasks" : [
+          "upload_files2"
+        ],
+        "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
+        "dataset_name": "test dataset 2"
+      }
+    },
+    {
+      "task_id": "create_ic_project",
+      "task_type": "mynah::ic::project::create",
+      "task_data": {
+        "from_existing" : [],
+        "from_tasks": [
+          "create_ic_dataset1",
+          "create_ic_dataset2"
+        ],
+        "project_name": "test project"
       }
     }
   ]

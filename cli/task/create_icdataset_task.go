@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"reiform.com/mynah-cli/server"
@@ -22,7 +21,7 @@ type MynahCreateICDatasetTask struct {
 	//reference files by id already in mynah (map fileid to class name)
 	FromExisting map[string]string `json:"files"`
 	//reference files uploaded by previous tasks
-	FromUploadTasks []MynahTaskId `json:"from_upload_tasks"`
+	FromTasks []MynahTaskId `json:"from_tasks"`
 	//regex to assign a file a class name based on path
 	LocalPathClassnameRegex string `json:"local_path_classname_regex"`
 	//the name for the dataset
@@ -62,7 +61,7 @@ func (t MynahCreateICDatasetTask) ExecuteTask(mynahServer *server.MynahClient,
 		}
 	}
 
-	for _, uploadTask := range t.FromUploadTasks {
+	for _, uploadTask := range t.FromTasks {
 		//get the set from context
 		if set, ok := tctx[uploadTask]; ok {
 			if uploadedSet, ok := set.Value(UploadedFilesSetKey).(UploadedFilesSet); ok {
@@ -83,36 +82,16 @@ func (t MynahCreateICDatasetTask) ExecuteTask(mynahServer *server.MynahClient,
 		}
 	}
 
-	dataset := api.CreateICDatasetRequest{
+	datasetRequest := api.CreateICDatasetRequest{
 		Name:  t.DatasetName,
 		Files: t.FromExisting,
 	}
 
-	jsonData, err := server.RequestSerializeJson(dataset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make ic dataset creation request: %s", err)
-	}
-
-	request, err := mynahServer.NewRequest("POST", "icdataset/create", jsonData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make ic dataset creation request: %s", err)
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-
-	response, err := mynahServer.MakeRequest(request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to make ic dataset creation request: %s", err)
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to make ic dataset creation request with status: %s", response.Status)
-	}
-
 	var icDatasetResponse model.MynahICDataset
 
-	if err = server.RequestParseJson(response, &icDatasetResponse); err != nil {
-		return nil, fmt.Errorf("failed to parse ic dataset creation response: %s", err)
+	//make the request
+	if err := mynahServer.ExecutePostJsonRequest("icdataset/create", &datasetRequest, &icDatasetResponse); err != nil {
+		return nil, fmt.Errorf("failed to create ic dataset: %s", err)
 	}
 
 	//add the id to the context

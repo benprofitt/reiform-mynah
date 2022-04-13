@@ -6,8 +6,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reiform.com/mynah-cli/server"
 	"reiform.com/mynah-cli/utils"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 )
 
@@ -19,8 +22,8 @@ const UploadedFilesSetKey contextKey = "UploadedFilesSet"
 
 // MynahUploadTask defines the task of uploading files to the server from some source
 type MynahUploadTask struct {
-	//the paths to the files to upload
-	FilePaths []string `json:"file_paths"`
+	//the paths to folders to upload
+	FolderPaths []string `json:"folder_paths"`
 	//whether to use multiple threads
 	Multithread bool `json:"multithread"`
 }
@@ -85,23 +88,62 @@ func executeUpload(mynahServer *server.MynahClient,
 	}
 }
 
+// returns error if this path is not to a folder
+func pathMustBeDir(path string) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			log.Warnf("failed to close file: %s", err)
+		}
+	}(file)
+
+	//check that this is a folder
+	if fileInfo, err := file.Stat(); err != nil {
+		return err
+	} else if !fileInfo.IsDir() {
+		return fmt.Errorf("path %s is not a folder", path)
+	}
+	return nil
+}
+
 // ExecuteTask executes the upload task
 func (t MynahUploadTask) ExecuteTask(mynahServer *server.MynahClient,
 	_ MynahTaskContext) (context.Context, error) {
 
-	resChan := make(chan uploadResult, len(t.FilePaths))
+	resChan := make(chan uploadResult, len(t.FolderPaths))
 
-	for _, path := range t.FilePaths {
-		if t.Multithread {
-			go executeUpload(mynahServer, path, resChan)
-		} else {
-			executeUpload(mynahServer, path, resChan)
+	for _, dirPath := range t.FolderPaths {
+		if err := pathMustBeDir(dirPath); err != nil {
+			return nil, fmt.Errorf("failed to upload files: %s", err)
+		}
+
+		//traverse this folder
+		err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			} else if !info.IsDir() {
+				if t.Multithread {
+					go executeUpload(mynahServer, path, resChan)
+				} else {
+					executeUpload(mynahServer, path, resChan)
+				}
+			}
+			return nil
+		})
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload files: %s", err)
 		}
 	}
 
 	uploadedSet := make(UploadedFilesSet)
 
-	for i := 0; i < len(t.FilePaths); i++ {
+	for i := 0; i < len(t.FolderPaths); i++ {
 		uploadRes := <-resChan
 
 		if uploadRes.err != nil {

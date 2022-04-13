@@ -56,3 +56,49 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 	})
 }
+
+// icDatasetList lists ic datasets
+func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		//the user making the request
+		user := middleware.GetUserFromRequest(request)
+
+		//list all ic datasets
+		datasets, err := dbProvider.ListICDatasets(user)
+
+		if err != nil {
+			log.Errorf("failed to list ic datasets in database %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//write the response
+		if err := responseWriteJson(writer, &datasets); err != nil {
+			log.Errorf("failed to write response as json: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}
+
+// odDatasetList lists od datasets
+func odDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		//the user making the request
+		user := middleware.GetUserFromRequest(request)
+
+		//list all od datasets
+		datasets, err := dbProvider.ListODDatasets(user)
+
+		if err != nil {
+			log.Errorf("failed to list od datasets in database %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//write the response
+		if err := responseWriteJson(writer, &datasets); err != nil {
+			log.Errorf("failed to write response as json: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}

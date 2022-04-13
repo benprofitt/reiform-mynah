@@ -255,6 +255,25 @@
     - `name_first`: The first name to assign to the user
     - `name_last`: The last name to assign to the user
 
+## Dataset GET Endpoints
+
+### List Datasets
+- `GET /api/v1/icdataset/list`
+- Response:
+  ```json
+  [
+    type: MynahICDataset
+  ]
+  ```
+
+- `GET /api/v1/oddataset/list`
+- Response:
+  ```json
+  [
+    type: MynahODDataset
+  ]
+  ```
+
 ## Dataset Action Endpoints
 
 ### Creating an image classification dataset
@@ -274,6 +293,25 @@
 - Response body:
   ```json
   type: MynahICDataset
+  ```
+
+## Project GET Endpoints
+
+### List Projects
+- `GET /api/v1/icproject/list`
+- Response:
+  ```json
+  [
+    type: MynahICProject
+  ]
+  ```
+
+- `GET /api/v1/odproject/list`
+- Response:
+  ```json
+  [
+    type: MynahODProject
+  ]
   ```
 
 ## Project Action Endpoints

@@ -4,7 +4,6 @@ package async
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
@@ -16,11 +15,11 @@ import (
 //async task
 type asyncTask struct {
 	//the user who owns this task
-	userUuid string
+	userUuid model.MynahUuid
 	//the task handler
 	handler AsyncTaskHandler
 	//the id of the task
-	taskUuid string
+	taskUuid model.MynahUuid
 }
 
 //maintain the async queue, process new items
@@ -57,14 +56,14 @@ func (a *asyncEngine) taskRunner(wsProvider websockets.WebSocketProvider) {
 				log.Infof("async task %s succeeded at timestamp %d", task.taskUuid, stop)
 				if res != nil {
 					//send to the websocket to respond to client
-					wsProvider.Send(&task.userUuid, res)
+					wsProvider.Send(task.userUuid, res)
 				}
 			}
 		}
 	}
 }
 
-//create a new async provider that writes results to the websocket server
+// NewAsyncProvider create a new async provider that writes results to the websocket server
 func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websockets.WebSocketProvider) *asyncEngine {
 	e := asyncEngine{
 		taskChan:  make(chan *asyncTask, mynahSettings.AsyncSettings.BufferSize),
@@ -89,17 +88,17 @@ func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websocke
 	return &e
 }
 
-//accept a new task
+// StartAsyncTask accept a new task
 func (a *asyncEngine) StartAsyncTask(user *model.MynahUser, handler AsyncTaskHandler) {
 	//write a new task to the channel
 	a.taskChan <- &asyncTask{
 		userUuid: user.Uuid,
 		handler:  handler,
-		taskUuid: uuid.NewString(),
+		taskUuid: model.NewMynahUuid(),
 	}
 }
 
-//close async provider gracefully, finish pending tasks
+// Close close async provider gracefully, finish pending tasks
 func (a *asyncEngine) Close() {
 	defer close(a.taskChan)
 

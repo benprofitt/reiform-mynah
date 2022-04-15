@@ -6,13 +6,13 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Handler to invoke asynchronously
-type AsyncTaskHandler func(string) ([]byte, error)
+// AsyncTaskHandler Handler to invoke asynchronously
+type AsyncTaskHandler func(model.MynahUuid) ([]byte, error)
 
-//interface for launching new background processes
+// AsyncProvider interface for launching new background processes
 type AsyncProvider interface {
-	//start processing an async task
+	// StartAsyncTask start processing an async task
 	StartAsyncTask(*model.MynahUser, AsyncTaskHandler)
-	//close the async task provider
+	// Close close the async task provider
 	Close()
 }

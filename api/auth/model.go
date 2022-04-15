@@ -13,7 +13,7 @@ type AuthProvider interface {
 	GetUserAuth(*model.MynahUser) (string, error)
 	// IsAuthReq Takes an http request and checks whether the request is correctly
 	//authenticated
-	IsAuthReq(*http.Request) (string, error)
+	IsAuthReq(*http.Request) (model.MynahUuid, error)
 	// Close close the auth provider
 	Close()
 }

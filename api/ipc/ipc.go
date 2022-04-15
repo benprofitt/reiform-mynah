@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"sync"
 	"syscall"
@@ -63,7 +64,7 @@ func NewIPCProvider(mynahSettings *settings.MynahSettings) (IPCProvider, error) 
 }
 
 //write new requests to the handler
-func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte)) {
+func (s *ipcServer) connectionWorker(handler func(userUuid model.MynahUuid, msg []byte)) {
 	defer s.waitGroup.Done()
 
 	for {
@@ -90,8 +91,8 @@ func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte))
 
 			//read the first 16 bytes
 			if len(contents) >= uuidLength {
-				s := string(contents[:uuidLength])
-				handler(&s, contents[uuidLength:])
+				s := model.MynahUuid(contents[:uuidLength])
+				handler(s, contents[uuidLength:])
 
 			} else {
 				log.Warnf("ipc message contained less than %d bytes (%d)", uuidLength, len(contents))
@@ -105,7 +106,7 @@ func (s *ipcServer) connectionWorker(handler func(userUuid *string, msg []byte))
 }
 
 // HandleEvents handle new events
-func (s *ipcServer) HandleEvents(handler func(userUuid *string, msg []byte)) {
+func (s *ipcServer) HandleEvents(handler func(userUuid model.MynahUuid, msg []byte)) {
 	//start the connection worker
 	go s.connectionWorker(handler)
 	s.waitGroup.Add(1)

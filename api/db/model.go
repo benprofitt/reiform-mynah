@@ -9,23 +9,23 @@ import (
 // DBProvider Defines the interface that database clients must implement
 type DBProvider interface {
 	// GetUserForAuth Get a user by uuid or return an error
-	GetUserForAuth(*string) (*model.MynahUser, error)
+	GetUserForAuth(model.MynahUuid) (*model.MynahUser, error)
 	// GetUser Get a user other than self (must be admin -- second argument)
-	GetUser(*string, *model.MynahUser) (*model.MynahUser, error)
+	GetUser(model.MynahUuid, *model.MynahUser) (*model.MynahUser, error)
 	// GetFile get a file from the database
-	GetFile(*string, *model.MynahUser) (*model.MynahFile, error)
+	GetFile(model.MynahUuid, *model.MynahUser) (*model.MynahFile, error)
 	// GetFiles get multiple files by id
-	GetFiles([]string, *model.MynahUser) (map[string]*model.MynahFile, error)
+	GetFiles([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error)
 	// GetICDataset get a dataset from the database
-	GetICDataset(*string, *model.MynahUser) (*model.MynahICDataset, error)
+	GetICDataset(model.MynahUuid, *model.MynahUser) (*model.MynahICDataset, error)
 	// GetODDataset get a dataset from the database
-	GetODDataset(*string, *model.MynahUser) (*model.MynahODDataset, error)
+	GetODDataset(model.MynahUuid, *model.MynahUser) (*model.MynahODDataset, error)
 	// GetICDatasets get multiple ic datasets from the database
-	GetICDatasets([]string, *model.MynahUser) (map[string]*model.MynahICDataset, error)
+	GetICDatasets([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahICDataset, error)
 	// GetODDatasets get multiple oc datasets from the database
-	GetODDatasets([]string, *model.MynahUser) (map[string]*model.MynahODDataset, error)
+	GetODDatasets([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahODDataset, error)
 	// GetICDiagnosisReport get a diagnosis report
-	GetICDiagnosisReport(*string, *model.MynahUser) (*model.MynahICDiagnosisReport, error)
+	GetICDiagnosisReport(model.MynahUuid, *model.MynahUser) (*model.MynahICDiagnosisReport, error)
 	// ListUsers list all users, arg is requestor
 	ListUsers(*model.MynahUser) ([]*model.MynahUser, error)
 	// ListFiles list all files, arg is requestor
@@ -52,13 +52,13 @@ type DBProvider interface {
 	// UpdateODDataset update a dataset
 	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, ...string) error
 	// DeleteUser delete a user in the database, second arg is requestor
-	DeleteUser(*string, *model.MynahUser) error
+	DeleteUser(model.MynahUuid, *model.MynahUser) error
 	// DeleteFile delete a file in the database, second arg is requestor
-	DeleteFile(*string, *model.MynahUser) error
+	DeleteFile(model.MynahUuid, *model.MynahUser) error
 	// DeleteICDataset delete a dataset
-	DeleteICDataset(*string, *model.MynahUser) error
+	DeleteICDataset(model.MynahUuid, *model.MynahUser) error
 	// DeleteODDataset delete a dataset
-	DeleteODDataset(*string, *model.MynahUser) error
+	DeleteODDataset(model.MynahUuid, *model.MynahUser) error
 	// Close close the client connection on shutdown
 	Close()
 }

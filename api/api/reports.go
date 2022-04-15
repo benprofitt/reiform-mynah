@@ -21,8 +21,8 @@ func icDiagnosisReportFilter(report *model.MynahICDiagnosisReport,
 	classes tools.UniqueSet,
 	badImagesFilter bool) *model.MynahICDiagnosisReport {
 
-	imageIds := make([]string, 0)
-	imageData := make(map[string]*model.MynahICDiagnosisReportImageMetadata)
+	imageIds := make([]model.MynahUuid, 0)
+	imageData := make(map[model.MynahUuid]*model.MynahICDiagnosisReportImageMetadata)
 	breakdown := make(map[string]*model.MynahICDiagnosisReportBucket)
 
 	//add images within the filtered classes
@@ -80,7 +80,7 @@ func icDiagnosisReportView(dbProvider db.DBProvider) http.HandlerFunc {
 		badImagesFilter := request.Form.Get(icReportBadImagesKey) == "true"
 
 		//get the report from the database
-		if report, err := dbProvider.GetICDiagnosisReport(&reportId, user); err == nil {
+		if report, err := dbProvider.GetICDiagnosisReport(model.MynahUuid(reportId), user); err == nil {
 			//filter the report
 			if err := responseWriteJson(writer, icDiagnosisReportFilter(report, classes, badImagesFilter)); err != nil {
 				log.Errorf("failed to write response as json: %s", err)

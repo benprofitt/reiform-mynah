@@ -19,7 +19,7 @@ const CreatedICDatasetKey contextKey = "CreatedICDataset"
 // MynahCreateICDatasetTask defines the task of creating an image classification dataset
 type MynahCreateICDatasetTask struct {
 	//reference files by id already in mynah (map fileid to class name)
-	FromExisting map[string]string `json:"files"`
+	FromExisting map[model.MynahUuid]string `json:"files"`
 	//reference files uploaded by previous tasks
 	FromTasks []MynahTaskId `json:"from_tasks"`
 	//regex to assign a file a class name based on path
@@ -47,7 +47,7 @@ func (t MynahCreateICDatasetTask) ExecuteTask(mynahServer *server.MynahClient,
 	tctx MynahTaskContext) (context.Context, error) {
 
 	if t.FromExisting == nil {
-		t.FromExisting = make(map[string]string)
+		t.FromExisting = make(map[model.MynahUuid]string)
 	}
 
 	var classRegex *regexp.Regexp

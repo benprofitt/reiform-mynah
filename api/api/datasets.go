@@ -4,6 +4,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/gorilla/mux"
 	"net/http"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
@@ -11,7 +12,12 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
+	"strconv"
 )
+
+const datasetIdKey = "datasetid"
+const datasetVersionStartKey = "from_version"
+const datasetVersionEndKey = "to_version"
 
 // icDatasetCreate creates a new dataset in the database
 func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
@@ -67,6 +73,100 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 	})
 }
 
+// icDatasetFilterVersion filters a dataset based on the version range values. If neither were provided,
+// only returns the latest version
+func icDatasetFilterVersion(dataset *model.MynahICDataset, fromVersionParam, toVersionParam string) error {
+	filteredVersions := make(map[model.MynahDatasetVersionId]*model.MynahICDatasetVersion)
+
+	//by default, start with latest
+	fromVersionNum := len(dataset.Versions) - 1
+
+	if len(fromVersionParam) > 0 {
+		if val, err := strconv.Atoi(fromVersionParam); err == nil {
+			fromVersionNum = val
+		} else {
+			return fmt.Errorf("failed to parse dataset version range start: %s", err)
+		}
+	}
+
+	//check if range requested
+	if len(toVersionParam) > 0 {
+		if toVersionNum, err := strconv.Atoi(toVersionParam); err == nil {
+			for i := fromVersionNum; i < toVersionNum; i++ {
+				currVersion := model.MynahDatasetVersionId(strconv.Itoa(fromVersionNum))
+
+				if version, ok := dataset.Versions[currVersion]; ok {
+					filteredVersions[currVersion] = version
+				} else {
+					//requested version not available
+					return fmt.Errorf("dataset %s does not have version %s", dataset.Uuid, currVersion)
+				}
+			}
+
+			//set the filtered list
+			dataset.Versions = filteredVersions
+			return nil
+
+		} else {
+			return fmt.Errorf("failed to parse dataset version range end: %s", err)
+		}
+
+	} else {
+		//single version requested
+		fromVersion := model.MynahDatasetVersionId(strconv.Itoa(fromVersionNum))
+
+		if version, ok := dataset.Versions[fromVersion]; ok {
+			filteredVersions[fromVersion] = version
+			dataset.Versions = filteredVersions
+			return nil
+		} else {
+			//requested version not available
+			return fmt.Errorf("dataset %s does not have version %s", dataset.Uuid, fromVersion)
+		}
+	}
+}
+
+// icDatasetGet gets an ic dataset by id. By default, returns the latest version only
+func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		//the user making the request
+		user := middleware.GetUserFromRequest(request)
+
+		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		//get request params
+		if !ok {
+			log.Errorf("ic dataset request path missing %s key", datasetId)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		//get the requested ic dataset
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user)
+
+		if err != nil {
+			log.Errorf("failed to get ic dataset %s from database %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		//check for range params
+		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
+		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+
+		//filter the dataset
+		if err := icDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion); err != nil {
+			log.Warnf("failed to filter dataset version(s): %s", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		//write the response
+		if err := responseWriteJson(writer, dataset); err != nil {
+			log.Errorf("failed to write response as json: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+}
+
 // icDatasetList lists ic datasets
 func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -80,6 +180,19 @@ func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 			log.Errorf("failed to list ic datasets in database %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+
+		//check for range params
+		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
+		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+
+		for _, dataset := range datasets {
+			//filter the dataset based on optional range params
+			if err = icDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion); err != nil {
+				log.Warnf("failed to filter dataset version(s): %s", err)
+				writer.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 
 		//write the response

@@ -33,9 +33,9 @@ type MynahICDiagnosisReport struct {
 	//underlying mynah dataset
 	MynahReport `xorm:"extends"`
 	//all of the images, in the order to display
-	ImageIds []string `json:"image_ids" xorm:"TEXT 'image_ids'"`
+	ImageIds []MynahUuid `json:"image_ids" xorm:"TEXT 'image_ids'"`
 	//the images included in this report, map fileid to metadata
-	ImageData map[string]*MynahICDiagnosisReportImageMetadata `json:"image_data" xorm:"TEXT 'image_data'"`
+	ImageData map[MynahUuid]*MynahICDiagnosisReportImageMetadata `json:"image_data" xorm:"TEXT 'image_data'"`
 	//the class breakdown table info, map class to buckets
 	Breakdown map[string]*MynahICDiagnosisReportBucket `json:"breakdown" xorm:"TEXT 'breakdown'"`
 }
@@ -44,8 +44,8 @@ type MynahICDiagnosisReport struct {
 func NewICDiagnosisReport(creator *MynahUser) *MynahICDiagnosisReport {
 	report := MynahICDiagnosisReport{
 		MynahReport: *NewReport(creator),
-		ImageIds:    make([]string, 0),
-		ImageData:   make(map[string]*MynahICDiagnosisReportImageMetadata),
+		ImageIds:    make([]MynahUuid, 0),
+		ImageData:   make(map[MynahUuid]*MynahICDiagnosisReportImageMetadata),
 		Breakdown:   make(map[string]*MynahICDiagnosisReportBucket),
 	}
 	report.UserPermissions[creator.Uuid] = Owner

@@ -15,7 +15,7 @@ import (
 )
 
 // UploadedFilesSet maps from fileid to the original
-type UploadedFilesSet map[string]string
+type UploadedFilesSet map[model.MynahUuid]string
 
 // UploadedFilesSetKey is the key for the upload result context
 const UploadedFilesSetKey contextKey = "UploadedFilesSet"
@@ -31,13 +31,13 @@ type MynahUploadTask struct {
 //the result of performing an upload request
 type uploadResult struct {
 	err          error
-	fileid       string
+	fileid       model.MynahUuid
 	originalPath string
 }
 
 // uploadAsForm creates a form, makes a post request, and returns the fileid on success
 func uploadAsForm(mynahServer *server.MynahClient,
-	localPath string) (string, error) {
+	localPath string) (model.MynahUuid, error) {
 
 	//create a multipart form
 	formBuff, formContent, err := utils.CreateMultipartForm(localPath)

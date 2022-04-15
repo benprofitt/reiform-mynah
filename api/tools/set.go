@@ -2,7 +2,10 @@
 
 package tools
 
-import "reflect"
+import (
+	"reflect"
+	"reiform.com/mynah/model"
+)
 
 type void struct{}
 
@@ -28,6 +31,13 @@ func (s *UniqueSet) Union(vals ...string) {
 	}
 }
 
+// UuidsUnion set union with other keys
+func (s *UniqueSet) UuidsUnion(vals ...model.MynahUuid) {
+	for _, v := range vals {
+		s.s[string(v)] = setMember
+	}
+}
+
 // Vals returns the unique keys
 func (s *UniqueSet) Vals() []string {
 	keys := make([]string, len(s.s))
@@ -35,6 +45,19 @@ func (s *UniqueSet) Vals() []string {
 	i := 0
 	for k := range s.s {
 		keys[i] = k
+		i++
+	}
+
+	return keys
+}
+
+// UuidVals returns the vals as uuids
+func (s *UniqueSet) UuidVals() []model.MynahUuid {
+	keys := make([]model.MynahUuid, len(s.s))
+
+	i := 0
+	for k := range s.s {
+		keys[i] = model.MynahUuid(k)
 		i++
 	}
 

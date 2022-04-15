@@ -8,13 +8,14 @@ import (
 	"net/http"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
+	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"time"
 )
 
 //dataqueue entry
 type queueEntry struct {
-	uuid string
+	uuid model.MynahUuid
 	msg  []byte
 }
 
@@ -23,7 +24,7 @@ type webSocketServer struct {
 	//data to be distributed to clients
 	dataChan chan queueEntry
 	//lookup mapping connected client uuids to connections
-	clients map[string]*connectedClient
+	clients map[model.MynahUuid]*connectedClient
 	//channel to accept new clients
 	registerClientChan chan *connectedClient
 	//channel for removing clients from lookup
@@ -41,7 +42,7 @@ type connectedClient struct {
 	//channel for outgoing messages
 	outgoing chan []byte
 	//the user id for this client (authenticated)
-	uuid string
+	uuid model.MynahUuid
 	//the connected server
 	connManager *webSocketServer
 }
@@ -51,7 +52,7 @@ func NewWebSocketProvider(mynahSettings *settings.MynahSettings) WebSocketProvid
 	ctx, cancel := context.WithCancel(context.Background())
 	return &webSocketServer{
 		dataChan:             make(chan queueEntry, 256),
-		clients:              make(map[string]*connectedClient),
+		clients:              make(map[model.MynahUuid]*connectedClient),
 		registerClientChan:   make(chan *connectedClient),
 		deregisterClientChan: make(chan *connectedClient),
 		ctx:                  ctx,
@@ -188,14 +189,14 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 }
 
 // Send accept data to send to a connected client
-func (w *webSocketServer) Send(uuid *string, msg []byte) {
+func (w *webSocketServer) Send(uuid model.MynahUuid, msg []byte) {
 	if (msg != nil) || (len(msg) == 0) {
 		w.dataChan <- queueEntry{
-			uuid: *uuid,
+			uuid: uuid,
 			msg:  msg,
 		}
 	} else {
-		log.Warnf("ignoring empty websocket message to %s", *uuid)
+		log.Warnf("ignoring empty websocket message to %s", uuid)
 	}
 }
 

@@ -139,11 +139,11 @@ func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.My
 }
 
 //check that the requestor has permission
-func commonDeleteUser(uuid *string, requestor *model.MynahUser) error {
+func commonDeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
 		return nil
 	}
-	return fmt.Errorf("user %s does not have permission to update user %s", requestor.Uuid, *uuid)
+	return fmt.Errorf("user %s does not have permission to update user %s", requestor.Uuid, uuid)
 }
 
 //check that the requestor has permission to delete the file

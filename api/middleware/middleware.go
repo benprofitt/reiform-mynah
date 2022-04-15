@@ -72,7 +72,7 @@ func (r *MynahRouter) authenticationMiddleware(handler http.HandlerFunc) http.Ha
 		//check authentication
 		if uuid, authErr := r.authProvider.IsAuthReq(request); authErr == nil {
 			//get the user from the database
-			if user, getErr := r.dbProvider.GetUserForAuth(&uuid); getErr == nil {
+			if user, getErr := r.dbProvider.GetUserForAuth(uuid); getErr == nil {
 				//call the handler, pass the authenticated user
 				handler.ServeHTTP(writer, request.WithContext(
 					context.WithValue(request.Context(), contextUserKey, user)))

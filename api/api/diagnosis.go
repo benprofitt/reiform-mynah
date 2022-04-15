@@ -19,14 +19,14 @@ import (
 )
 
 // icDiagnosisRecordStatistics records whether this file is bad/acceptable for this task
-func icDiagnosisRecordStatistics(className,
-	fileId string,
-	taskStatisticsBucket map[string]map[string]*model.MynahICDiagnosisReportBucket,
+func icDiagnosisRecordStatistics(className string,
+	fileId model.MynahUuid,
+	taskStatisticsBucket map[string]map[model.MynahUuid]*model.MynahICDiagnosisReportBucket,
 	outlier bool) {
 
 	//check if the class has already been seen
 	if _, ok := taskStatisticsBucket[className]; !ok {
-		taskStatisticsBucket[className] = make(map[string]*model.MynahICDiagnosisReportBucket)
+		taskStatisticsBucket[className] = make(map[model.MynahUuid]*model.MynahICDiagnosisReportBucket)
 	}
 
 	//check if the file has already been seen
@@ -45,12 +45,12 @@ func icDiagnosisRecordStatistics(className,
 }
 
 // icDiagnosisUpdateDatasetReportFromFileset takes either the inliers or outliers and adds to the report/dataset
-func icDiagnosisUpdateDatasetReportFromFileset(fileSet map[string]map[string]pyimpl.ICDiagnosisJobResponseFile,
+func icDiagnosisUpdateDatasetReportFromFileset(fileSet map[string]map[model.MynahUuid]pyimpl.ICDiagnosisJobResponseFile,
 	taskName string,
-	newFileData map[string]*model.MynahICDatasetFile,
-	prevFileData map[string]*model.MynahICDatasetFile,
+	newFileData map[model.MynahUuid]*model.MynahICDatasetFile,
+	prevFileData map[model.MynahUuid]*model.MynahICDatasetFile,
 	report *model.MynahICDiagnosisReport,
-	taskStatisticsBucket map[string]map[string]*model.MynahICDiagnosisReportBucket,
+	taskStatisticsBucket map[string]map[model.MynahUuid]*model.MynahICDiagnosisReportBucket,
 	outliers bool) error {
 
 	for className, classMap := range fileSet {
@@ -108,12 +108,12 @@ func icDiagnosisUpdateDatasetReportFromFileset(fileSet map[string]map[string]pyi
 
 // icDiagnosisUpdateDatasetReport update the dataset, report based on the diagnosis results
 func icDiagnosisUpdateDatasetReport(jobResponse *pyimpl.ICDiagnosisJobResponse,
-	newFileData map[string]*model.MynahICDatasetFile,
-	prevFileData map[string]*model.MynahICDatasetFile,
+	newFileData map[model.MynahUuid]*model.MynahICDatasetFile,
+	prevFileData map[model.MynahUuid]*model.MynahICDatasetFile,
 	report *model.MynahICDiagnosisReport) error {
 
 	//map from class -> map from fileid to count of bad/acceptable for each task
-	taskStatisticsBuckets := make(map[string]map[string]*model.MynahICDiagnosisReportBucket)
+	taskStatisticsBuckets := make(map[string]map[model.MynahUuid]*model.MynahICDiagnosisReportBucket)
 
 	for _, task := range jobResponse.Tasks {
 		if err := icDiagnosisUpdateDatasetReportFromFileset(task.Datasets.Inliers.ClassFiles,
@@ -168,11 +168,11 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 	req *pyimpl.ICDiagnosisJobRequest) async.AsyncTaskHandler {
 	//Note: we shouldn't modify the user that was passed in, over the course
 	//of handling the async request the user data may become stale
-	return func(string) ([]byte, error) {
+	return func(model.MynahUuid) ([]byte, error) {
 		// start the job and return the response
 		if res, err := pyImplProvider.ICDiagnosisJob(user, req); err == nil {
 			//request the dataset to update
-			dataset, err := dbProvider.GetICDataset(&res.DatasetUuid, user)
+			dataset, err := dbProvider.GetICDataset(res.DatasetUuid, user)
 
 			if err != nil {
 				return nil, fmt.Errorf("failed to create report from ic diagnosis job: %s", err)
@@ -206,10 +206,10 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 }
 
 // startICDiagnosisJobCreateReq create a new request body from the given data
-func startICDiagnosisJobCreateReq(datasetId string,
+func startICDiagnosisJobCreateReq(datasetId model.MynahUuid,
 	dataset *model.MynahICDatasetVersion,
-	files map[string]*model.MynahFile,
-	fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
+	files map[model.MynahUuid]*model.MynahFile,
+	fileTmpPaths map[model.MynahUuid]string) (*pyimpl.ICDiagnosisJobRequest, error) {
 	//build the job request
 	jobRequest := pyimpl.ICDiagnosisJobRequest{
 		DatasetUuid: datasetId,
@@ -288,20 +288,20 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 		}
 
 		//get the dataset
-		if icDataset, err := dbProvider.GetICDataset(&req.DatasetUuid, user); err == nil {
+		if icDataset, err := dbProvider.GetICDataset(req.DatasetUuid, user); err == nil {
 			latestVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(icDataset.Versions) - 1))
 			//use the latest version of the dataset
 			if datasetVersion, ok := icDataset.Versions[latestVersionId]; ok {
 				fileUuidSet := tools.NewUniqueSet()
 				for fileId := range datasetVersion.Files {
 					//add to set
-					fileUuidSet.Union(fileId)
+					fileUuidSet.UuidsUnion(fileId)
 				}
 
 				//request all the files in the dataset
-				if files, err := dbProvider.GetFiles(fileUuidSet.Vals(), user); err == nil {
+				if files, err := dbProvider.GetFiles(fileUuidSet.UuidVals(), user); err == nil {
 					//get the temp path for each file
-					fileTempPaths := make(map[string]string)
+					fileTempPaths := make(map[model.MynahUuid]string)
 
 					for fileId := range datasetVersion.Files {
 						if f, ok := files[fileId]; ok {

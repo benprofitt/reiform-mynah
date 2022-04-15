@@ -3,7 +3,6 @@
 package model
 
 import (
-	"github.com/google/uuid"
 	"strconv"
 	"time"
 )
@@ -43,11 +42,11 @@ type MynahFileVersion struct {
 // MynahFile Defines a file managed by Mynah
 type MynahFile struct {
 	//the id of the file
-	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
+	Uuid MynahUuid `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the organization this file belongs to
-	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
+	OrgId MynahUuid `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//the owner of the file by uuid
-	OwnerUuid string `json:"owner_uuid" xorm:"TEXT not null 'owner_uuid'"`
+	OwnerUuid MynahUuid `json:"owner_uuid" xorm:"TEXT not null 'owner_uuid'"`
 	//the name of the file
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
@@ -71,7 +70,7 @@ func (m FileMetadata) GetDefaultInt(key MetadataKey, def int64) int64 {
 // NewFile creates a new file
 func NewFile(creator *MynahUser) *MynahFile {
 	return &MynahFile{
-		Uuid:                uuid.NewString(),
+		Uuid:                NewMynahUuid(),
 		OrgId:               creator.OrgId,
 		OwnerUuid:           creator.Uuid,
 		Name:                "file_name",

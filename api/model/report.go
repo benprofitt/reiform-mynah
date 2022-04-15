@@ -2,8 +2,6 @@
 
 package model
 
-import "github.com/google/uuid"
-
 // MynahAbstractReport mynah abstract type
 type MynahAbstractReport interface {
 	GetBaseReport() *MynahReport
@@ -12,11 +10,11 @@ type MynahAbstractReport interface {
 // MynahReport a mynah operation report
 type MynahReport struct {
 	//the id of the report
-	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
+	Uuid MynahUuid `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the id of the organization this report is part of
-	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
+	OrgId MynahUuid `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//permissions that various users have
-	UserPermissions map[string]Permissions `json:"-" xorm:"TEXT 'user_permissions'"`
+	UserPermissions map[MynahUuid]Permissions `json:"-" xorm:"TEXT 'user_permissions'"`
 }
 
 // GetBaseReport get the base dataset for attributes
@@ -36,8 +34,8 @@ func (p *MynahReport) GetPermissions(user *MynahUser) Permissions {
 // NewReport creates a new report
 func NewReport(creator *MynahUser) *MynahReport {
 	return &MynahReport{
-		Uuid:            uuid.NewString(),
+		Uuid:            NewMynahUuid(),
 		OrgId:           creator.OrgId,
-		UserPermissions: make(map[string]Permissions),
+		UserPermissions: make(map[MynahUuid]Permissions),
 	}
 }

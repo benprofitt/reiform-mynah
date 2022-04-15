@@ -123,7 +123,7 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 			}
 
 			//load the file metadata
-			if file, fileErr := dbProvider.GetFile(&fileId, user); fileErr == nil {
+			if file, fileErr := dbProvider.GetFile(model.MynahUuid(fileId), user); fileErr == nil {
 				//serve the file contents
 				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path *string) error {
 					//open the file

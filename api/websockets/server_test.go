@@ -4,7 +4,6 @@ package websockets
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"net/url"
@@ -45,7 +44,7 @@ func TestMain(m *testing.M) {
 //make requests to the testing server
 func testHarnessE2E(path string,
 	jwt string,
-	uuid *string,
+	uuid model.MynahUuid,
 	mynahSettings *settings.MynahSettings,
 	wsProvider WebSocketProvider) error {
 
@@ -155,7 +154,7 @@ func TestWSServerE2E(t *testing.T) {
 
 	admin := model.MynahUser{
 		IsAdmin: true,
-		OrgId:   uuid.New().String(),
+		OrgId:   model.NewMynahUuid(),
 	}
 
 	user, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) error { return nil })
@@ -190,7 +189,7 @@ func TestWSServerE2E(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	//execute the tests on the server
-	if err := testHarnessE2E("/api/v1/test", jwt, &user.Uuid, mynahSettings, wsProvider); err != nil {
+	if err := testHarnessE2E("/api/v1/test", jwt, user.Uuid, mynahSettings, wsProvider); err != nil {
 		t.Errorf("ws server test harness failed %s", err)
 	}
 

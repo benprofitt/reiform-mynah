@@ -18,7 +18,7 @@ import (
 )
 
 const fileKey string = "file"
-const fileTagKey string = "tag"
+const fileVersionIdKey string = "version_id"
 const MultipartFormFileKey = "file"
 
 //check if a file is of a valid type
@@ -27,7 +27,7 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
-//accept a file upload, save the file using the storage provider, and reference as part of the project
+//accept a file upload, save the file using the storage provider, and reference as part of the dataset
 func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user uploading the file
@@ -116,16 +116,16 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 
 		//get the file id
 		if fileId, ok := mux.Vars(request)[fileKey]; ok {
-			fileTag := model.TagLatest
-			//check for the file tag
-			if tagStr, ok := mux.Vars(request)[fileTagKey]; ok {
-				fileTag = model.MynahFileTag(tagStr)
+			fileVersionId := model.LatestVersionId
+			//check for the file version id
+			if versionIdStr, ok := mux.Vars(request)[fileVersionIdKey]; ok {
+				fileVersionId = model.MynahFileVersionId(versionIdStr)
 			}
 
 			//load the file metadata
 			if file, fileErr := dbProvider.GetFile(&fileId, user); fileErr == nil {
 				//serve the file contents
-				storeErr := storageProvider.GetStoredFile(file, fileTag, func(path *string) error {
+				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path *string) error {
 					//open the file
 					osFile, osErr := os.Open(*path)
 					if osErr != nil {

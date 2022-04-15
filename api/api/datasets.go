@@ -3,15 +3,18 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/storage"
+	"reiform.com/mynah/tools"
 )
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
+func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -28,16 +31,23 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		//create the dataset, set the name and the files
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
-			dataset.Files = make(map[string]*model.MynahICDatasetFile)
-
-			//add the file id -> class name mappings
-			for fileId, className := range req.Files {
-				dataset.Files[fileId] = &model.MynahICDatasetFile{
-					CurrentClass:      className,
-					OriginalClass:     className,
-					ConfidenceVectors: make(model.ConfidenceVectors, 0),
-					Projections:       make(map[string][]int),
+			//create an initial version of the dataset
+			if initialVersion, _, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
+				//add the file id -> class name mappings, use the latest version of the file
+				for fileId, className := range req.Files {
+					initialVersion.Files[fileId] = &model.MynahICDatasetFile{
+						ImageVersionId:    model.LatestVersionId,
+						CurrentClass:      className,
+						OriginalClass:     className,
+						ConfidenceVectors: make(model.ConfidenceVectors, 0),
+						Projections:       make(map[string][]int),
+					}
 				}
+
+				//TODO do we want to cut explicit versions for these files? If they're updated in a different
+				//dataset the changes will be reflected in this one
+			} else {
+				return fmt.Errorf("failed to create initial dataset version: %s", err)
 			}
 
 			return nil

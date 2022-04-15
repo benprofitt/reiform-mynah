@@ -146,97 +146,6 @@ func TestBasicDBActionsUser(t *testing.T) {
 	}
 }
 
-func TestBasicDBActionsProject(t *testing.T) {
-	s := settings.DefaultSettings()
-	authProvider, authPErr := auth.NewAuthProvider(s)
-	if authPErr != nil {
-		t.Fatalf("failed to create auth provider for test %s", authPErr)
-	}
-	defer authProvider.Close()
-	dbProvider, dbPErr := NewDBProvider(s, authProvider)
-	if dbPErr != nil {
-		t.Fatalf("failed to create database provider for test %s", dbPErr)
-	}
-	defer dbProvider.Close()
-
-	//create a user
-	user := model.MynahUser{
-		Uuid:    uuid.NewString(),
-		OrgId:   uuid.NewString(),
-		IsAdmin: false,
-	}
-
-	project, err := dbProvider.CreateICProject(&user, func(project *model.MynahICProject) error {
-		project.ProjectName = "project_test"
-		return nil
-	})
-
-	//create the project in the database
-	if err != nil {
-		t.Fatalf("failed to create test project %s", err)
-	}
-
-	if project.UserPermissions[user.Uuid] != model.Owner {
-		t.Fatalf("user is not marked as project owner")
-	}
-
-	if project.OrgId != user.OrgId {
-		t.Fatalf("project did not inherit user org id")
-	}
-
-	//list projects and verify same
-	if projectList, listErr := dbProvider.ListICProjects(&user); listErr == nil {
-		//should only be one project
-		if !reflect.DeepEqual(*projectList[0], *project) {
-			t.Fatalf("project in list (%v) not identical to local (%v)", *projectList[0], project)
-		}
-		if len(projectList) > 1 {
-			t.Fatalf("more than one project in list (%d)", len(projectList))
-		}
-	} else {
-		t.Fatalf("failed to list projects %s", listErr)
-	}
-
-	//get the project and verify same
-	if dbProject, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
-		//compare
-		if !reflect.DeepEqual(*dbProject, *project) {
-			t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
-		}
-	} else {
-		t.Fatalf("failed to get project %s", getErr)
-	}
-
-	//update some fields
-	project.UserPermissions["new_user_uuid"] = model.Read
-	project.ProjectName = "new_project_name"
-
-	//update the project
-	if updateErr := dbProvider.UpdateICProject(project, &user, "project_name", "user_permissions"); updateErr == nil {
-		//get the project and verify same
-		if dbProject, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
-			//compare
-			if !reflect.DeepEqual(*dbProject, *project) {
-				t.Fatalf("project from db (%v) not identical to local (%v)", *dbProject, project)
-			}
-		} else {
-			t.Fatalf("failed to get project (after update) %s", getErr)
-		}
-	} else {
-		t.Fatalf("failed to update project %s", updateErr)
-	}
-
-	//delete the project
-	if deleteErr := dbProvider.DeleteICProject(&project.Uuid, &user); deleteErr == nil {
-		//verify deleted
-		if _, getErr := dbProvider.GetICProject(&project.Uuid, &user); getErr == nil {
-			t.Fatalf("failed to delete project from db")
-		}
-	} else {
-		t.Fatalf("failed to delete project %s", deleteErr)
-	}
-}
-
 func TestBasicDBActionsICDataset(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
@@ -262,7 +171,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		return nil
 	})
 
-	//create the projects in the database
+	//create the dataset in the database
 	if err != nil {
 		t.Fatalf("failed to create test dataset %s", err)
 	}
@@ -273,7 +182,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 
 	//list datasets and verify same
 	if datasetList, listErr := dbProvider.ListICDatasets(&user); listErr == nil {
-		//should only be one project
+		//should only be one dataset
 		if !reflect.DeepEqual(*datasetList[0], *icDataset) {
 			t.Fatalf("dataset in list (%v) not identical to local (%v)", *datasetList[0], icDataset)
 		}

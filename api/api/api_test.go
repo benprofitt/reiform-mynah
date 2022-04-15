@@ -16,6 +16,7 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/test"
+	"reiform.com/mynah/tools"
 	"testing"
 )
 
@@ -117,7 +118,7 @@ func TestFileGetEndpoint(t *testing.T) {
 
 	//load the testing context
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
-		filePath := fmt.Sprintf("file/{%s}/{%s}", fileKey, fileTagKey)
+		filePath := fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey)
 
 		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
 		c.Router.HandleHTTPRequest("GET", filePath, handleViewFile(c.DBProvider, c.StorageProvider))
@@ -172,8 +173,10 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		//create a user
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			expectedFileIds := tools.NewUniqueSet()
+			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 			//create a file
-			return c.WithCreateFullICProject(user, func(project *model.MynahICProject) error {
+			return c.WithCreateFullICDataset(user, expectedFileIds.Vals(), func(dataset *model.MynahICDataset) error {
 
 				errChan := make(chan error)
 				readyChan := make(chan struct{})
@@ -183,10 +186,11 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 					var report model.MynahICDiagnosisReport
 					//parse as a report
 					if err := json.Unmarshal(res, &report); err == nil {
-						expectedFileIds := NewUniqueSet()
-						expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 
-						reportFileIds := NewUniqueSet()
+						//generate expected image versionid
+						expectedVersionId := model.MynahFileVersionId("6410687e280fef2ae3ed75a1c3a99ec7bc72d08f")
+
+						reportFileIds := tools.NewUniqueSet()
 						reportFileIds.Union(report.ImageIds...)
 
 						if !expectedFileIds.Equals(reportFileIds) {
@@ -208,8 +212,9 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						}
 
 						expectedFileData1 := &model.MynahICDiagnosisReportImageMetadata{
-							Class:      "class1",
-							Mislabeled: false,
+							ImageVersionId: expectedVersionId,
+							Class:          "class1",
+							Mislabeled:     false,
 							Point: model.MynahICDiagnosisReportPoint{
 								X: 0,
 								Y: 0,
@@ -218,12 +223,13 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						}
 
 						if !reflect.DeepEqual(report.ImageData["fileuuid1"], expectedFileData1) {
-							return fmt.Errorf("unexpected fileid1 data: %v vs %v", report.ImageData["fileuuid1"], expectedFileData1)
+							return fmt.Errorf("unexpected fileid1 data: %#v vs %#v", report.ImageData["fileuuid1"], expectedFileData1)
 						}
 
 						expectedFileData3 := &model.MynahICDiagnosisReportImageMetadata{
-							Class:      "class2",
-							Mislabeled: true,
+							ImageVersionId: expectedVersionId,
+							Class:          "class2",
+							Mislabeled:     true,
 							Point: model.MynahICDiagnosisReportPoint{
 								X: 0,
 								Y: 0,
@@ -232,7 +238,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						}
 
 						if !reflect.DeepEqual(report.ImageData["fileuuid3"], expectedFileData3) {
-							return fmt.Errorf("unexpected fileid3 data: %v vs %v", report.ImageData["fileuuid3"], expectedFileData3)
+							return fmt.Errorf("unexpected fileid3 data: %#v vs %#v", report.ImageData["fileuuid3"], expectedFileData3)
 						}
 
 						return nil
@@ -246,7 +252,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 				//create the request body
 				reqBody := StartDiagnosisJobRequest{
-					ProjectUuid: project.Uuid,
+					DatasetUuid: dataset.Uuid,
 				}
 
 				jsonBody, err := json.Marshal(reqBody)
@@ -293,7 +299,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 
 			//handle user creation endpoint
-			c.Router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(c.DBProvider))
+			c.Router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(c.DBProvider, c.StorageProvider))
 
 			return c.WithCreateFile(user, "test_contents", func(file *model.MynahFile) error {
 				//create the request
@@ -330,19 +336,19 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 						return fmt.Errorf("failed to decode response %s", err)
 					}
 
-					//check for the user in the database (as a known admin)
+					//check for dataset in database (as a known admin)
 					dbDataset, dbErr := c.DBProvider.GetICDataset(&res.Uuid, user)
 					if dbErr != nil {
-						return fmt.Errorf("new user not found in database %s", dbErr)
+						return fmt.Errorf("new dataset not found in database %s", dbErr)
 					}
 
 					//verify same
 					if dbDataset.OrgId != user.OrgId {
-						return fmt.Errorf("user from db (%v) not assigned same org id (%v)", dbDataset.OrgId, user.OrgId)
+						return fmt.Errorf("dataset from db (%v) not assigned same org id (%v)", dbDataset.OrgId, user.OrgId)
 					}
 
 					//check the files contents
-					if fileData, found := dbDataset.Files[file.Uuid]; found {
+					if fileData, found := dbDataset.Versions["0"].Files[file.Uuid]; found {
 						if fileData.CurrentClass != "class1" {
 							return fmt.Errorf("file did not have expected class")
 						}
@@ -361,77 +367,6 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 	}
 }
 
-//test the creation of an ic project
-func TestICProjectCreationEndpoint(t *testing.T) {
-	mynahSettings := settings.DefaultSettings()
-
-	//load the testing context
-	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
-		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
-
-			//handle user creation endpoint
-			c.Router.HandleHTTPRequest("POST", "icproject/create", icProjectCreate(c.DBProvider))
-
-			return c.WithCreateICDataset(user, func(dataset *model.MynahICDataset) error {
-
-				reqContents := CreateICProjectRequest{
-					Name: "test_project",
-					Datasets: []string{
-						dataset.Uuid,
-					},
-				}
-
-				jsonBody, jsonErr := json.Marshal(reqContents)
-				if jsonErr != nil {
-					return jsonErr
-				}
-
-				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "icproject/create"), bytes.NewBuffer(jsonBody))
-				if reqErr != nil {
-					return reqErr
-				}
-				req.Header.Add("Content-Type", "application/json")
-
-				//make the request
-				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					//check the result
-					if code != http.StatusOK {
-						return fmt.Errorf("ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
-					}
-
-					//check that the user was inserted into the database
-					var res model.MynahICProject
-					//check the body
-					if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
-						return fmt.Errorf("failed to decode response %s", err)
-					}
-
-					//check for the user in the database (as a known admin)
-					dbProject, dbErr := c.DBProvider.GetICProject(&res.Uuid, user)
-					if dbErr != nil {
-						return fmt.Errorf("new user not found in database %s", dbErr)
-					}
-
-					//verify same
-					if dbProject.OrgId != user.OrgId {
-						return fmt.Errorf("user from db (%v) not assigned same org id (%v)", dbProject.OrgId, user.OrgId)
-					}
-
-					if dbProject.Datasets[0] != dataset.Uuid {
-						return fmt.Errorf("dataset id did not match")
-					}
-
-					return nil
-				})
-			})
-		})
-	})
-
-	if err != nil {
-		t.Fatalf("TestICProjectCreationEndpoint error: %s", err)
-	}
-}
-
 func TestAPIReportFilter(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 
@@ -441,11 +376,11 @@ func TestAPIReportFilter(t *testing.T) {
 			return c.WithCreateICDiagnosisReport(user, func(report *model.MynahICDiagnosisReport) error {
 
 				c.Router.HandleHTTPRequest("GET",
-					fmt.Sprintf("icproject/report/{%s}", icReportKey),
+					fmt.Sprintf("icdataset/report/{%s}", icReportKey),
 					icDiagnosisReportView(c.DBProvider))
 
 				//make a standard request
-				requestPath := filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid)
+				requestPath := filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid)
 				req, reqErr := http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
@@ -467,7 +402,7 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add class filter
-				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid), "?class=class1")
+				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid), "?class=class1")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
@@ -489,7 +424,7 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add bad images filter
-				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icproject/report", report.Uuid), "?class=class1&class=class2&bad_images=true")
+				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid), "?class=class1&class=class2&bad_images=true")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr

@@ -56,7 +56,7 @@ func TestBasicStorageActions(t *testing.T) {
 
 	file := model.MynahFile{
 		Uuid:     "mynah_test_file",
-		Versions: make(map[model.MynahFileTag]*model.MynahFileVersion),
+		Versions: make(map[model.MynahFileVersionId]*model.MynahFileVersion),
 	}
 
 	user := model.MynahUser{
@@ -74,10 +74,10 @@ func TestBasicStorageActions(t *testing.T) {
 		return
 	}
 
-	expectedPath := fmt.Sprintf("data/tmp/%s_%s", file.Uuid, model.TagLatest)
+	expectedPath := fmt.Sprintf("data/tmp/%s_%s", file.Uuid, model.LatestVersionId)
 
 	//get the stored file
-	if getErr := storageProvider.GetStoredFile(&file, model.TagLatest, func(p *string) error {
+	if getErr := storageProvider.GetStoredFile(&file, model.LatestVersionId, func(p *string) error {
 		if *p != expectedPath {
 			return errors.New("test file does not exist")
 		}
@@ -99,7 +99,7 @@ func TestBasicStorageActions(t *testing.T) {
 		}
 
 		//verify that get file returns an error
-		getErr := storageProvider.GetStoredFile(&file, model.TagLatest, func(p *string) error { return nil })
+		getErr := storageProvider.GetStoredFile(&file, model.LatestVersionId, func(p *string) error { return nil })
 		if getErr == nil {
 			t.Error("get stored file did not return an error after file was deleted")
 			return

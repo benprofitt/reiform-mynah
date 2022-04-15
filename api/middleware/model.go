@@ -11,8 +11,8 @@ import (
 	"reiform.com/mynah/storage"
 )
 
-//defines a mux which manages endpoint paths,
-//authenticating users, and requesting project info
+// MynahRouter defines a mux which manages endpoint paths,
+//authenticating users, and requesting dataset info
 type MynahRouter struct {
 	//the gorilla mux
 	*mux.Router
@@ -22,7 +22,7 @@ type MynahRouter struct {
 	settings *settings.MynahSettings
 	//the authentication provider for verifying jwts
 	authProvider auth.AuthProvider
-	//the database provider for collecting users and projects
+	//the database provider for collecting users and datasets, etc...
 	dbProvider db.DBProvider
 	//the storage provider for serving static files
 	storageProvider storage.StorageProvider

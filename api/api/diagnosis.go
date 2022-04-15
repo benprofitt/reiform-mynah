@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reiform.com/mynah/tools"
+	"strconv"
 
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/db"
@@ -45,16 +47,18 @@ func icDiagnosisRecordStatistics(className,
 // icDiagnosisUpdateDatasetReportFromFileset takes either the inliers or outliers and adds to the report/dataset
 func icDiagnosisUpdateDatasetReportFromFileset(fileSet map[string]map[string]pyimpl.ICDiagnosisJobResponseFile,
 	taskName string,
-	fileData map[string]*model.MynahICDatasetFile,
+	newFileData map[string]*model.MynahICDatasetFile,
+	prevFileData map[string]*model.MynahICDatasetFile,
 	report *model.MynahICDiagnosisReport,
 	taskStatisticsBucket map[string]map[string]*model.MynahICDiagnosisReportBucket,
-	outliers bool) {
+	outliers bool) error {
 
 	for className, classMap := range fileSet {
 		for fileId, responseFile := range classMap {
-			if _, ok := fileData[fileId]; !ok {
-				//add this file to the dataset
-				fileData[fileId] = &model.MynahICDatasetFile{
+			if _, ok := newFileData[fileId]; !ok {
+				//add this file to the dataset, use the latest version id
+				newFileData[fileId] = &model.MynahICDatasetFile{
+					ImageVersionId:    model.LatestVersionId, //new version of dataset will use most recent versions of files
 					CurrentClass:      responseFile.CurrentClass,
 					OriginalClass:     responseFile.OriginalClass,
 					ConfidenceVectors: responseFile.ConfidenceVectors,
@@ -75,46 +79,61 @@ func icDiagnosisUpdateDatasetReportFromFileset(fileSet map[string]map[string]pyi
 			icDiagnosisRecordStatistics(className, fileId, taskStatisticsBucket, outliers)
 
 			//check if this file has been encountered yet
-			if fileData, ok := report.ImageData[fileId]; !ok {
-				report.ImageIds = append(report.ImageIds, fileId)
-				report.ImageData[fileId] = &model.MynahICDiagnosisReportImageMetadata{
-					Class:      className,
-					Mislabeled: outliers && mislabeledTask,
-					Point: model.MynahICDiagnosisReportPoint{
-						X: 0, //TODO
-						Y: 0,
-					},
-					OutlierSets: outlierSet,
+			if reportFileData, ok := report.ImageData[fileId]; !ok {
+				//check for the image version id
+				if prevFileData, ok := prevFileData[fileId]; ok {
+					report.ImageIds = append(report.ImageIds, fileId)
+					report.ImageData[fileId] = &model.MynahICDiagnosisReportImageMetadata{
+						ImageVersionId: prevFileData.ImageVersionId, //report will reference specific version of file
+						Class:          className,
+						Mislabeled:     outliers && mislabeledTask,
+						Point: model.MynahICDiagnosisReportPoint{
+							X: 0, //TODO
+							Y: 0,
+						},
+						OutlierSets: outlierSet,
+					}
+				} else {
+					return fmt.Errorf("file %s does not exist in previous dataset version", fileId)
 				}
 			} else {
-				fileData.OutlierSets = append(fileData.OutlierSets, outlierSet...)
-				fileData.Mislabeled = fileData.Mislabeled || (outliers && mislabeledTask)
+				reportFileData.OutlierSets = append(reportFileData.OutlierSets, outlierSet...)
+				reportFileData.Mislabeled = reportFileData.Mislabeled || (outliers && mislabeledTask)
 			}
 		}
 	}
+
+	return nil
 }
 
 // icDiagnosisUpdateDatasetReport update the dataset, report based on the diagnosis results
 func icDiagnosisUpdateDatasetReport(jobResponse *pyimpl.ICDiagnosisJobResponse,
-	fileData map[string]*model.MynahICDatasetFile,
-	report *model.MynahICDiagnosisReport) {
+	newFileData map[string]*model.MynahICDatasetFile,
+	prevFileData map[string]*model.MynahICDatasetFile,
+	report *model.MynahICDiagnosisReport) error {
 
 	//map from class -> map from fileid to count of bad/acceptable for each task
 	taskStatisticsBuckets := make(map[string]map[string]*model.MynahICDiagnosisReportBucket)
 
 	for _, task := range jobResponse.Tasks {
-		icDiagnosisUpdateDatasetReportFromFileset(task.Datasets.Inliers.ClassFiles,
+		if err := icDiagnosisUpdateDatasetReportFromFileset(task.Datasets.Inliers.ClassFiles,
 			task.Name,
-			fileData,
+			newFileData,
+			prevFileData,
 			report,
 			taskStatisticsBuckets,
-			false)
-		icDiagnosisUpdateDatasetReportFromFileset(task.Datasets.Outliers.ClassFiles,
+			false); err != nil {
+			return fmt.Errorf("failed to update inliers for dataset and report for task %s: %s", task.Name, err)
+		}
+		if err := icDiagnosisUpdateDatasetReportFromFileset(task.Datasets.Outliers.ClassFiles,
 			task.Name,
-			fileData,
+			newFileData,
+			prevFileData,
 			report,
 			taskStatisticsBuckets,
-			true)
+			true); err != nil {
+			return fmt.Errorf("failed to update outliers for dataset and report for task %s: %s", task.Name, err)
+		}
 	}
 
 	//add statistics for _all_ tasks into report
@@ -138,10 +157,12 @@ func icDiagnosisUpdateDatasetReport(jobResponse *pyimpl.ICDiagnosisJobResponse,
 			Acceptable: acceptable,
 		}
 	}
+	return nil
 }
 
 // startICDiagnosisHandler returns an async handler for starting a diagnosis job
 func startICDiagnosisHandler(dbProvider db.DBProvider,
+	storageProvider storage.StorageProvider,
 	pyImplProvider pyimpl.PyImplProvider,
 	user *model.MynahUser,
 	req *pyimpl.ICDiagnosisJobRequest) async.AsyncTaskHandler {
@@ -150,8 +171,8 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 	return func(string) ([]byte, error) {
 		// start the job and return the response
 		if res, err := pyImplProvider.ICDiagnosisJob(user, req); err == nil {
-			//request the project to update
-			project, err := dbProvider.GetICProject(&res.ProjectUuid, user)
+			//request the dataset to update
+			dataset, err := dbProvider.GetICDataset(&res.DatasetUuid, user)
 
 			if err != nil {
 				return nil, fmt.Errorf("failed to create report from ic diagnosis job: %s", err)
@@ -159,52 +180,17 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 
 			//create a new report based on the response
 			report, err := dbProvider.CreateICDiagnosisReport(user, func(report *model.MynahICDiagnosisReport) error {
-
-				//if there are more than 1 datasets in the project, merge them into a new dataset
-				if len(project.Datasets) > 1 {
-					//create a new dataset
-					_, err := dbProvider.CreateICDataset(user, func(newDataset *model.MynahICDataset) error {
-						//merge datasets
-						if datasets, err := dbProvider.GetICDatasets(project.Datasets, user); err == nil {
-							for _, dataset := range datasets {
-								for fileId, fileData := range dataset.Files {
-									newDataset.Files[fileId] = fileData
-								}
-							}
-						} else {
-							return err
-						}
-
-						//set the dataset file data and report data based on the diagnosis run
-						icDiagnosisUpdateDatasetReport(res, newDataset.Files, report)
-
-						project.Datasets = []string{newDataset.Uuid}
-
-						//update the project
-						return dbProvider.UpdateICProject(project, user, "datasets")
-					})
-
-					return err
-
-				} else if len(project.Datasets) == 1 {
-					//update existing
-					if dataset, err := dbProvider.GetICDataset(&project.Datasets[0], user); err == nil {
-						//set the dataset file data and report data based on the diagnosis run
-						icDiagnosisUpdateDatasetReport(res, dataset.Files, report)
-
-						//update the dataset
-						if err = dbProvider.UpdateICDataset(dataset, user, "files"); err != nil {
-							return err
-						}
-
-					} else {
+				//create a new version of the dataset
+				if newVersion, previousVersion, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
+					//set the dataset file data and report data based on the diagnosis run
+					if err := icDiagnosisUpdateDatasetReport(res, newVersion.Files, previousVersion.Files, report); err != nil {
 						return err
 					}
 				} else {
-					return fmt.Errorf("project %s does not have any associated datasets", project.Uuid)
+					return err
 				}
-
-				return nil
+				//update the dataset
+				return dbProvider.UpdateICDataset(dataset, user, "versions")
 			})
 
 			if err != nil {
@@ -220,68 +206,65 @@ func startICDiagnosisHandler(dbProvider db.DBProvider,
 }
 
 // startICDiagnosisJobCreateReq create a new request body from the given data
-func startICDiagnosisJobCreateReq(projectId string,
-	datasets map[string]*model.MynahICDataset,
+func startICDiagnosisJobCreateReq(datasetId string,
+	dataset *model.MynahICDatasetVersion,
 	files map[string]*model.MynahFile,
 	fileTmpPaths map[string]string) (*pyimpl.ICDiagnosisJobRequest, error) {
 	//build the job request
 	jobRequest := pyimpl.ICDiagnosisJobRequest{
-		ProjectUuid: projectId,
+		DatasetUuid: datasetId,
 	}
 	jobRequest.Dataset.Classes = make([]string, 0)
 	jobRequest.Dataset.ClassFiles = make(map[string]map[string]pyimpl.ICDiagnosisJobRequestFile)
 
-	//iterate over all project data
-	for _, dataset := range datasets {
-		for fileId, classInfo := range dataset.Files {
-			//create a mapping for this class if one doesn't exist
-			if _, ok := jobRequest.Dataset.ClassFiles[classInfo.CurrentClass]; !ok {
-				jobRequest.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]pyimpl.ICDiagnosisJobRequestFile)
-			}
+	for fileId, classInfo := range dataset.Files {
+		//create a mapping for this class if one doesn't exist
+		if _, ok := jobRequest.Dataset.ClassFiles[classInfo.CurrentClass]; !ok {
+			jobRequest.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]pyimpl.ICDiagnosisJobRequestFile)
+		}
 
-			//find the temp path for this file
-			if tmpPath, found := fileTmpPaths[fileId]; found {
-				//extract file metadata
-				var channels int64
-				var width int64
-				var height int64
+		//find the temp path for this file
+		if tmpPath, found := fileTmpPaths[fileId]; found {
+			//extract file metadata
+			var channels int64
+			var width int64
+			var height int64
 
-				//check for metadata
-				if fileData, found := files[fileId]; found {
-					//assume the latest version of the metadata
-					if version, found := fileData.Versions[model.TagLatest]; found {
-						channels = version.Metadata.GetDefaultInt(model.MetadataChannels, 0)
-						width = version.Metadata.GetDefaultInt(model.MetadataWidth, 0)
-						height = version.Metadata.GetDefaultInt(model.MetadataHeight, 0)
-					} else {
-						log.Warnf("unable to find file %s metadata using version tag: %s",
-							fileId, model.TagLatest)
-
-						//attempt to get original
-						if original, found := fileData.Versions[model.TagOriginal]; found {
-							channels = original.Metadata.GetDefaultInt(model.MetadataChannels, 0)
-							width = original.Metadata.GetDefaultInt(model.MetadataWidth, 0)
-							height = original.Metadata.GetDefaultInt(model.MetadataHeight, 0)
-						} else {
-							return nil, fmt.Errorf("unable to find file %s metadata using version tag: %s",
-								fileId, model.TagOriginal)
-						}
-					}
+			//check for metadata
+			if fileData, found := files[fileId]; found {
+				//assume the latest version of the metadata
+				if version, found := fileData.Versions[model.LatestVersionId]; found {
+					channels = version.Metadata.GetDefaultInt(model.MetadataChannels, 0)
+					width = version.Metadata.GetDefaultInt(model.MetadataWidth, 0)
+					height = version.Metadata.GetDefaultInt(model.MetadataHeight, 0)
 				} else {
-					return nil, fmt.Errorf("dataset file not found in files set for project: %s", projectId)
-				}
+					log.Warnf("unable to find file %s metadata using version id: %s",
+						fileId, model.LatestVersionId)
 
-				//add the class -> tmp file -> data mapping
-				jobRequest.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = pyimpl.ICDiagnosisJobRequestFile{
-					Uuid:     fileId,
-					Width:    width,
-					Height:   height,
-					Channels: channels,
+					//attempt to get original
+					if original, found := fileData.Versions[model.OriginalVersionId]; found {
+						channels = original.Metadata.GetDefaultInt(model.MetadataChannels, 0)
+						width = original.Metadata.GetDefaultInt(model.MetadataWidth, 0)
+						height = original.Metadata.GetDefaultInt(model.MetadataHeight, 0)
+					} else {
+						return nil, fmt.Errorf("unable to find file %s metadata using version versionId: %s",
+							fileId, model.OriginalVersionId)
+					}
 				}
-
 			} else {
-				return nil, fmt.Errorf("dataset file not found in downloaded files set for project: %s", projectId)
+				return nil, fmt.Errorf("dataset file not found in files set for dataset: %s", datasetId)
 			}
+
+			//add the class -> tmp file -> data mapping
+			jobRequest.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = pyimpl.ICDiagnosisJobRequestFile{
+				Uuid:     fileId,
+				Width:    width,
+				Height:   height,
+				Channels: channels,
+			}
+
+		} else {
+			return nil, fmt.Errorf("file not found in downloaded files set for dataset: %s", datasetId)
 		}
 	}
 	return &jobRequest, nil
@@ -304,35 +287,40 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 			return
 		}
 
-		//request the project
-		if icProject, err := dbProvider.GetICProject(&req.ProjectUuid, user); err == nil {
-			//load referenced mynah datasets
-			if icDatasets, err := dbProvider.GetICDatasets(icProject.Datasets, user); err == nil {
-				//create a set for file uuids
-				fileUuidSet := NewUniqueSet()
-
-				// add files
-				for _, dataset := range icDatasets {
-					for fileid := range dataset.Files {
-						fileUuidSet.Union(fileid)
-					}
+		//get the dataset
+		if icDataset, err := dbProvider.GetICDataset(&req.DatasetUuid, user); err == nil {
+			latestVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(icDataset.Versions) - 1))
+			//use the latest version of the dataset
+			if datasetVersion, ok := icDataset.Versions[latestVersionId]; ok {
+				fileUuidSet := tools.NewUniqueSet()
+				for fileId := range datasetVersion.Files {
+					//add to set
+					fileUuidSet.Union(fileId)
 				}
 
-				//request all of the referenced files
+				//request all the files in the dataset
 				if files, err := dbProvider.GetFiles(fileUuidSet.Vals(), user); err == nil {
 					//get the temp path for each file
 					fileTempPaths := make(map[string]string)
-					for fileId, f := range files {
-						if path, err := storageProvider.GetTmpPath(f, model.TagLatest); err == nil {
-							fileTempPaths[fileId] = path
+
+					for fileId := range datasetVersion.Files {
+						if f, ok := files[fileId]; ok {
+							//get a path to this file, only use latest version id: other versions of file are immutable
+							if path, err := storageProvider.GetTmpPath(f, model.LatestVersionId); err == nil {
+								fileTempPaths[fileId] = path
+							} else {
+								log.Warnf("failed to get temporary path to file: %s", err)
+								writer.WriteHeader(http.StatusInternalServerError)
+								return
+							}
 						} else {
-							log.Warnf("failed to get temporary path to file: %s", err)
+							log.Warnf("failed to get file: %s", err)
 							writer.WriteHeader(http.StatusInternalServerError)
 							return
 						}
 					}
 
-					req, err := startICDiagnosisJobCreateReq(icProject.Uuid, icDatasets, files, fileTempPaths)
+					req, err := startICDiagnosisJobCreateReq(icDataset.Uuid, datasetVersion, files, fileTempPaths)
 					if err != nil {
 						log.Warnf("failed to create ic diagnosis job: %s", err)
 						writer.WriteHeader(http.StatusInternalServerError)
@@ -341,20 +329,21 @@ func startICDiagnosisJob(dbProvider db.DBProvider,
 
 					//kick off async job
 					asyncProvider.StartAsyncTask(user,
-						startICDiagnosisHandler(dbProvider, pyImplProvider, user, req))
+						startICDiagnosisHandler(dbProvider, storageProvider, pyImplProvider, user, req))
 
 				} else {
-					log.Warnf("failed to load files: %s", err)
-					writer.WriteHeader(http.StatusInternalServerError)
+					log.Warnf("failed to request files: %s", err)
+					writer.WriteHeader(http.StatusBadRequest)
 					return
 				}
 			} else {
-				log.Warnf("failed to load datasets: %s", err)
-				writer.WriteHeader(http.StatusInternalServerError)
+				log.Warnf("dataset does not have version: %d", latestVersionId)
+				writer.WriteHeader(http.StatusBadRequest)
 				return
 			}
+
 		} else {
-			log.Warnf("failed to load project: %s", err)
+			log.Warnf("failed to load dataset: %s", err)
 			writer.WriteHeader(http.StatusUnauthorized)
 			return
 		}

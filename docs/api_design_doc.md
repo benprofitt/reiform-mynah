@@ -18,17 +18,17 @@ For the managed service, JWTs will be managed/rotated by Cognito/OAuth etc
 ### Storage of state
 - Users
   - Unique identifiers and optional identifying information (i.e. name)
-- Projects
-  - Project settings
-  - Users with permissions for project (including the owner)
+- Datasets
+  - Data settings
+  - Users with permissions for dataset (including the owner)
 
 ### Processing of Data
 - Workflow
-  - User creates project
-  - User defines project attributes (i.e. permissions, data format, ML specific settings, processing behaviors)
+  - User creates dataset
+  - User defines dataset attributes (i.e. permissions, data format, ML specific settings, processing behaviors)
   - User uploads initial data
-    - Produces various outputs based on initial project attributes (including graphs, sample images, etc)
-  - User modifies project attributes in feedback loop
+    - Produces various outputs based on initial dataset attributes (including graphs, sample images, etc)
+  - User modifies dataset attributes in feedback loop
   - User is satisfied with attributes, processes remaining data as pipeline
     - In scope:
       - Batch file upload

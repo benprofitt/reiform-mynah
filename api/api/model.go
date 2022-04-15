@@ -29,26 +29,10 @@ type CreateICDatasetRequest struct {
 	Files map[string]string `json:"files"`
 }
 
-// CreateICProjectRequest request type for creating an ic project
-type CreateICProjectRequest struct {
-	//the name for the project
-	Name string `json:"name"`
-	//datasets to link to this project
-	Datasets []string `json:"datasets"`
-}
-
-// CreateODProjectRequest request type for creating an od project
-type CreateODProjectRequest struct {
-	//the name for the project
-	Name string `json:"name"`
-	//datasets to link to this project
-	Datasets []string `json:"datasets"`
-}
-
 // StartDiagnosisJobRequest request type for start diagnosis job
 type StartDiagnosisJobRequest struct {
-	//the project id
-	ProjectUuid string `json:"project_uuid"`
+	//the dataset id
+	DatasetUuid string `json:"dataset_uuid"`
 }
 
 // StartDiagnosisJobResponse response type for start diagnosis job

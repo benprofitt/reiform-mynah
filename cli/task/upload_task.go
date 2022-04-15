@@ -90,7 +90,7 @@ func executeUpload(mynahServer *server.MynahClient,
 
 // returns error if this path is not to a folder
 func pathMustBeDir(path string) error {
-	file, err := os.Open(path)
+	file, err := os.Open(filepath.Clean(path))
 	if err != nil {
 		return err
 	}

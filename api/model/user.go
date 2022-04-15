@@ -2,6 +2,8 @@
 
 package model
 
+import "github.com/google/uuid"
+
 // MynahUser Defines a mynah user
 type MynahUser struct {
 	//the id of the user
@@ -16,4 +18,16 @@ type MynahUser struct {
 	IsAdmin bool `json:"-" xorm:"TEXT not null 'is_admin'"`
 	//who created this user
 	CreatedBy string `json:"-" xorm:"TEXT 'created_by'"`
+}
+
+// NewUser creates a user
+func NewUser(creator *MynahUser) *MynahUser {
+	return &MynahUser{
+		Uuid:      uuid.NewString(),
+		OrgId:     creator.OrgId,
+		NameFirst: "first",
+		NameLast:  "last",
+		IsAdmin:   false,
+		CreatedBy: creator.Uuid,
+	}
 }

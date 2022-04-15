@@ -24,9 +24,6 @@ const contextUserKey ctxKey = "user"
 // MynahUserHandler Handler for a request that requires the user
 type MynahUserHandler func(user *model.MynahUser) (*Response, error)
 
-// MynahProjectHandler Handler for a request that requires the user and a project
-type MynahProjectHandler func(user *model.MynahUser, project *model.MynahProject) (*Response, error)
-
 // GetUserFromRequest extract the user from context (can be used externally for basic http requests)
 func GetUserFromRequest(request *http.Request) *model.MynahUser {
 	return request.Context().Value(contextUserKey).(*model.MynahUser)

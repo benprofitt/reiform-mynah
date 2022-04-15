@@ -2,17 +2,21 @@
 
 package model
 
-import "strconv"
+import (
+	"github.com/google/uuid"
+	"strconv"
+	"time"
+)
 
-// FileLocation the permissions a user can have for a project
+// FileLocation the location of a file being tracked by Mynah
 type FileLocation string
 
-// MynahFileTag a tag on a file version
-type MynahFileTag string
+// MynahFileVersionId an id for a given version of the file (either latest, original or a SHA1 hash)
+type MynahFileVersionId string
 
 const (
-	TagLatest   MynahFileTag = "latest"
-	TagOriginal MynahFileTag = "original"
+	LatestVersionId   MynahFileVersionId = "latest"
+	OriginalVersionId MynahFileVersionId = "original"
 )
 
 // MetadataKey a key into file metadata
@@ -42,7 +46,7 @@ type MynahFile struct {
 	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the organization this file belongs to
 	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
-	//the owner of the file by uuid (allowed to add and remove the file from projects)
+	//the owner of the file by uuid
 	OwnerUuid string `json:"owner_uuid" xorm:"TEXT not null 'owner_uuid'"`
 	//the name of the file
 	Name string `json:"name" xorm:"TEXT 'name'"`
@@ -51,7 +55,7 @@ type MynahFile struct {
 	//the http detected content type (original)
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
 	//versions of the file
-	Versions map[MynahFileTag]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
+	Versions map[MynahFileVersionId]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
 
 // GetDefaultInt GetDefault returns a value if the key is found or the default value provided
@@ -62,4 +66,17 @@ func (m FileMetadata) GetDefaultInt(key MetadataKey, def int64) int64 {
 		}
 	}
 	return def
+}
+
+// NewFile creates a new file
+func NewFile(creator *MynahUser) *MynahFile {
+	return &MynahFile{
+		Uuid:                uuid.NewString(),
+		OrgId:               creator.OrgId,
+		OwnerUuid:           creator.Uuid,
+		Name:                "file_name",
+		DateCreated:         time.Now().Unix(),
+		DetectedContentType: "none",
+		Versions:            make(map[MynahFileVersionId]*MynahFileVersion),
+	}
 }

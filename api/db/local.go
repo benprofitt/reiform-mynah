@@ -5,7 +5,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"path/filepath"
@@ -39,9 +38,8 @@ func checkDBFile(path string) (exists bool, err error) {
 
 //create a new organization in the database and a starting admin user
 func (d *localDB) createLocalOrg(authProvider auth.AuthProvider) error {
-
 	tempAdmin := model.MynahUser{
-		OrgId:   uuid.NewString(),
+		OrgId:   model.NewMynahUuid(),
 		IsAdmin: true,
 	}
 
@@ -122,9 +120,9 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 }
 
 // GetUserForAuth Get a user by uuid or return an error
-func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
+func (d *localDB) GetUserForAuth(uuid model.MynahUuid) (*model.MynahUser, error) {
 	user := model.MynahUser{
-		Uuid: *uuid,
+		Uuid: uuid,
 	}
 
 	found, err := d.engine.Get(&user)
@@ -132,13 +130,13 @@ func (d *localDB) GetUserForAuth(uuid *string) (*model.MynahUser, error) {
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("user %s not found", *uuid)
+		return nil, fmt.Errorf("user %s not found", uuid)
 	}
 	return &user, nil
 }
 
 // GetUser Get a user other than self (must be admin)
-func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.MynahUser, error) {
+func (d *localDB) GetUser(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahUser, error) {
 	if user, err := d.GetUserForAuth(uuid); err == nil {
 		//verify that this user has permission
 		if commonErr := commonGetUser(user, requestor); commonErr != nil {
@@ -151,9 +149,9 @@ func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.Myna
 }
 
 // GetFile get a file from the database
-func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.MynahFile, error) {
+func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahFile, error) {
 	file := model.MynahFile{
-		Uuid: *uuid,
+		Uuid: uuid,
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&file)
@@ -161,7 +159,7 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("file %s not found", *uuid)
+		return nil, fmt.Errorf("file %s not found", uuid)
 	}
 
 	//check that the user has permission
@@ -173,10 +171,10 @@ func (d *localDB) GetFile(uuid *string, requestor *model.MynahUser) (*model.Myna
 }
 
 // GetFiles get multiple files by id
-func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (map[string]*model.MynahFile, error) {
+func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error) {
 	var files []*model.MynahFile
 
-	res := make(map[string]*model.MynahFile)
+	res := make(map[model.MynahUuid]*model.MynahFile)
 
 	//request a set of uuids within the org
 	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&files); err != nil {
@@ -197,10 +195,10 @@ func (d *localDB) GetFiles(uuids []string, requestor *model.MynahUser) (map[stri
 }
 
 // GetICDataset get a dataset from the database
-func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model.MynahICDataset, error) {
+func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahICDataset, error) {
 	dataset := model.MynahICDataset{
 		MynahDataset: model.MynahDataset{
-			Uuid: *uuid,
+			Uuid: uuid,
 		},
 	}
 
@@ -209,7 +207,7 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("icdataset %s not found", *uuid)
+		return nil, fmt.Errorf("icdataset %s not found", uuid)
 	}
 
 	//check that the user has permission
@@ -221,10 +219,10 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 }
 
 // GetODDataset get a dataset from the database
-func (d *localDB) GetODDataset(uuid *string, requestor *model.MynahUser) (*model.MynahODDataset, error) {
+func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahODDataset, error) {
 	dataset := model.MynahODDataset{
 		MynahDataset: model.MynahDataset{
-			Uuid: *uuid,
+			Uuid: uuid,
 		},
 	}
 
@@ -233,7 +231,7 @@ func (d *localDB) GetODDataset(uuid *string, requestor *model.MynahUser) (*model
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("oddataset %s not found", *uuid)
+		return nil, fmt.Errorf("oddataset %s not found", uuid)
 	}
 
 	//check that the user has permission
@@ -245,10 +243,10 @@ func (d *localDB) GetODDataset(uuid *string, requestor *model.MynahUser) (*model
 }
 
 // GetICDatasets get multiple ic datasets from the database
-func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (map[string]*model.MynahICDataset, error) {
+func (d *localDB) GetICDatasets(uuids []model.MynahUuid, requestor *model.MynahUser) (map[model.MynahUuid]*model.MynahICDataset, error) {
 	var datasets []*model.MynahICDataset
 
-	res := make(map[string]*model.MynahICDataset)
+	res := make(map[model.MynahUuid]*model.MynahICDataset)
 
 	//request a set of uuids within the org
 	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
@@ -269,10 +267,10 @@ func (d *localDB) GetICDatasets(uuids []string, requestor *model.MynahUser) (map
 }
 
 // GetODDatasets get multiple oc datasets from the database
-func (d *localDB) GetODDatasets(uuids []string, requestor *model.MynahUser) (map[string]*model.MynahODDataset, error) {
+func (d *localDB) GetODDatasets(uuids []model.MynahUuid, requestor *model.MynahUser) (map[model.MynahUuid]*model.MynahODDataset, error) {
 	var datasets []*model.MynahODDataset
 
-	res := make(map[string]*model.MynahODDataset)
+	res := make(map[model.MynahUuid]*model.MynahODDataset)
 
 	//request a set of uuids within the org
 	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
@@ -293,10 +291,10 @@ func (d *localDB) GetODDatasets(uuids []string, requestor *model.MynahUser) (map
 }
 
 // GetICDiagnosisReport get a diagnosis report
-func (d *localDB) GetICDiagnosisReport(uuid *string, requestor *model.MynahUser) (*model.MynahICDiagnosisReport, error) {
+func (d *localDB) GetICDiagnosisReport(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahICDiagnosisReport, error) {
 	report := model.MynahICDiagnosisReport{
 		MynahReport: model.MynahReport{
-			Uuid: *uuid,
+			Uuid: uuid,
 		},
 	}
 
@@ -305,7 +303,7 @@ func (d *localDB) GetICDiagnosisReport(uuid *string, requestor *model.MynahUser)
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("report %s not found", *uuid)
+		return nil, fmt.Errorf("report %s not found", uuid)
 	}
 
 	//check that the user has permission
@@ -493,22 +491,22 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 }
 
 // DeleteUser delete a user in the database
-func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
+func (d *localDB) DeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	if commonErr := commonDeleteUser(uuid, requestor); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Delete(&model.MynahUser{Uuid: *uuid})
+	affected, err := d.engine.Delete(&model.MynahUser{Uuid: uuid})
 	if err != nil {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("user %s not deleted (no records affected)", *uuid)
+		return fmt.Errorf("user %s not deleted (no records affected)", uuid)
 	}
 	return nil
 }
 
 // DeleteFile delete a file in the database, second arg is requestor
-func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
+func (d *localDB) DeleteFile(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	file, getErr := d.GetFile(uuid, requestor)
 	if getErr != nil {
 		return getErr
@@ -523,13 +521,13 @@ func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("file %s not deleted (no records affected)", *uuid)
+		return fmt.Errorf("file %s not deleted (no records affected)", uuid)
 	}
 	return nil
 }
 
 // DeleteICDataset delete a dataset
-func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) error {
+func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	dataset, getErr := d.GetICDataset(uuid, requestor)
 	if getErr != nil {
 		return getErr
@@ -544,13 +542,13 @@ func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) erro
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("icdataset %s not deleted (no records affected)", *uuid)
+		return fmt.Errorf("icdataset %s not deleted (no records affected)", uuid)
 	}
 	return nil
 }
 
 // DeleteODDataset delete a dataset
-func (d *localDB) DeleteODDataset(uuid *string, requestor *model.MynahUser) error {
+func (d *localDB) DeleteODDataset(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	dataset, getErr := d.GetODDataset(uuid, requestor)
 	if getErr != nil {
 		return getErr
@@ -565,7 +563,7 @@ func (d *localDB) DeleteODDataset(uuid *string, requestor *model.MynahUser) erro
 		return err
 	}
 	if affected == 0 {
-		return fmt.Errorf("oddataset %s not deleted (no records affected)", *uuid)
+		return fmt.Errorf("oddataset %s not deleted (no records affected)", uuid)
 	}
 	return nil
 }

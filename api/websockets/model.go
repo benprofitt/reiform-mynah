@@ -4,14 +4,15 @@ package websockets
 
 import (
 	"net/http"
+	"reiform.com/mynah/model"
 )
 
-//Manages websocket, accepts data to send to clients
+// WebSocketProvider Manages websocket, accepts data to send to clients
 type WebSocketProvider interface {
-	//create a handler that upgrades an http endpoint
+	// ServerHandler create a handler that upgrades an http endpoint
 	ServerHandler() http.HandlerFunc
-	//accept data to send to a connected client
-	Send(uuid *string, msg []byte)
-	//close connections
+	// Send accept data to send to a connected client
+	Send(uuid model.MynahUuid, msg []byte)
+	// Close close connections
 	Close()
 }

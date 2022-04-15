@@ -22,9 +22,14 @@ type MynahICDatasetFile struct {
 // MynahICDatasetVersion defines a specific version of the dataset
 type MynahICDatasetVersion struct {
 	//map of fileid -> file + class info
-	Files map[string]*MynahICDatasetFile `json:"files"`
+	Files map[MynahUuid]*MynahICDatasetFile `json:"files"`
 	//reports generated for this dataset: model.MynahICDiagnosisReport
-	Reports []string `json:"reports"`
+	Reports struct {
+		//the id of the diagnosis report
+		DiagnosisReport MynahUuid `json:"diagnosis_report"`
+		//the id of the cleaning report
+		CleaningReport MynahUuid `json:"cleaning_report"`
+	} `json:"reports"`
 }
 
 // MynahICDataset Defines a dataset specifically for image classification

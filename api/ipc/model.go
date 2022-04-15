@@ -2,10 +2,12 @@
 
 package ipc
 
-//ipc provider
+import "reiform.com/mynah/model"
+
+// IPCProvider ipc provider
 type IPCProvider interface {
-	//handle new events
-	HandleEvents(func(userUuid *string, msg []byte))
+	// HandleEvents handle new events
+	HandleEvents(func(userUuid model.MynahUuid, msg []byte))
 	//Close the ipc provider
 	Close()
 }

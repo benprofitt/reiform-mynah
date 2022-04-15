@@ -4,7 +4,6 @@ package test
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/posener/wstest"
 	"io"
@@ -39,7 +38,7 @@ type TestContext struct {
 	AsyncProvider     async.AsyncProvider
 	Router            *middleware.MynahRouter
 
-	orgId string
+	orgId model.MynahUuid
 }
 
 // WithTestContext load test context and pass to test handler
@@ -101,7 +100,7 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		WebSocketProvider: websocketProvider,
 		AsyncProvider:     asyncProvider,
 		Router:            middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider),
-		orgId:             uuid.NewString(),
+		orgId:             model.NewMynahUuid(),
 	})
 }
 
@@ -129,7 +128,7 @@ func (t *TestContext) WithCreateUser(isAdmin bool, handler func(*model.MynahUser
 	err = handler(user, userJwt)
 
 	//delete the user
-	if dbErr := t.DBProvider.DeleteUser(&user.Uuid, &creator); dbErr != nil {
+	if dbErr := t.DBProvider.DeleteUser(user.Uuid, &creator); dbErr != nil {
 		return fmt.Errorf("failed to delete user %s", dbErr)
 	}
 
@@ -160,7 +159,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	}
 
 	//clean the file
-	if deleteErr := t.DBProvider.DeleteFile(&file.Uuid, owner); deleteErr != nil {
+	if deleteErr := t.DBProvider.DeleteFile(file.Uuid, owner); deleteErr != nil {
 		return fmt.Errorf("failed to delete file: %s", deleteErr)
 	}
 
@@ -168,7 +167,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 }
 
 // WithCreateFiles create a file and pass to the handler
-func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []string, handler func([]*model.MynahFile) error) error {
+func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []model.MynahUuid, handler func([]*model.MynahFile) error) error {
 	allFiles := make([]*model.MynahFile, 0)
 
 	for _, fileId := range fileIds {
@@ -198,7 +197,7 @@ func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []string, 
 		}
 
 		//clean the file
-		if deleteErr := t.DBProvider.DeleteFile(&file.Uuid, owner); deleteErr != nil {
+		if deleteErr := t.DBProvider.DeleteFile(file.Uuid, owner); deleteErr != nil {
 			return fmt.Errorf("failed to delete file: %s", deleteErr)
 		}
 	}
@@ -218,7 +217,7 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*
 	err = handler(dataset)
 
 	//clean the dataset
-	if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {
+	if deleteErr := t.DBProvider.DeleteICDataset(dataset.Uuid, owner); deleteErr != nil {
 		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
 	}
 
@@ -263,7 +262,7 @@ func (t *TestContext) WithCreateICDiagnosisReport(owner *model.MynahUser, handle
 }
 
 // WithCreateFullICDataset create a complete ic dataset
-func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileIds []string, handler func(*model.MynahICDataset) error) error {
+func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileIds []model.MynahUuid, handler func(*model.MynahICDataset) error) error {
 	//create a file
 	err := t.WithCreateFiles(owner, withFileIds, func(files []*model.MynahFile) error {
 
@@ -339,7 +338,7 @@ func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileId
 		err = handler(dataset)
 
 		//clean the dataset
-		if deleteErr := t.DBProvider.DeleteICDataset(&dataset.Uuid, owner); deleteErr != nil {
+		if deleteErr := t.DBProvider.DeleteICDataset(dataset.Uuid, owner); deleteErr != nil {
 			return fmt.Errorf("failed to delete dataset: %s", deleteErr)
 		}
 

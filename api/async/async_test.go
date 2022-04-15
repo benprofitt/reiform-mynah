@@ -55,7 +55,7 @@ func TestAsync(t *testing.T) {
 	//add some tasks
 	for i := 0; i < taskCount; i++ {
 		//start tasks
-		asyncProvider.StartAsyncTask(&user, func(uuid string) ([]byte, error) {
+		asyncProvider.StartAsyncTask(&user, func(uuid model.MynahUuid) ([]byte, error) {
 			time.Sleep(time.Second * 1)
 			resultChan <- 0
 			return nil, nil

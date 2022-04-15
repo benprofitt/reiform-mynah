@@ -27,7 +27,7 @@ type VersionResponse struct {
 // ICDiagnosisJobRequestFile format of files for a start diagnosis request
 type ICDiagnosisJobRequestFile struct {
 	//the uuid for the file
-	Uuid string `json:"uuid"`
+	Uuid model.MynahUuid `json:"uuid"`
 	//the width of the image
 	Width int64 `json:"width"`
 	//the height of the image
@@ -46,7 +46,7 @@ type ICDiagnosisJobRequestTask struct {
 type ICDiagnosisJobRequest struct {
 	Auto bool `json:"auto"`
 	//the uuid of the dataset
-	DatasetUuid string `json:"dataset_uuid"`
+	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
 	//the dataset to operate on
 	Dataset struct {
 		//all classes in the dataset
@@ -61,7 +61,7 @@ type ICDiagnosisJobRequest struct {
 // ICDiagnosisJobResponseFile file data returned in response
 type ICDiagnosisJobResponseFile struct {
 	//the uuid of the file
-	Uuid string `json:"uuid"`
+	Uuid model.MynahUuid `json:"uuid"`
 	//the current class for this file
 	CurrentClass string `json:"current_class"`
 	//the original class for this file
@@ -81,7 +81,7 @@ type ICDiagnosisJobResponseFile struct {
 // ICDiagnosisJobResponse response format for a diagnosis job
 type ICDiagnosisJobResponse struct {
 	//the uuid of the dataset
-	DatasetUuid string `json:"dataset_uuid"`
+	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
 	//the tasks in the dataset
 	Tasks []struct {
 		//the task name
@@ -93,14 +93,14 @@ type ICDiagnosisJobResponse struct {
 				//classes
 				Classes []string `json:"classes"`
 				//map from class to map by fileid to file data
-				ClassFiles map[string]map[string]ICDiagnosisJobResponseFile `json:"class_files"`
+				ClassFiles map[string]map[model.MynahUuid]ICDiagnosisJobResponseFile `json:"class_files"`
 			} `json:"outliers"`
 			//the inliers in the dataset
 			Inliers struct {
 				//classes
 				Classes []string `json:"classes"`
 				//map from class to map by fileid to file data
-				ClassFiles map[string]map[string]ICDiagnosisJobResponseFile `json:"class_files"`
+				ClassFiles map[string]map[model.MynahUuid]ICDiagnosisJobResponseFile `json:"class_files"`
 			} `json:"inliers"`
 		} `json:"datasets"`
 	} `json:"tasks"`

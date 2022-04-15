@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"reiform.com/mynah/log"
@@ -45,7 +46,7 @@ func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) e
 	var jsonBody = []byte(`{"name_first":"test", "name_last": "test"}`)
 
 	//try to create a user
-	req, reqErr := http.NewRequest("POST", filepath.Join(c.Settings.ApiPrefix, "admin", "user/create"), bytes.NewBuffer(jsonBody))
+	req, reqErr := http.NewRequest("POST", path.Join(c.Settings.ApiPrefix, "admin", "user/create"), bytes.NewBuffer(jsonBody))
 	if reqErr != nil {
 		return reqErr
 	}
@@ -67,7 +68,7 @@ func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) e
 		}
 
 		//check for the user in the database (as a known admin)
-		dbUser, dbErr := c.DBProvider.GetUser(&res.User.Uuid, user)
+		dbUser, dbErr := c.DBProvider.GetUser(res.User.Uuid, user)
 		if dbErr != nil {
 			return fmt.Errorf("new user not found in database %s", dbErr)
 		}
@@ -131,7 +132,7 @@ func TestFileGetEndpoint(t *testing.T) {
 			//create a file
 			return c.WithCreateFile(user, testContents, func(file *model.MynahFile) error {
 				//make a request for the file
-				req, reqErr := http.NewRequest("GET", filepath.Join(mynahSettings.ApiPrefix, "file", file.Uuid, "latest"), nil)
+				req, reqErr := http.NewRequest("GET", path.Join(mynahSettings.ApiPrefix, "file", string(file.Uuid), "latest"), nil)
 				if reqErr != nil {
 					return reqErr
 				}
@@ -176,7 +177,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 			expectedFileIds := tools.NewUniqueSet()
 			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 			//create a file
-			return c.WithCreateFullICDataset(user, expectedFileIds.Vals(), func(dataset *model.MynahICDataset) error {
+			return c.WithCreateFullICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
 
 				errChan := make(chan error)
 				readyChan := make(chan struct{})
@@ -191,7 +192,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						expectedVersionId := model.MynahFileVersionId("6410687e280fef2ae3ed75a1c3a99ec7bc72d08f")
 
 						reportFileIds := tools.NewUniqueSet()
-						reportFileIds.Union(report.ImageIds...)
+						reportFileIds.UuidsUnion(report.ImageIds...)
 
 						if !expectedFileIds.Equals(reportFileIds) {
 							return fmt.Errorf("unexpected fileids set: %v vs %v", expectedFileIds.Vals(), reportFileIds.Vals())
@@ -261,21 +262,21 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				}
 
 				//make a request to start a diagnosis job
-				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "ic/diagnosis/start"), bytes.NewBuffer(jsonBody))
+				req, reqErr := http.NewRequest("POST", path.Join(mynahSettings.ApiPrefix, "dataset/ic/diagnosis/start"), bytes.NewBuffer(jsonBody))
 				if reqErr != nil {
 					return reqErr
 				}
 				req.Header.Add("Content-Type", "application/json")
 
 				//handle user creation endpoint
-				c.Router.HandleHTTPRequest("POST", "ic/diagnosis/start",
+				c.Router.HandleHTTPRequest("POST", "dataset/ic/diagnosis/start",
 					startICDiagnosisJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
 
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
 					if code != http.StatusOK {
-						return fmt.Errorf("ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
+						return fmt.Errorf("dataset/ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
 					}
 
 					//wait for the websocket response
@@ -299,13 +300,13 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 
 			//handle user creation endpoint
-			c.Router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(c.DBProvider, c.StorageProvider))
+			c.Router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(c.DBProvider, c.StorageProvider))
 
 			return c.WithCreateFile(user, "test_contents", func(file *model.MynahFile) error {
 				//create the request
 				reqContents := CreateICDatasetRequest{
 					Name:  "test_dataset",
-					Files: make(map[string]string),
+					Files: make(map[model.MynahUuid]string),
 				}
 
 				//set the class for the file
@@ -316,7 +317,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 					return jsonErr
 				}
 
-				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "icdataset/create"), bytes.NewBuffer(jsonBody))
+				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "dataset/ic/create"), bytes.NewBuffer(jsonBody))
 				if reqErr != nil {
 					return reqErr
 				}
@@ -326,7 +327,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
 					if code != http.StatusOK {
-						return fmt.Errorf("ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
+						return fmt.Errorf("dataset/ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
 					}
 
 					//check that the user was inserted into the database
@@ -337,7 +338,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 					}
 
 					//check for dataset in database (as a known admin)
-					dbDataset, dbErr := c.DBProvider.GetICDataset(&res.Uuid, user)
+					dbDataset, dbErr := c.DBProvider.GetICDataset(res.Uuid, user)
 					if dbErr != nil {
 						return fmt.Errorf("new dataset not found in database %s", dbErr)
 					}
@@ -376,11 +377,11 @@ func TestAPIReportFilter(t *testing.T) {
 			return c.WithCreateICDiagnosisReport(user, func(report *model.MynahICDiagnosisReport) error {
 
 				c.Router.HandleHTTPRequest("GET",
-					fmt.Sprintf("icdataset/report/{%s}", icReportKey),
+					fmt.Sprintf("dataset/ic/report/{%s}", icReportKey),
 					icDiagnosisReportView(c.DBProvider))
 
 				//make a standard request
-				requestPath := filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid)
+				requestPath := path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid))
 				req, reqErr := http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
@@ -402,7 +403,7 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add class filter
-				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid), "?class=class1")
+				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid)), "?class=class1")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
@@ -424,7 +425,7 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add bad images filter
-				requestPath = fmt.Sprintf("%s%s", filepath.Join(mynahSettings.ApiPrefix, "icdataset/report", report.Uuid), "?class=class1&class=class2&bad_images=true")
+				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid)), "?class=class1&class=class2&bad_images=true")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr

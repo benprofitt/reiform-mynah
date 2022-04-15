@@ -3,7 +3,6 @@
 package db
 
 import (
-	"github.com/google/uuid"
 	"os"
 	"reflect"
 	"reiform.com/mynah/auth"
@@ -53,7 +52,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 
 	admin := model.MynahUser{
 		IsAdmin: true,
-		OrgId:   uuid.New().String(),
+		OrgId:   model.NewMynahUuid(),
 	}
 
 	localUser, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) error {
@@ -84,7 +83,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	}
 
 	//get user for auth by uuid
-	if dbUser, getErr := dbProvider.GetUserForAuth(&localUser.Uuid); getErr == nil {
+	if dbUser, getErr := dbProvider.GetUserForAuth(localUser.Uuid); getErr == nil {
 		//compare
 		if *dbUser != *localUser {
 			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
@@ -107,7 +106,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	}
 
 	//get the user and verify same
-	if dbUser, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
+	if dbUser, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
 		//compare
 		if *dbUser != *localUser {
 			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
@@ -123,7 +122,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	//update the user
 	if updateErr := dbProvider.UpdateUser(localUser, &admin, "name_first", "name_last"); updateErr == nil {
 		//get the user and verify same
-		if dbUser, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
+		if dbUser, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
 			//look through list
 			if *dbUser != *localUser {
 				t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
@@ -136,9 +135,9 @@ func TestBasicDBActionsUser(t *testing.T) {
 	}
 
 	//delete the user
-	if deleteErr := dbProvider.DeleteUser(&localUser.Uuid, &admin); deleteErr == nil {
+	if deleteErr := dbProvider.DeleteUser(localUser.Uuid, &admin); deleteErr == nil {
 		//verify deleted
-		if _, getErr := dbProvider.GetUser(&localUser.Uuid, &admin); getErr == nil {
+		if _, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
 			t.Fatalf("failed to delete user from db")
 		}
 	} else {
@@ -161,8 +160,8 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 
 	//create a user
 	user := model.MynahUser{
-		Uuid:    uuid.NewString(),
-		OrgId:   uuid.NewString(),
+		Uuid:    model.NewMynahUuid(),
+		OrgId:   model.NewMynahUuid(),
 		IsAdmin: false,
 	}
 
@@ -193,7 +192,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		t.Fatalf("failed to list ic datasets %s", listErr)
 	}
 
-	if dbDataset, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
+	if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
 		//compare
 		if !reflect.DeepEqual(*dbDataset, *icDataset) {
 			t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
@@ -207,7 +206,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 
 	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, "dataset_name"); updateErr == nil {
 		//get the dataset and verify same
-		if dbDataset, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
+		if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
 			//compare
 			if !reflect.DeepEqual(*dbDataset, *icDataset) {
 				t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
@@ -219,9 +218,9 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		t.Fatalf("failed to update ic dataset %s", updateErr)
 	}
 
-	if deleteErr := dbProvider.DeleteICDataset(&icDataset.Uuid, &user); deleteErr == nil {
+	if deleteErr := dbProvider.DeleteICDataset(icDataset.Uuid, &user); deleteErr == nil {
 		//verify deleted
-		if _, getErr := dbProvider.GetICDataset(&icDataset.Uuid, &user); getErr == nil {
+		if _, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
 			t.Fatalf("failed to delete dataset from db")
 		}
 	} else {
@@ -244,15 +243,15 @@ func TestBasicDBActionsFile(t *testing.T) {
 
 	//create a user
 	user := model.MynahUser{
-		Uuid:    uuid.New().String(),
-		OrgId:   uuid.New().String(),
+		Uuid:    model.NewMynahUuid(),
+		OrgId:   model.NewMynahUuid(),
 		IsAdmin: false,
 	}
 
 	rangeRequest := 10
 
 	//add more files and then make range request
-	var uuids []string
+	var uuids []model.MynahUuid
 
 	for i := 0; i < rangeRequest; i++ {
 
@@ -277,7 +276,7 @@ func TestBasicDBActionsFile(t *testing.T) {
 	}
 
 	//make a request for one with the range operator
-	dbFile, rangeErr := dbProvider.GetFiles([]string{uuids[0]}, &user)
+	dbFile, rangeErr := dbProvider.GetFiles([]model.MynahUuid{uuids[0]}, &user)
 	if rangeErr != nil {
 		t.Fatalf("failed to request single file with range %s", rangeErr)
 	}
@@ -287,7 +286,7 @@ func TestBasicDBActionsFile(t *testing.T) {
 	}
 
 	//make an empty request
-	noFiles, rangeErr := dbProvider.GetFiles([]string{}, &user)
+	noFiles, rangeErr := dbProvider.GetFiles([]model.MynahUuid{}, &user)
 	if rangeErr != nil {
 		t.Fatalf("failed to request zero files with range %s", rangeErr)
 	}

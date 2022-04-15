@@ -26,13 +26,13 @@ type CreateICDatasetRequest struct {
 	//the name of the dataset
 	Name string `json:"name"`
 	//the files to include (map from fileid to class name)
-	Files map[string]string `json:"files"`
+	Files map[model.MynahUuid]string `json:"files"`
 }
 
 // StartDiagnosisJobRequest request type for start diagnosis job
 type StartDiagnosisJobRequest struct {
 	//the dataset id
-	DatasetUuid string `json:"dataset_uuid"`
+	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
 }
 
 // StartDiagnosisJobResponse response type for start diagnosis job

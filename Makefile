@@ -29,8 +29,5 @@ clean:
 	-@find api/ -type f -name 'auth.pem' -delete || true
 	-@rm mynah 2> /dev/null || true
 	-@rm mynah-cli 2> /dev/null || true
-	-@rm mynah_local.db 2> /dev/null || true
-	-@rm mynah.json 2> /dev/null || true
-	-@rm auth.pem 2> /dev/null || true
 	-@rm -r data 2> /dev/null || true
 	-@rm -r static 2> /dev/null || true

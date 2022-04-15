@@ -17,17 +17,17 @@ type MynahODDatasetFile struct {
 	//the version of the file
 	ImageVersionId MynahFileVersionId `json:"image_version_id"`
 	//the entities in this file (map class -> entity ids)
-	Entities map[string][]string `json:"entities"`
+	Entities map[string][]MynahUuid `json:"entities"`
 }
 
 // MynahODDatasetVersion a version of this dataset
 type MynahODDatasetVersion struct {
 	//entities in the dataset by id
-	Entities map[string]*MynahODDatasetEntity `json:"entities"`
+	Entities map[MynahUuid]*MynahODDatasetEntity `json:"entities"`
 	//files in the dataset
-	Files map[string]*MynahODDatasetFile `json:"files"`
+	Files map[MynahUuid]*MynahODDatasetFile `json:"files"`
 	//for each class, the files with that class
-	FileEntities map[string][]string `json:"file_entities"`
+	FileEntities map[string][]MynahUuid `json:"file_entities"`
 }
 
 // MynahODDataset Defines a dataset specifically for object classification

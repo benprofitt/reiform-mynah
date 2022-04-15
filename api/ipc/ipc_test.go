@@ -15,7 +15,7 @@ import (
 
 //stores a message from python
 type testRes struct {
-	uuid *string
+	uuid model.MynahUuid
 	msg  []byte
 }
 
@@ -80,10 +80,10 @@ func TestIPC(t *testing.T) {
 	resChan := make(chan testRes, messagesToSend)
 
 	//track messages sent
-	sentMessages := make(map[string]string)
+	sentMessages := make(map[model.MynahUuid]string)
 
 	//handle ipc events
-	go ipcProvider.HandleEvents(func(uuid *string, msg []byte) {
+	go ipcProvider.HandleEvents(func(uuid model.MynahUuid, msg []byte) {
 		// write to the channel
 		resChan <- testRes{
 			uuid: uuid,
@@ -95,7 +95,7 @@ func TestIPC(t *testing.T) {
 
 	//call python function
 	for i := 0; i < messagesToSend; i++ {
-		targetUuid := uuid.New().String()
+		targetUuid := model.NewMynahUuid()
 		targetContents := uuid.New().String()
 
 		sentMessages[targetUuid] = targetContents
@@ -133,14 +133,14 @@ func TestIPC(t *testing.T) {
 	for i := 0; i < messagesToSend; i++ {
 		res := <-resChan
 
-		if targetPayload, ok := sentMessages[*res.uuid]; ok {
+		if targetPayload, ok := sentMessages[res.uuid]; ok {
 			//check the message as a string
 			if string(res.msg) != targetPayload {
 				t.Fatalf("ipc message contents does not match (%s != %s)", string(res.msg), targetPayload)
 			}
 
 		} else {
-			t.Fatalf("got unexpected uuid: %s", *res.uuid)
+			t.Fatalf("got unexpected uuid: %s", res.uuid)
 		}
 	}
 }

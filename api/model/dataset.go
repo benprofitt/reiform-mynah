@@ -3,7 +3,6 @@
 package model
 
 import (
-	"github.com/google/uuid"
 	"time"
 )
 
@@ -28,11 +27,11 @@ type MynahDatasetVersionId string
 // MynahDataset Defines a mynah dataset
 type MynahDataset struct {
 	//the id of the dataset
-	Uuid string `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
+	Uuid MynahUuid `json:"uuid" xorm:"varchar(36) not null unique index 'uuid'"`
 	//the id of the organization this dataset is part of
-	OrgId string `json:"-" xorm:"varchar(36) not null 'org_id'"`
+	OrgId MynahUuid `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//permissions for users
-	Permissions map[string]Permissions `json:"owner_uuid" xorm:"TEXT 'permissions'"`
+	Permissions map[MynahUuid]Permissions `json:"owner_uuid" xorm:"TEXT 'permissions'"`
 	//the name of the dataset
 	DatasetName string `json:"dataset_name" xorm:"TEXT 'dataset_name'"`
 	//the date created as a unix timestamp
@@ -58,9 +57,9 @@ func (p *MynahDataset) GetPermissions(user *MynahUser) Permissions {
 // NewDataset creates a new dataset
 func NewDataset(creator *MynahUser) *MynahDataset {
 	dataset := MynahDataset{
-		Uuid:         uuid.NewString(),
+		Uuid:         NewMynahUuid(),
 		OrgId:        creator.OrgId,
-		Permissions:  make(map[string]Permissions),
+		Permissions:  make(map[MynahUuid]Permissions),
 		DatasetName:  "no name",
 		DateCreated:  time.Now().Unix(),
 		DateModified: time.Now().Unix(),

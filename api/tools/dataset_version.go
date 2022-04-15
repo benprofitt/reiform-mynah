@@ -34,7 +34,7 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 		//version the files in the current "latest" so they won't be modified
 		for fileId, fileData := range latestVersion.Files {
 			//request the file
-			if file, err := dbProvider.GetFile(&fileId, user); err == nil {
+			if file, err := dbProvider.GetFile(fileId, user); err == nil {
 				//generate a new sha1
 				newId, err := storageProvider.GenerateSHA1Id(file)
 				if err != nil {
@@ -60,8 +60,7 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 
 	//create a new version
 	dataset.Versions[newVersionId] = &model.MynahICDatasetVersion{
-		Files:   make(map[string]*model.MynahICDatasetFile),
-		Reports: make([]string, 0),
+		Files: make(map[model.MynahUuid]*model.MynahICDatasetFile),
 	}
 
 	//return ptr to new version

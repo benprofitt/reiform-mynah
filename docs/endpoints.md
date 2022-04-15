@@ -34,10 +34,10 @@
           },
           ...
         },
-        "reports" : [
-          "reportid",
-          ...
-        ]
+        "reports" : {
+          "cleaning_report" : "d2d89n923d",
+          "diagnosis_report": "493fn39f3f"
+        }
       },
       ...
     }
@@ -255,7 +255,7 @@
 ## Dataset GET Endpoints
 
 ### List Datasets
-- `GET /api/v1/icdataset/list`
+- `GET /api/v1/dataset/ic/list`
 - Response:
   ```json
   [
@@ -263,7 +263,7 @@
   ]
   ```
 
-- `GET /api/v1/oddataset/list`
+- `GET /api/v1/dataset/od/list`
 - Response:
   ```json
   [
@@ -271,10 +271,31 @@
   ]
   ```
 
+### Get Endpoints
+- `GET /api/v1/dataset/ic/{datasetid}`
+- Params (optional)
+  - `from_version`
+    - (Inclusive)
+  - `to_version`
+    - (Exclusive)
+  - Examples: 
+    - Requesting the latest version: 
+      - `GET /api/v1/dataset/ic/90jj9d20n3d`
+    - Requesting a specific version: 
+      - `GET /api/v1/dataset/ic/90jj9d20n3d?from_version=0`
+    - Requesting a range of versions: 
+      - `GET /api/v1/dataset/ic/90jj9d20n3d?from_version=0&to_version=2`
+- Response:
+  ```json
+  [
+    type: MynahICDataset
+  ]
+  ```
+
 ## Dataset Action Endpoints
 
 ### Creating an image classification dataset
-- `POST /api/v1/icdataset/create`
+- `POST /api/v1/dataset/ic/create`
 - Request body:
   ```json
   {
@@ -293,7 +314,7 @@
   ```
 
 ### Starting an image classification diagnosis job
-- `POST /api/v1/ic/diagnosis/start`
+- `POST /api/v1/dataset/ic/diagnosis/start`
 - Request body
   ```json
   {
@@ -303,7 +324,7 @@
     - `dataset_uuid`: The id of the dataset to diagnose
 
 ### Getting an image classification diagnosis report
-- `GET /api/v1/icdataset/report/{reportid}`
+- `GET /api/v1/dataset/ic/report/{reportid}`
 - Params
   - `bad_images=true`
   - `class=class1&class=class2 ...`

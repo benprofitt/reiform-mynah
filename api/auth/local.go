@@ -104,7 +104,7 @@ func (a *localAuth) GetUserAuth(user *model.MynahUser) (string, error) {
 }
 
 // IsAuthReq check the validity of the jwt in the header, if valid, return user uuid
-func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
+func (a *localAuth) IsAuthReq(req *http.Request) (model.MynahUuid, error) {
 	//get the jwt from the header
 	jwtToken := req.Header.Get(a.jwtHeader)
 	if jwtToken == "" {
@@ -126,7 +126,7 @@ func (a *localAuth) IsAuthReq(req *http.Request) (string, error) {
 
 	//get the claims
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return fmt.Sprintf("%v", claims["uuid"]), nil
+		return model.MynahUuid(fmt.Sprintf("%v", claims["uuid"])), nil
 
 	} else {
 		return "", errors.New("failed to decode jwt")

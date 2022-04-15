@@ -69,7 +69,7 @@ def plot_in_2D(projections : Tuple[ReiformICDataSet], label : str) -> None:
 
     plt.show()
 
+    # plt.rcParams['figure.figsize'] = [10, 10]
     # for i in range(len(classes)):
-    #     plt.rcParams['figure.figsize'] = [10, 10]
     #     plt.scatter(x[i], y[i], c=c[i])
-    #     plt.show()
+    # plt.show()

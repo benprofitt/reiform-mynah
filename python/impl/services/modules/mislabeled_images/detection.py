@@ -45,7 +45,7 @@ def find_outliers_isolation_forest(projected_data : ReiformICDataSet, outlier_ra
     inlier_results : ReiformICDataSet = ReiformICDataSet(projected_data.classes())
     outlier_results: ReiformICDataSet = ReiformICDataSet(projected_data.classes())
 
-    detection_results = (inlier_results, outlier_results)
+    detection_results = (outlier_results, inlier_results)
     
     for class_key in projected_data.classes():
         X = []
@@ -63,4 +63,5 @@ def find_outliers_isolation_forest(projected_data : ReiformICDataSet, outlier_ra
             
             detection_results[label].add_file(file)
 
+    detection_results = (detection_results[1], detection_results[0])
     return detection_results

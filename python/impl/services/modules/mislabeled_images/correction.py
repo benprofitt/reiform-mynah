@@ -13,7 +13,7 @@ def train_correction_model(dataset: ReiformICDataSet, edge_size: int) -> nn.Modu
     classes = len(dataset.classes())
 
     model = SmallAutoNet(insize, edge_size, classes)
-    dataloader = dataset.get_dataloader(insize, edge_size)
+    dataloader = dataset.get_dataloader(insize, edge_size, CORRECTION_MODEL_BATCH_SIZE)
     train_conv_net(model, dataloader, multiclass_model_loss, 
                     get_optimizer(model), epochs)
 
@@ -125,7 +125,7 @@ def monte_carlo_label_correction(simulations: int,
             predictions = np.array(data.get_confidence_vectors())
             keep, new_label = evaluate_correction_confidence(i, predictions)
             data.clear_confidence_vectors()
-            data.set_class = new_label
+            data.set_class(to_correct.classes()[new_label])
             if keep:
                 corrected.add_file(data)
             else:

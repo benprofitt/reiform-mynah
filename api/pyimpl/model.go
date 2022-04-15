@@ -36,11 +36,17 @@ type ICDiagnosisJobRequestFile struct {
 	Channels int64 `json:"channels"`
 }
 
+// ICDiagnosisJobRequestTask defines a task to perform
+type ICDiagnosisJobRequestTask struct {
+	//the name of the task
+	Name string `json:"name"`
+}
+
 // ICDiagnosisJobRequest request format for a diagnosis job
 type ICDiagnosisJobRequest struct {
 	Auto bool `json:"auto"`
-	//the uuid of the project
-	ProjectUuid string `json:"project_uuid"`
+	//the uuid of the dataset
+	DatasetUuid string `json:"dataset_uuid"`
 	//the dataset to operate on
 	Dataset struct {
 		//all classes in the dataset
@@ -48,6 +54,8 @@ type ICDiagnosisJobRequest struct {
 		//map by class to map by temp path
 		ClassFiles map[string]map[string]ICDiagnosisJobRequestFile `json:"class_files"`
 	} `json:"dataset"`
+	//tasks to perform
+	Tasks []ICDiagnosisJobRequestTask `json:"tasks"`
 }
 
 // ICDiagnosisJobResponseFile file data returned in response
@@ -72,9 +80,9 @@ type ICDiagnosisJobResponseFile struct {
 
 // ICDiagnosisJobResponse response format for a diagnosis job
 type ICDiagnosisJobResponse struct {
-	//the uuid of the project
-	ProjectUuid string `json:"project_uuid"`
-	//the tasks in the project
+	//the uuid of the dataset
+	DatasetUuid string `json:"dataset_uuid"`
+	//the tasks in the dataset
 	Tasks []struct {
 		//the task name
 		Name string `json:"name"`

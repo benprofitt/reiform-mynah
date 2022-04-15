@@ -16,6 +16,8 @@ type MynahICDiagnosisReportBucket struct {
 
 // MynahICDiagnosisReportImageMetadata defines the metadata associated with an image
 type MynahICDiagnosisReportImageMetadata struct {
+	//the version id for the file
+	ImageVersionId MynahFileVersionId `json:"image_version_id"`
 	//the class
 	Class string `json:"class"`
 	//whether the image was mislabeled
@@ -36,4 +38,16 @@ type MynahICDiagnosisReport struct {
 	ImageData map[string]*MynahICDiagnosisReportImageMetadata `json:"image_data" xorm:"TEXT 'image_data'"`
 	//the class breakdown table info, map class to buckets
 	Breakdown map[string]*MynahICDiagnosisReportBucket `json:"breakdown" xorm:"TEXT 'breakdown'"`
+}
+
+// NewICDiagnosisReport creates a new report
+func NewICDiagnosisReport(creator *MynahUser) *MynahICDiagnosisReport {
+	report := MynahICDiagnosisReport{
+		MynahReport: *NewReport(creator),
+		ImageIds:    make([]string, 0),
+		ImageData:   make(map[string]*MynahICDiagnosisReportImageMetadata),
+		Breakdown:   make(map[string]*MynahICDiagnosisReportBucket),
+	}
+	report.UserPermissions[creator.Uuid] = Owner
+	return &report
 }

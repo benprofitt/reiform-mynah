@@ -29,23 +29,17 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	//register the websocket endpoint
 	router.HandleHTTPRequest("GET", "websocket", wsProvider.ServerHandler())
 
-	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileTagKey), handleViewFile(dbProvider, storageProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey), handleViewFile(dbProvider, storageProvider))
 	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 
-	router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(dbProvider))
+	router.HandleHTTPRequest("POST", "icdataset/create", icDatasetCreate(dbProvider, storageProvider))
 	router.HandleHTTPRequest("GET", "icdataset/list", icDatasetList(dbProvider))
 
 	//router.HandleHTTPRequest("POST", "ocdataset/create", ocDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("GET", "oddataset/list", odDatasetList(dbProvider))
 
-	router.HandleHTTPRequest("POST", "icproject/create", icProjectCreate(dbProvider))
-	router.HandleHTTPRequest("GET", "icproject/list", icProjectList(dbProvider))
-
-	router.HandleHTTPRequest("POST", "odproject/create", odProjectCreate(dbProvider))
-	router.HandleHTTPRequest("GET", "odproject/list", odProjectList(dbProvider))
-
 	router.HandleHTTPRequest("GET",
-		fmt.Sprintf("icproject/report/{%s}", icReportKey),
+		fmt.Sprintf("icdataset/report/{%s}", icReportKey),
 		icDiagnosisReportView(dbProvider))
 
 	//register the ic diagnosis job endpoint

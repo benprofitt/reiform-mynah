@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"crypto/sha1" // #nosec
 	"fmt"
 	"github.com/gabriel-vasile/mimetype"
 	"io"
@@ -36,16 +37,28 @@ func isImageType(mType *mimetype.MIME) bool {
 	}
 }
 
-// return a path for this file by tag
-func (s *localStorage) getTaggedPath(file *model.MynahFile, tag model.MynahFileTag) string {
-	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", file.Uuid, tag))
+// return a path for this file by version id
+func (s *localStorage) getVersionedPath(file *model.MynahFile, versionId model.MynahFileVersionId) string {
+	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", file.Uuid, versionId))
 }
 
-//copy the contents of a file to another with a different tag. Note: creates the new tag
-func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, dest model.MynahFileTag) error {
-	//check that the source tag exists locally
+//create a new local storage provider
+func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimpl.PyImplProvider) (*localStorage, error) {
+	//create the storage directory if it doesn't exist
+	if err := os.MkdirAll(mynahSettings.StorageSettings.LocalPath, os.ModePerm); err != nil {
+		return nil, err
+	}
+	return &localStorage{
+		localPath:      mynahSettings.StorageSettings.LocalPath,
+		pyImplProvider: pyImplProvider,
+	}, nil
+}
+
+// CopyFile copy the contents of a file to another with a different version id. Note: creates the new version id
+func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersionId, dest model.MynahFileVersionId) error {
+	//check that the source version id exists locally
 	if version, ok := file.Versions[src]; !ok {
-		return fmt.Errorf("source tag for file copy doesn't exist")
+		return fmt.Errorf("source version id for file copy doesn't exist")
 	} else if !version.ExistsLocally {
 		return fmt.Errorf("source for file copy doesn't exist locally")
 	}
@@ -60,7 +73,7 @@ func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, 
 		file.Versions[dest].Metadata[k] = v
 	}
 
-	srcPath := s.getTaggedPath(file, src)
+	srcPath := s.getVersionedPath(file, src)
 
 	//verify that the source file exists
 	sourceFileStat, err := os.Stat(filepath.Clean(srcPath))
@@ -70,7 +83,7 @@ func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, 
 
 	//check the mode
 	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("source file %s with tag %s is not a regular file", file.Uuid, src)
+		return fmt.Errorf("source file %s with version id %s is not a regular file", file.Uuid, src)
 	}
 
 	source, err := os.Open(filepath.Clean(srcPath))
@@ -84,7 +97,7 @@ func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, 
 		}
 	}(source)
 
-	destPath := s.getTaggedPath(file, dest)
+	destPath := s.getVersionedPath(file, dest)
 
 	destination, err := os.Create(filepath.Clean(destPath))
 	if err != nil {
@@ -101,30 +114,18 @@ func (s *localStorage) copyToTag(file *model.MynahFile, src model.MynahFileTag, 
 	return err
 }
 
-//create a new local storage provider
-func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimpl.PyImplProvider) (*localStorage, error) {
-	//create the storage directory if it doesn't exist
-	if err := os.MkdirAll(mynahSettings.StorageSettings.LocalPath, os.ModePerm); err != nil {
-		return nil, err
-	}
-	return &localStorage{
-		localPath:      mynahSettings.StorageSettings.LocalPath,
-		pyImplProvider: pyImplProvider,
-	}, nil
-}
-
 // StoreFile Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, handler func(*os.File) error) error {
-	//insert the default tag if not found
-	if _, ok := file.Versions[model.TagOriginal]; !ok {
-		file.Versions[model.TagOriginal] = &model.MynahFileVersion{
+	//insert the default version id if not found
+	if _, ok := file.Versions[model.OriginalVersionId]; !ok {
+		file.Versions[model.OriginalVersionId] = &model.MynahFileVersion{
 			ExistsLocally: true,
 			Metadata:      make(model.FileMetadata),
 		}
 	}
 
 	//create a local storage path for the file
-	fullPath := s.getTaggedPath(file, model.TagOriginal)
+	fullPath := s.getVersionedPath(file, model.OriginalVersionId)
 
 	//create the local file to write to
 	if localFile, err := os.Create(filepath.Clean(fullPath)); err == nil {
@@ -137,7 +138,7 @@ func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, h
 
 		//get the file size
 		if stat, err := localFile.Stat(); err == nil {
-			file.Versions[model.TagOriginal].Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
+			file.Versions[model.OriginalVersionId].Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
 
 		} else {
 			log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)
@@ -153,9 +154,9 @@ func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, h
 				})
 
 				if err == nil {
-					file.Versions[model.TagOriginal].Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
-					file.Versions[model.TagOriginal].Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
-					file.Versions[model.TagOriginal].Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
+					file.Versions[model.OriginalVersionId].Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
+					file.Versions[model.OriginalVersionId].Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
+					file.Versions[model.OriginalVersionId].Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
 				} else {
 					log.Warnf("failed to get metadata for %s: %s", file.Uuid, err)
 				}
@@ -176,27 +177,27 @@ func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, h
 		return err
 	}
 
-	//add the "latest" tag if not found
-	if _, ok := file.Versions[model.TagLatest]; !ok {
+	//add the "latest" version id if not found
+	if _, ok := file.Versions[model.LatestVersionId]; !ok {
 		//copy the file
-		return s.copyToTag(file, model.TagOriginal, model.TagLatest)
+		return s.CopyFile(file, model.OriginalVersionId, model.LatestVersionId)
 
 	} else {
-		log.Infof("found latest tag when storing file, will not duplicate (if this is a new file, this is a bug)")
+		log.Infof("found latest version id when storing file, will not duplicate (if this is a new file, this is a bug)")
 	}
 
 	return nil
 }
 
 // GetStoredFile get the contents of a stored file
-func (s *localStorage) GetStoredFile(file *model.MynahFile, tag model.MynahFileTag, handler func(*string) error) error {
-	if location, ok := file.Versions[tag]; ok {
+func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(*string) error) error {
+	if location, ok := file.Versions[versionId]; ok {
 		if !location.ExistsLocally {
-			return fmt.Errorf("file %s had a valid tag (%s) but is not available locally", file.Uuid, tag)
+			return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", file.Uuid, versionId)
 		}
 
 		//create the full temp path
-		fullPath := s.getTaggedPath(file, tag)
+		fullPath := s.getVersionedPath(file, versionId)
 
 		//verify that the file exists
 		_, err := os.Stat(fullPath)
@@ -205,14 +206,13 @@ func (s *localStorage) GetStoredFile(file *model.MynahFile, tag model.MynahFileT
 		}
 		return handler(&fullPath)
 	} else {
-		return fmt.Errorf("invalid tag for file %s: %s", file.Uuid, tag)
+		return fmt.Errorf("invalid version id for file %s: %s", file.Uuid, versionId)
 	}
 }
 
 // GetTmpPath get the temporary path to a file
-func (s *localStorage) GetTmpPath(file *model.MynahFile, tag model.MynahFileTag) (string, error) {
-
-	fullPath := s.getTaggedPath(file, tag)
+func (s *localStorage) GetTmpPath(file *model.MynahFile, versionId model.MynahFileVersionId) (string, error) {
+	fullPath := s.getVersionedPath(file, versionId)
 
 	//verify that the file exists
 	_, err := os.Stat(fullPath)
@@ -222,13 +222,38 @@ func (s *localStorage) GetTmpPath(file *model.MynahFile, tag model.MynahFileTag)
 	return fullPath, nil
 }
 
+// GenerateSHA1Id takes the SHA1 of the latest version of the file
+func (s *localStorage) GenerateSHA1Id(file *model.MynahFile) (model.MynahFileVersionId, error) {
+	fullPath := s.getVersionedPath(file, model.LatestVersionId)
+
+	//verify that the file exists
+	_, err := os.Stat(fullPath)
+	if err != nil {
+		return "", err
+	}
+
+	fileReader, err := os.Open(filepath.Clean(fullPath))
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha1.New() // #nosec
+	if _, err := io.Copy(hash, fileReader); err != nil {
+		log.Fatal(err)
+	}
+	sum := hash.Sum(nil)
+
+	//create a new versionId from the hash
+	return model.MynahFileVersionId(fmt.Sprintf("%x", sum)), nil
+}
+
 // DeleteFile delete a stored file
 func (s *localStorage) DeleteFile(file *model.MynahFile) error {
-	for tag, version := range file.Versions {
+	for versionId, version := range file.Versions {
 		if version.ExistsLocally {
-			if err := os.Remove(s.getTaggedPath(file, tag)); err != nil {
-				return fmt.Errorf("failed to delete file %s with tag %s locally: %s",
-					file.Uuid, tag, err)
+			if err := os.Remove(s.getVersionedPath(file, versionId)); err != nil {
+				return fmt.Errorf("failed to delete file %s with versionId %s locally: %s",
+					file.Uuid, versionId, err)
 			}
 		}
 	}

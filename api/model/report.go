@@ -2,6 +2,8 @@
 
 package model
 
+import "github.com/google/uuid"
+
 // MynahAbstractReport mynah abstract type
 type MynahAbstractReport interface {
 	GetBaseReport() *MynahReport
@@ -22,11 +24,20 @@ func (d *MynahReport) GetBaseReport() *MynahReport {
 	return d
 }
 
-// GetPermissions Get the permissions that a user has on a given project
+// GetPermissions Get the permissions that a user has on a given dataset
 func (p *MynahReport) GetPermissions(user *MynahUser) Permissions {
 	if v, found := p.UserPermissions[user.Uuid]; found {
 		return v
 	} else {
 		return None
+	}
+}
+
+// NewReport creates a new report
+func NewReport(creator *MynahUser) *MynahReport {
+	return &MynahReport{
+		Uuid:            uuid.NewString(),
+		OrgId:           creator.OrgId,
+		UserPermissions: make(map[string]Permissions),
 	}
 }

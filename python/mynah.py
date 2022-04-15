@@ -36,7 +36,7 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
 
     # response
     return json.dumps({
-                        "project_uuid" : request["project_uuid"],
+                        "dataset_uuid" : request["dataset_uuid"],
                         "tasks" : task_results
                       })
 
@@ -54,7 +54,7 @@ def start_cleaning_job(uuid: str, request_str: str, sock_addr: str) -> str:
 
     # response
     return json.dumps({
-                        "project_uuid" : request["project_uuid"],
+                        "dataset_uuid" : request["dataset_uuid"],
                         "datasets" : cleaning_results
                       })
 

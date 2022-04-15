@@ -9,6 +9,7 @@ import (
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/tools"
 )
 
 const icReportKey string = "report"
@@ -17,7 +18,7 @@ const icReportClassKey = "class"
 
 // icDiagnosisReportFilter filters a report based on the provided options
 func icDiagnosisReportFilter(report *model.MynahICDiagnosisReport,
-	classes UniqueSet,
+	classes tools.UniqueSet,
 	badImagesFilter bool) *model.MynahICDiagnosisReport {
 
 	imageIds := make([]string, 0)
@@ -47,7 +48,7 @@ func icDiagnosisReportFilter(report *model.MynahICDiagnosisReport,
 	return report
 }
 
-// get a report from a given project
+// get a report from a given dataset
 func icDiagnosisReportView(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
@@ -68,7 +69,7 @@ func icDiagnosisReportView(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		classes := NewUniqueSet()
+		classes := tools.NewUniqueSet()
 
 		//class filtering options
 		if vals, ok := request.Form[icReportClassKey]; ok {

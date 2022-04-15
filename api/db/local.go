@@ -89,7 +89,6 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 	if !exists {
 		//create tables and initial orgs
 		tableErr := engine.CreateTables(&model.MynahUser{},
-			&model.MynahICProject{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
@@ -100,7 +99,6 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 		}
 
 		syncErr := engine.Sync2(&model.MynahUser{},
-			&model.MynahICProject{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
@@ -150,57 +148,6 @@ func (d *localDB) GetUser(uuid *string, requestor *model.MynahUser) (*model.Myna
 	} else {
 		return nil, err
 	}
-}
-
-// GetICProject get a project by id or return an error, second arg is requestor
-func (d *localDB) GetICProject(uuid *string, requestor *model.MynahUser) (*model.MynahICProject, error) {
-	project := model.MynahICProject{
-		MynahProject: model.MynahProject{
-			Uuid: *uuid,
-		},
-		Datasets: make([]string, 0),
-		Reports:  make([]string, 0),
-	}
-
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&project)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, fmt.Errorf("project %s not found", *uuid)
-	}
-
-	//check that the user has permission
-	if commonErr := commonGetProject(&project, requestor); commonErr != nil {
-		return nil, commonErr
-	}
-
-	return &project, nil
-}
-
-// GetODProject get a project by id or return an error, second arg is requestor
-func (d *localDB) GetODProject(uuid *string, requestor *model.MynahUser) (*model.MynahODProject, error) {
-	project := model.MynahODProject{
-		MynahProject: model.MynahProject{
-			Uuid: *uuid,
-		},
-		Datasets: make([]string, 0),
-	}
-
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&project)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, fmt.Errorf("project %s not found", *uuid)
-	}
-
-	//check that the user has permission
-	if commonErr := commonGetProject(&project, requestor); commonErr != nil {
-		return nil, commonErr
-	}
-
-	return &project, nil
 }
 
 // GetFile get a file from the database
@@ -255,7 +202,6 @@ func (d *localDB) GetICDataset(uuid *string, requestor *model.MynahUser) (*model
 		MynahDataset: model.MynahDataset{
 			Uuid: *uuid,
 		},
-		Files: make(map[string]*model.MynahICDatasetFile),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
@@ -280,9 +226,6 @@ func (d *localDB) GetODDataset(uuid *string, requestor *model.MynahUser) (*model
 		MynahDataset: model.MynahDataset{
 			Uuid: *uuid,
 		},
-		Entities:     make(map[string]*model.MynahODDatasetEntity),
-		Files:        make(map[string]*model.MynahODDatasetFile),
-		FileEntities: make(map[string][]string),
 	}
 
 	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
@@ -384,22 +327,6 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 	return users, err
 }
 
-// ListICProjects list all projects, arg is requestor
-func (d *localDB) ListICProjects(requestor *model.MynahUser) (projects []*model.MynahICProject, err error) {
-	//list projects
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&projects)
-	//filter for the projects that this user can view
-	return commonListICProjects(projects, requestor), err
-}
-
-// ListODProjects list all projects, arg is requestor
-func (d *localDB) ListODProjects(requestor *model.MynahUser) (projects []*model.MynahODProject, err error) {
-	//list projects
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&projects)
-	//filter for the projects that this user can view
-	return commonListODProjects(projects, requestor), err
-}
-
 // ListFiles list all files, arg is requestor
 func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
 	//list files
@@ -447,45 +374,9 @@ func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.Myn
 	return user, nil
 }
 
-// CreateICProject create a new project, second arg is creator
-func (d *localDB) CreateICProject(creator *model.MynahUser, precommit func(*model.MynahICProject) error) (*model.MynahICProject, error) {
-	project := commonCreateICProject(creator)
-
-	if err := precommit(project); err != nil {
-		return nil, err
-	}
-
-	affected, err := d.engine.Insert(project)
-	if err != nil {
-		return nil, err
-	}
-	if affected == 0 {
-		return nil, fmt.Errorf("icproject %s not created (no records affected)", project.Uuid)
-	}
-	return project, nil
-}
-
-// CreateODProject create a new project, arg is creator
-func (d *localDB) CreateODProject(creator *model.MynahUser, precommit func(*model.MynahODProject) error) (*model.MynahODProject, error) {
-	project := commonCreateODProject(creator)
-
-	if err := precommit(project); err != nil {
-		return nil, err
-	}
-
-	affected, err := d.engine.Insert(project)
-	if err != nil {
-		return nil, err
-	}
-	if affected == 0 {
-		return nil, fmt.Errorf("odproject %s not created (no records affected)", project.Uuid)
-	}
-	return project, nil
-}
-
 // CreateFile create a new file, second arg is creator
 func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.MynahFile) error) (*model.MynahFile, error) {
-	file := commonCreateFile(creator)
+	file := model.NewFile(creator)
 
 	//since we can't update files once created, we may need to fail during creation when writing to local storage
 	if err := precommit(file); err != nil {
@@ -504,7 +395,7 @@ func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.Myn
 
 // CreateICDataset create a new dataset
 func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*model.MynahICDataset) error) (*model.MynahICDataset, error) {
-	dataset := commonCreateICDataset(creator)
+	dataset := model.NewICDataset(creator)
 
 	if err := precommit(dataset); err != nil {
 		return nil, err
@@ -522,7 +413,7 @@ func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*mode
 
 // CreateODDataset create a new dataset
 func (d *localDB) CreateODDataset(creator *model.MynahUser, precommit func(*model.MynahODDataset) error) (*model.MynahODDataset, error) {
-	dataset := commonCreateODDataset(creator)
+	dataset := model.NewODDataset(creator)
 
 	if err := precommit(dataset); err != nil {
 		return nil, err
@@ -540,7 +431,7 @@ func (d *localDB) CreateODDataset(creator *model.MynahUser, precommit func(*mode
 
 // CreateICDiagnosisReport creates a new ic diagnosis report in the database
 func (d *localDB) CreateICDiagnosisReport(creator *model.MynahUser, precommit func(*model.MynahICDiagnosisReport) error) (*model.MynahICDiagnosisReport, error) {
-	report := commonCreateICDiagnosisReport(creator)
+	report := model.NewICDiagnosisReport(creator)
 
 	if err := precommit(report); err != nil {
 		return nil, err
@@ -567,37 +458,6 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 	}
 	if affected == 0 {
 		return fmt.Errorf("user %s not updated (no records affected)", user.Uuid)
-	}
-	return nil
-}
-
-// UpdateICProject update a project in the database
-func (d *localDB) UpdateICProject(project *model.MynahICProject, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateProject(project, requestor, &keys); commonErr != nil {
-		return commonErr
-	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(project)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return fmt.Errorf("icproject %s not updated (no records affected)", project.Uuid)
-	}
-	return nil
-}
-
-// UpdateODProject update a project in the database. First arg is uuid of project to update, second is requestor, remaining
-//are keys to update
-func (d *localDB) UpdateODProject(project *model.MynahODProject, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateProject(project, requestor, &keys); commonErr != nil {
-		return commonErr
-	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(project)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return fmt.Errorf("odproject %s not updated (no records affected)", project.Uuid)
 	}
 	return nil
 }
@@ -647,53 +507,13 @@ func (d *localDB) DeleteUser(uuid *string, requestor *model.MynahUser) error {
 	return nil
 }
 
-// DeleteICProject delete a project in the database, second arg is requestor
-func (d *localDB) DeleteICProject(uuid *string, requestor *model.MynahUser) error {
-	project, getErr := d.GetICProject(uuid, requestor)
-	if getErr != nil {
-		return getErr
-	}
-	//get the project to check permissions
-	if commonErr := commonDeleteProject(project, requestor); commonErr != nil {
-		return commonErr
-	}
-	affected, err := d.engine.Delete(project)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return fmt.Errorf("icproject %s not deleted (no records affected)", *uuid)
-	}
-	return nil
-}
-
-// DeleteODProject delete a project in the database, second arg is requestor
-func (d *localDB) DeleteODProject(uuid *string, requestor *model.MynahUser) error {
-	project, getErr := d.GetODProject(uuid, requestor)
-	if getErr != nil {
-		return getErr
-	}
-	//get the project to check permissions
-	if commonErr := commonDeleteProject(project, requestor); commonErr != nil {
-		return commonErr
-	}
-	affected, err := d.engine.Delete(project)
-	if err != nil {
-		return err
-	}
-	if affected == 0 {
-		return fmt.Errorf("odproject %s not deleted (no records affected)", *uuid)
-	}
-	return nil
-}
-
 // DeleteFile delete a file in the database, second arg is requestor
 func (d *localDB) DeleteFile(uuid *string, requestor *model.MynahUser) error {
 	file, getErr := d.GetFile(uuid, requestor)
 	if getErr != nil {
 		return getErr
 	}
-	//get the project to check permissions
+	//get the file to check permissions
 	if commonErr := commonDeleteFile(file, requestor); commonErr != nil {
 		return commonErr
 	}
@@ -714,7 +534,7 @@ func (d *localDB) DeleteICDataset(uuid *string, requestor *model.MynahUser) erro
 	if getErr != nil {
 		return getErr
 	}
-	//get the project to check permissions
+	//get the dataset to check permissions
 	if commonErr := commonDeleteDataset(dataset, requestor); commonErr != nil {
 		return commonErr
 	}
@@ -735,7 +555,7 @@ func (d *localDB) DeleteODDataset(uuid *string, requestor *model.MynahUser) erro
 	if getErr != nil {
 		return getErr
 	}
-	//get the project to check permissions
+	//get the dataset to check permissions
 	if commonErr := commonDeleteDataset(dataset, requestor); commonErr != nil {
 		return commonErr
 	}

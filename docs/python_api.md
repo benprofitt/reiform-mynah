@@ -9,7 +9,7 @@
   ```json
   {
     "auto": false,
-    "project_uuid": "uuid_of_project",
+    "dataset_uuid": "uuid_of_dataset",
     "dataset": {
       "classes" : ["class1", "class2"],
       "class_files" : {
@@ -53,7 +53,7 @@
 - Output:
  ```json
   {
-    "project_uuid": "uuid_of_project",
+    "dataset_uuid": "uuid_of_dataset",
     "tasks" : [
       {
         "name" : "mislabeled_images",
@@ -193,7 +193,7 @@
   ```json
   {
     "auto": true,
-    "project_uuid": "uuid_of_project",
+    "dataset_uuid": "uuid_of_dataset",
     "tasks" : [
       {
         "name" : "mislabeled_images",
@@ -327,7 +327,7 @@
 - Output:
   ```json
   {
-    "project_uuid": "uuid_of_project",
+    "dataset_uuid": "uuid_of_dataset",
       "corrected" : {
         "classes" : ["class1", "class2"],
         "class_files" : {

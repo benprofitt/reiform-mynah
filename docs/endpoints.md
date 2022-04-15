@@ -17,14 +17,31 @@
     "dataset_name": "",
     "date_created" : 12341212,
     "date_modified" : 124123412,
-    "files" : {
-      "some fileid" : {
-        "current_class" : "",
-        "original_class" : "",
-        "confidence_vectors" : [[]]
+    "versions": {
+      "0" : {
+        "files" : {
+          "some fileid" : {
+            "image_version_id" : "0932dn0nw098n3",
+            "current_class" : "",
+            "original_class" : "",
+            "confidence_vectors" : [[]],
+            "projections" : {
+              "some value": [
+                0,
+                ...
+              ]
+            }
+          },
+          ...
+        },
+        "reports" : [
+          "reportid",
+          ...
+        ]
       },
-    ...
+      ...
     }
+
   }
   ```
 ### `MynahODDataset`
@@ -35,97 +52,64 @@
     "dataset_name": "",
     "date_created" : 12341212,
     "date_modified" : 124123412,
-    "entities" : {
-      "uuid1" : {
-        "current_label" : "label1",
-        "original_label" : "label2",
-        "vertices" : [[3,4], [3,7], [8,7], [8,4]]
-      },
-      "uuid2" : {
-        "current_label" : "label3",
-        "original_label" : "label1",
-        "vertices" : [[10,4], [7,54], [7,12], [4,6]]
-      },
-      ...
-    },
-    "files" : {
-      "fileid1" : {
+    "versions" : {
+      "0" : {
         "entities" : {
+          "uuid1" : {
+            "current_label" : "label1",
+            "original_label" : "label2",
+            "vertices" : [[3,4], [3,7], [8,7], [8,4]]
+          },
+          "uuid2" : {
+            "current_label" : "label3",
+            "original_label" : "label1",
+            "vertices" : [[10,4], [7,54], [7,12], [4,6]]
+          },
+          ...
+        },
+        "files" : {
+          "fileid1" : {
+            "image_version_id" : "asidnadasd",
+            "entities" : {
+              "label1" : [
+                "uuid1",
+                "uuid2"
+              ],
+              ...
+            }
+          },
+          "fileid2" : {
+            "image_version_id" : "asidnadasd",
+            "entities" : {
+              "label2" : [
+                "uuid1"
+              ],
+              "label3" : [
+                "uuid2"
+              ],
+              ...
+            }
+          },
+          ...
+        },
+        "file_entities" : {
           "label1" : [
-            "uuid1",
-            "uuid2"
+            "fileid1",
+            ...
+          ],
+          "label2" : [
+            "fileid2",
+            ...
+          ],
+          "label3" : [
+            "fileid3",
+            ...
           ],
           ...
         }
       },
-      "fileid2" : {
-        "entities" : {
-          "label2" : [
-            "uuid1"
-          ],
-          "label3" : [
-            "uuid2"
-          ],
-          ...
-        } 
-      },
-      ...
-    },
-    "file_entities" : {
-      "label1" : [
-        "fileid1",
-        ...
-      ],
-      "label2" : [
-        "fileid2",
-        ...
-      ],
-      "label3" : [
-        "fileid3",
-        ...
-      ],
       ...
     }
-  }
-  ```
-### `MynahICProject`
-  ```json
-  {
-    "uuid" : "",
-    "user_permissions" : {
-      "some uuid" : 0,
-      ...
-    },
-    "project_name" : "",
-    "date_created" : 12341212,
-    "date_modified" : 124123412,
-    "datasets" : [
-      "ic dataset id",
-      ...
-    ],
-    "reports" : [
-      "reportid1",
-      "reportid2",
-      ...
-    ]
-  }
-  ```
-
-### `MynahODProject`
-  ```json
-  {
-    "uuid" : "",
-    "date_created" : 12341212,
-    "date_modified" : 124123412,
-    "user_permissions" : {
-      "some uuid" : 0,
-      ...
-    },
-    "project_name" : "",
-    "datasets" : [
-      "od dataset id",
-      ...
-    ]
   }
   ```
 
@@ -156,7 +140,18 @@
            "size": "",
            ...      
         }     
-      } 
+      },
+      "dsa98fn983nv9012dqwf4vew" : {
+        "exists_locally" : true,
+        "metadata" : {
+          "width" : "",
+          "length" : "",
+          "channels" : "",
+          "size": "",
+          ...
+        }
+      },
+      ...
     }
   }
   ```
@@ -172,6 +167,7 @@
     ],
     "image_data": {
       "fileid1": {
+        "image_version_id": "908ne9812en128easd2qe12",
         "class": "class1",
         "mislabeled": true,
         "point": {
@@ -183,6 +179,7 @@
         ]
       },
       "fileid2": {
+        "image_version_id": "asd8932jn9uiqna9sdsar3",
         "class": "class2",
         "mislabeled": false,
         "point": {
@@ -295,81 +292,24 @@
   type: MynahICDataset
   ```
 
-## Project GET Endpoints
-
-### List Projects
-- `GET /api/v1/icproject/list`
-- Response:
-  ```json
-  [
-    type: MynahICProject
-  ]
-  ```
-
-- `GET /api/v1/odproject/list`
-- Response:
-  ```json
-  [
-    type: MynahODProject
-  ]
-  ```
-
-## Project Action Endpoints
-
-### Creating an image classification project
-- `POST /api/v1/icproject/create`
-- Request body:
-  ```json
-  {
-    "name" : "",
-    "datasets" : [
-      "some id"
-    ]
-  }
-  ```
-  - `name`: the name to assign the project
-  - `datasets` : datasets by id to include:
-- Response:
-  ```json
-  type: MynahICProject
-  ```
-
-### Creating an object detection project
-- `POST /api/v1/odproject/create`
-- Request body:
-  ```json
-  {
-    "name" : "",
-    "datasets" : [
-      "some id"
-    ]
-  }
-  ```
-  - `name`: the name to assign the project
-  - `datasets` : datasets by id to include:
-- Response:
-  ```json
-  type: MynahODProject
-  ```
-
 ### Starting an image classification diagnosis job
 - `POST /api/v1/ic/diagnosis/start`
 - Request body
   ```json
   {
-    "project_uuid" : "uuid"
+    "dataset_uuid" : "uuid"
   }
   ```
-    - `project_uuid`: The id of the project to diagnose
-      - Combines datasets in the project and analyzes all files
+    - `dataset_uuid`: The id of the dataset to diagnose
 
 ### Getting an image classification diagnosis report
-- `GET /api/v1/icproject/report/{reportid}`
+- `GET /api/v1/icdataset/report/{reportid}`
 - Params
   - `bad_images=true`
   - `class=class1&class=class2 ...`
-  - Example: `GET /api/v1/icproject/report/1?bad_images=true&class=class1&class=class2`
+  - Example: `GET /api/v1/icdataset/report/1?bad_images=true&class=class1&class=class2`
 - Response:
   ```json
   type: MynahICDiagnosisReport
   ```
+  - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_tag"]`

@@ -45,9 +45,9 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
 
     contents = json.loads(request_str)
-    project_uuid = contents['project_uuid']
+    dataset_uuid = contents['dataset_uuid']
     t = Template('''{
-"project_uuid": "${project_uuid}",
+"dataset_uuid": "${dataset_uuid}",
 "tasks" : [
     {
         "name" : "mislabeled_images",
@@ -114,7 +114,7 @@ def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
     }
 ]
 }''')
-    return t.substitute(project_uuid=project_uuid)
+    return t.substitute(dataset_uuid=dataset_uuid)
 
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''

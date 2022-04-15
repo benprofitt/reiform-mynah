@@ -1,4 +1,25 @@
+import logging, sys
+from __future__ import annotations
 
+class ReiformLogger(object):
+
+    def __new__(cls: type[ReiformLogger]) -> ReiformLogger:
+        if not hasattr(cls, 'instance'):
+            log = logging.getLogger()
+            log.setLevel(logging.DEBUG)
+            stream = logging.StreamHandler(sys.stderr)
+            formatter = logging.Formatter('mynah-python %(asctime)s %(message)s')
+            stream.setFormatter(formatter)
+            stream.setLevel(logging.DEBUG)
+            log.addHandler(stream)
+            cls.instance = super(ReiformLogger, cls).__new__(cls)
+            cls.logger = logging
+
+        return cls.instance
+
+class ReiformWarning():
+    def __init__(self, message : str="Unimplemented Warning Type"):
+        ReiformLogger().logging(message)
 
 class ReiformException(Exception):
     def __init__(self, message : str="Unimplemented Exception Type"):

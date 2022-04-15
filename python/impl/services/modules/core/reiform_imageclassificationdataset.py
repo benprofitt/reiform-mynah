@@ -1,76 +1,13 @@
 from __future__ import annotations
-from .resources import *
+from .reiform_imagedataset import *
 
-class Projections():
-    def __init__(self) -> None:
-        self.projections : Dict[str, NDArray] = {}
+class ReiformICFile(ReiformImageFile):
+    def __init__(self, name: str, label : str) -> None:
+        super().__init__(name)
 
-    def from_json(self, projs : Dict[str, List[float]]) -> None:
-        for name, arr in projs.items():
-            self.projections[name] = np.array(arr)
-
-    def to_json(self) -> Dict[str, List[float]]:
-        results : Dict[str, List[float]] = {}
-        for name, arr in self.projections.items():
-            results[name] = arr.tolist()
-
-        return results
-
-    def insert(self, label: str, proj : NDArray) -> None:
-        self.projections[label] = proj
-
-    def get(self, label: str) -> NDArray:
-        return self.projections[label]
-
-    def get_size(self, label: str) -> int:
-        return self.get(label).size
-
-    def merge(self, other: Projections) -> Projections:
-        new_proj : Projections = Projections()
-
-        for key, val in self.projections.items():
-            new_proj.insert(key, val)
-
-        for key, val in other.projections.items():
-            new_proj.insert(key, val)
-
-        return new_proj
-
-    def __deepcopy__(self, memo) -> Projections:
-        copied : Projections = Projections()
-        copied.projections = copy.deepcopy(self.projections)
-        return copied
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, Projections):
-            return False
-        if len(self.projections) != len(__o.projections):
-            return False
-
-        for k, arr in self.projections.items():
-            if k in __o.projections:
-                if not (arr == __o.projections[k]).all():
-                    return False
-
-            else:
-                return False
-
-        return True
-
-class ReiformICFile():
-    def __init__(self, name : str, label : str) -> None:
-
-        self.uuid : str = ""
-
-        self.name : str = name
         self.current_class : str = label
         self.original_class : str = label
 
-        self.width : int = 0
-        self.height : int = 0
-        self.channels : int = 3
-
-        self.projections : Projections = Projections()
         self.confidence_vectors : List[NDArray] = []
 
         self.was_outlier : bool = False
@@ -93,17 +30,11 @@ class ReiformICFile():
 
         return results
 
-    def get_projection_size(self, label: str):
-        self.projections.get_size(label)
-
     def set_was_outlier(self, value : bool = True):
         self.was_outlier = value
 
     def get_was_outlier(self, value: bool):
         return self.was_outlier
-
-    def get_name(self) -> str:
-        return self.name
 
     def set_class(self, label : str) -> None:
         self.current_class = label
@@ -113,15 +44,6 @@ class ReiformICFile():
 
     def get_original_class(self) -> str:
         return self.original_class
-
-    def add_projection(self, label : str, proj : NDArray) -> None:
-        self.projections.insert(label, proj)
-
-    def get_projection(self, label : str) -> NDArray:
-        return self.projections.get(label)
-
-    def clear_projections(self) -> None:
-        self.projections = Projections()
 
     def count_confidence_vectors(self) -> int:
         return len(self.confidence_vectors)
@@ -169,10 +91,9 @@ class ReiformICFile():
                 (np.array(self.confidence_vectors) == np.array(__o.confidence_vectors)).all())
 
 
-class ReiformICDataSet():
-    def __init__(self, classes : List[str] = []) -> None:
-
-        self.class_list : List[str] = classes
+class ReiformICDataSet(ReiformImageDataset):
+    def __init__(self, classes: List[str] = []) -> None:
+        super().__init__(classes)
 
         self.files : Dict[str, Dict[str, ReiformICFile]] = {}
         for c in self.class_list:
@@ -187,9 +108,6 @@ class ReiformICDataSet():
 
         return self.files == __o.files
 
-    def classes(self) -> List[str]:
-        return self.class_list
-
     def empty(self) -> bool :
         return (self.file_count() == 0)
 
@@ -200,23 +118,17 @@ class ReiformICDataSet():
 
         return total
 
-    def add_file(self, file : ReiformICFile) -> None:
+    def add_file(self, file : ReiformImageFile) -> None:
         if file.current_class not in self.class_list:
-            print("Warning: File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))
+            ReiformWarning("File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))
             return
         self.files[file.get_class()][file.get_name()] = file
 
-    def contains(self, filename : str):
-        pass
-
-    def get_file(self, label : str, name : str) -> ReiformICFile:
-        if name in self.files[label]:
-            return self.files[label][name]
-        else:
-            raise ReiformICDataSetException("File not in dataset", "get_file")
-
-    def get_items(self, label : str):
-        return self.files[label].items()
+    def get_file(self, label : str, name : str) -> ReiformImageFile:
+            if name in self.files[label]:
+                return self.files[label][name]
+            else:
+                raise ReiformICDataSetException("File not in dataset", "get_file")
 
     def remove_file(self, label : str, name : str) -> None:
         if label in self.files:

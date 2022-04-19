@@ -1,4 +1,5 @@
 from .model_resources import *
+from .neural_svm import *
 
 class EncoderAutoNet(nn.Module):
     def __init__(self, in_size: int, edge_size: int, latent_size: int) -> None:
@@ -35,7 +36,7 @@ class EncoderAutoNet(nn.Module):
 
         if VERBOSE:
             for l in self.conv_seq:
-                print(x.size())
+                ReiformInfo(str(x.size()))
                 x = l(x)
         else:
             x = self.conv_seq(x)
@@ -154,56 +155,89 @@ def vae_projection_loss(recon_x, x, mu, logvar, edge_size):
     # and the distribution estimated by the generator for the given image.
     kldivergence = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     
-    # Including the distance from 0 as a positive correlation in the loss drives the latent 
-    # projections away from the origin to improve separation. We don't want them to blow up, 
-    # so we limit the reward to 10
-    dist = min(torch.linalg.vector_norm(torch.linalg.vector_norm(mu, ord=float('inf'), dim=1), ord=float('-inf')), 1)
+    return (recon_loss + VARIATIONAL_BETA * kldivergence )
 
-    # print("Loss calc:")
-    # print(recon_loss)
-    # print(kldivergence)
-    # print(dist)
+def train_loss_from_svm(mu, labels, epoch, proj_dataloader, enc):
+    
+    X = []
+    Y = []
+    enc.eval()
+    for image_batch, label, name in proj_dataloader:
+        torch.cuda.empty_cache()
+        if random.random() < 0.2:
+            torch.cuda.empty_cache()
+            image_batch = image_batch.to(device)
+            label = label.to(device)
+            X.append(enc(image_batch))
+            Y.append(label)
+    enc.train()
+    model = train_SVM(X, Y, 2, 10, 50)
+    del X
+    return eval_SVM(mu, labels, model)
 
-    return (recon_loss + VARIATIONAL_BETA * kldivergence ) / (dist)
+def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.data.DataLoader, 
+                                    proj_dataloader : torch.utils.data.DataLoader, 
+                                    epochs: int, optimizer_ : torch.optim.Optimizer):
 
-
-def train_projection_vae(vae : VAEAutoNet, dataloader : torch.utils.data.DataLoader, epochs: int, optimizer : torch.optim.Optimizer):
-
-  # EX: optimizer = torch.optim.Adam(params=vae.parameters(), lr=learning_rate, weight_decay=1e-2)
+  learning_rate = 0.00005
 
   # set to training mode
+  enc = vae.encoder
+
+  vae.train()
+
+  enc.train()
+  enc.to(device)
   vae.train()
   vae.to(device)
 
+  enc_optimizer = torch.optim.Adam(params=enc.parameters(), lr=learning_rate, weight_decay=1e-2)
+
   train_loss_avg : List[float] = []
 
-  print('Training ...')
+  start_enc_loss_percent : int = 3
+
+  ReiformInfo('Training Projection VAE...')
   for epoch in range(epochs):
       train_loss_avg.append(0)
       num_batches = 0
+
+      include_enc_loss : bool = epoch > (1.0-(start_enc_loss_percent/100.0))*epochs
       
-      for image_batch, _, _ in dataloader:
+      for image_batch, label, name in dataloader:
           torch.cuda.empty_cache()
           image_batch = image_batch.to(device)
           
-          # vae reconstruction
-          image_batch_recon, latent_mu, latent_logvar = vae(image_batch)
-          
-          # reconstruction error
-          # print(np.unique(image_batch_recon.detach().numpy()))
-          # print(np.unique(image_batch.detach().numpy()))
-          loss = vae_projection_loss(image_batch_recon, image_batch, latent_mu, latent_logvar, vae.edge_size)
+          # Encode to latent space
+          if include_enc_loss:
+            latent_mu, _ = enc(image_batch)
+        
+          # Reconstruction            
+          image_batch_recon, latent_mu_, latent_logvar_ = vae(image_batch)
+        
+          # reconstruction error 
+          if include_enc_loss:
+            enc_loss = train_loss_from_svm(latent_mu, label, epoch, proj_dataloader, enc)
           
           # backpropagation
-          optimizer.zero_grad()
-          loss.backward()
+          if include_enc_loss:
+            enc_optimizer.zero_grad()
+            enc_loss.backward(retain_graph=True)
+          vae_loss = vae_projection_loss(image_batch_recon, image_batch, latent_mu_, latent_logvar_, vae.edge_size)
+          optimizer_.zero_grad()
+          vae_loss.backward(retain_graph=True)
           
           # one step of the optmizer (using the gradients from backpropagation)
-          optimizer.step()
+          if include_enc_loss:
+            enc_optimizer.step()
+          optimizer_.step()
           
-          train_loss_avg[-1] += loss.item()
+          if include_enc_loss:
+            train_loss_avg[-1] += enc_loss.item() + vae_loss.item()
+          else:
+            train_loss_avg[-1] += vae_loss.item()
           num_batches += 1
           ITERATION =[0]
       train_loss_avg[-1] /= num_batches
-      print('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+      ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
   return vae, train_loss_avg

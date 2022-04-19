@@ -61,18 +61,11 @@ class ReiformImageDataset():
     def __init__(self, classes : List[str] = []) -> None:
         self.class_list : List[str] = classes
 
-        self.files : Dict[str, Dict[str, ReiformImageFile]] = {}
-        for c in self.class_list:
-            self.files[c] = {}
-
     def classes(self) -> List[str]:
         return self.class_list
 
     def contains(self, filename : str):
         pass
-
-    def get_items(self, label : str):
-        return self.files[label].items()
 
 
 class ReiformImageFile():

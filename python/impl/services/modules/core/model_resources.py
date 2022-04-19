@@ -1,11 +1,6 @@
 from .resources import *
 from .reiform_imageclassificationdataset import *
 
-VARIATIONAL_BETA = 0.0000001
-VAE_PROJECTION_TRAINING_EPOCHS = 100
-
-CORRECTION_MODEL_BATCH_SIZE = 364
-
 def create_conv_transpose_block(insize, outsize, k, s, p, d=1, relu=True):
   if relu:
     return nn.Sequential(

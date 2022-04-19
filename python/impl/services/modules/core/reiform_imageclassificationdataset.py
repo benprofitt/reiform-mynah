@@ -111,6 +111,9 @@ class ReiformICDataSet(ReiformImageDataset):
     def empty(self) -> bool :
         return (self.file_count() == 0)
 
+    def get_items(self, label : str):
+        return self.files[label].items()
+
     def file_count(self) -> int:
         total = 0
         for c in self.class_list:
@@ -118,13 +121,13 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return total
 
-    def add_file(self, file : ReiformImageFile) -> None:
+    def add_file(self, file : ReiformICFile) -> None:
         if file.current_class not in self.class_list:
             ReiformWarning("File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))
             return
         self.files[file.get_class()][file.get_name()] = file
 
-    def get_file(self, label : str, name : str) -> ReiformImageFile:
+    def get_file(self, label : str, name : str) -> ReiformICFile:
             if name in self.files[label]:
                 return self.files[label][name]
             else:
@@ -309,6 +312,40 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return dataloader
 
+    def mislabel(self, percent : int):
+        def new_class(c : str, all_classes : List[str]):
+            new_c = c
+            while new_c == c:
+                new_c = all_classes[random.randint(0, len(all_classes)-1)]
+            return new_c
+
+        new_dataset : ReiformICDataSet = ReiformICDataSet(self.class_list)
+
+        for c in self.class_list:
+            for _, file in self.get_items(c):
+                if random.random() < percent/100.0:
+                    new_c = new_class(c, self.class_list)
+                    new_file : ReiformICFile = copy.deepcopy(file)
+                    new_file.set_class(new_c)
+                    new_dataset.add_file(new_file)
+                else:
+                    new_dataset.add_file(copy.deepcopy(file))
+        
+        return new_dataset
+
+    def count_differences(self, other: ReiformICDataSet):
+        if self.class_list != other.class_list:
+            raise ReiformDataSetException("Wrong use case", "count_differences", "IC")
+
+        count = 0
+        for c in self.class_list:
+            for name, file in self.get_items(c):
+                if name not in other.files[c]:
+                    count += 1
+
+        return count
+
+        
 class DatasetFromReiformDataset(torch.utils.data.Dataset):
 
     def __init__(self, files : ReiformICDataSet, in_size: int, edge_size: int) -> None:
@@ -407,6 +444,19 @@ class ImageNameDataset(torch.utils.data.Dataset):
         
         return self.transform(Image.open(name).convert('RGB')), self.image_names_and_labels[idx][1], name
 
+def make_file(package):
+    name, label = package
+    new_file : ReiformICFile = ReiformICFile(name, label)
+
+    if name.split(".")[-1] == "pt":
+        sizes = torch.load(name).size()
+    else:
+        sizes = np.array(Image.open(name)).shape
+
+    new_file.width  = sizes[0]
+    new_file.height = sizes[1]
+    new_file.layers = 1 if len(sizes) < 3 else sizes[2]
+    return new_file
 
 def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
 
@@ -417,14 +467,11 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
     
     dataset : ReiformICDataSet = ReiformICDataSet(class_list)
 
-    for name, label in zip(image_names, labels):
-        new_file : ReiformICFile = ReiformICFile(name, label)
-        sizes = np.array(Image.open(name)).shape
+    packages = zip(image_names, labels)
+    with Pool(16) as p:
+        files = p.map(make_file, packages)
 
-        new_file.width  = sizes[0]
-        new_file.height = sizes[1]
-        new_file.channels = 1 if len(sizes) < 3 else sizes[2]
-
-        dataset.add_file(new_file)
+    for file in files:
+        dataset.add_file(file)
 
     return dataset

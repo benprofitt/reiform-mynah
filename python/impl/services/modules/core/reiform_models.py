@@ -187,13 +187,12 @@ def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader,
                    loss_function : Any, optimizer : torch.optim.Optimizer, epochs: int):
 
   # set to training mode
-  
   model.train()
   model.to(device)
 
   train_loss_avg : List[float] = []
 
-  print('Training ...')
+  ReiformInfo('Training ...')
   for epoch in range(epochs):
       train_loss_avg.append(0)
       num_batches = 0
@@ -202,7 +201,7 @@ def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader,
           torch.cuda.empty_cache()
           image_batch = image_batch.to(device)
           if (num_batches % 10) == 0 and VERBOSE:
-            print("Batch: {}".format(num_batches))
+            ReiformInfo("Batch: {}".format(num_batches))
           # model reconstruction
           prediction = model(image_batch)
           labels = labels.to(device)
@@ -220,7 +219,7 @@ def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader,
           num_batches += 1
           
       train_loss_avg[-1] /= num_batches
-      print('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+      ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
   return model, train_loss_avg
 
 def predict_labels(model : nn.Module, dataloader : torch.utils.data.DataLoader):

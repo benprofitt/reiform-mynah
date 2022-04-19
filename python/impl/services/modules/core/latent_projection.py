@@ -5,7 +5,6 @@ from .reiform_imageclassificationdataset import *
 
 import torchvision.models as models # type: ignore
 
-
 def read_data_get_classes(path_to_data : str) -> Tuple[torch.utils.data.DataLoader, List[str]]:
     preprocess = transforms.Compose([
         transforms.Resize(299),
@@ -62,7 +61,6 @@ def trained_model_projection(data : ReiformICDataSet, model : nn.Module, dataloa
 
 
 def vae_projection(data : ReiformICDataSet, latent_size : int) -> ReiformICDataSet:
-    # TODO with the VAE models
 
     # Find the closest power of 2 for the edge size
     sizes : Tuple[int, int, int] = data.find_max_image_size()
@@ -72,19 +70,20 @@ def vae_projection(data : ReiformICDataSet, latent_size : int) -> ReiformICDataS
     while closest_size < max_size:
         closest_size *= 2
 
-    print("Size: {}".format(closest_size))
+    ReiformInfo("Size of input: {}".format(closest_size))
     # Make dataloader from dataset
     
-    dataloader = data.get_dataloader(sizes[2], closest_size)
+    dataloader = data.get_dataloader(sizes[2], closest_size, CORRECTION_MODEL_BATCH_SIZE)
+    proj_dataloader = data.get_dataloader(sizes[2], closest_size, CORRECTION_MODEL_BATCH_SIZE)
 
-    print("Dataloader Created")
+    ReiformInfo("Dataloader Created")
     # Make model and optimizer
     vae = VAEAutoNet(sizes[2], closest_size, latent_size)
 
     optimizer  = torch.optim.Adam(params=vae.parameters(), lr=0.001, weight_decay=1e-2)
 
     # Train the VAE
-    vae, _ = train_projection_vae(vae, dataloader, VAE_PROJECTION_TRAINING_EPOCHS, optimizer)
+    vae, _ = train_projection_separation_vae(vae, dataloader, proj_dataloader, VAE_PROJECTION_TRAINING_EPOCHS, optimizer)
 
     # pass to 'pretrained projection' 
     #       - need to refactor so transform is a parameter

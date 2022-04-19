@@ -1,5 +1,6 @@
-import logging, sys
 from __future__ import annotations
+import logging, sys
+from types import ModuleType
 
 class ReiformLogger(object):
 
@@ -13,13 +14,17 @@ class ReiformLogger(object):
             stream.setLevel(logging.DEBUG)
             log.addHandler(stream)
             cls.instance = super(ReiformLogger, cls).__new__(cls)
-            cls.logger = logging
+            cls.logger : ModuleType = logging
 
         return cls.instance
 
+class ReiformInfo():
+    def __init__(self, message : str="Unimplemented Info Type"):
+        ReiformLogger().logger.info(message)
+
 class ReiformWarning():
     def __init__(self, message : str="Unimplemented Warning Type"):
-        ReiformLogger().logging(message)
+        ReiformLogger().logger.warning(message)
 
 class ReiformException(Exception):
     def __init__(self, message : str="Unimplemented Exception Type"):

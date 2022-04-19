@@ -25,7 +25,7 @@ class ReiformIODFile(ReiformImageFile):
         self.entities : Dict[str, str] = {}
 
 class ReiformIODEntity(ReiformImageEntity):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, label : str, vertices : List[Tuple[int,int]]=[]) -> None:
+        super().__init__(label)
         
-        self.vertices : List[Tuple[int, int]] = []
+        self.vertices : List[Tuple[int, int]] = vertices

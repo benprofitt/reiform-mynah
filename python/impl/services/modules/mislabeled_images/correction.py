@@ -1,13 +1,5 @@
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
-insize = 3
-# edgesizes = [16, 32, 64, 128]
-edgesizes = [16, 32, 64]
-monte_carlo_simulations = 85
-monte_carlo_simulations = 5
-epochs = 14
-epochs = 5
-
 def train_correction_model(dataset: ReiformICDataSet, edge_size: int) -> nn.Module:
 
     classes = len(dataset.classes())

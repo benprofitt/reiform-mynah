@@ -207,8 +207,10 @@ func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []model.My
 
 // WithCreateICDataset create an icdataset and pass to the handler
 func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
-
-	dataset, err := t.DBProvider.CreateICDataset(owner, func(*model.MynahICDataset) error { return nil })
+	dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
+		_, _, err := tools.MakeICDatasetVersion(d, owner, t.StorageProvider, t.DBProvider)
+		return err
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create dataset in database: %s", err)
 	}
@@ -218,6 +220,27 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*
 
 	//clean the dataset
 	if deleteErr := t.DBProvider.DeleteICDataset(dataset.Uuid, owner); deleteErr != nil {
+		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
+	}
+
+	return err
+}
+
+// WithCreateODDataset create an oddataset and pass to the handler
+func (t *TestContext) WithCreateODDataset(owner *model.MynahUser, handler func(*model.MynahODDataset) error) error {
+	dataset, err := t.DBProvider.CreateODDataset(owner, func(d *model.MynahODDataset) error {
+		_, _, err := tools.MakeODDatasetVersion(d, owner, t.StorageProvider, t.DBProvider)
+		return err
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create dataset in database: %s", err)
+	}
+
+	//pass to handler
+	err = handler(dataset)
+
+	//clean the dataset
+	if deleteErr := t.DBProvider.DeleteODDataset(dataset.Uuid, owner); deleteErr != nil {
 		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
 	}
 

@@ -256,6 +256,7 @@
 
 ### List Datasets
 - `GET /api/v1/dataset/ic/list`
+- Always returns latest versions only
 - Response:
   ```json
   [
@@ -264,10 +265,20 @@
   ```
 
 - `GET /api/v1/dataset/od/list`
+- Always returns latest versions only
 - Response:
   ```json
   [
     type: MynahODDataset
+  ]
+  ```
+
+- `GET /api/v1/dataset/list`
+- Always returns latest versions only
+- Response:
+  ```json
+  [
+    type: MynahODDataset | MynahICDataset
   ]
   ```
 
@@ -283,12 +294,31 @@
       - `GET /api/v1/dataset/ic/90jj9d20n3d`
     - Requesting a specific version: 
       - `GET /api/v1/dataset/ic/90jj9d20n3d?from_version=0`
-    - Requesting a range of versions: 
+    - Requesting the first two versions: 
       - `GET /api/v1/dataset/ic/90jj9d20n3d?from_version=0&to_version=2`
 - Response:
   ```json
   [
     type: MynahICDataset
+  ]
+  ```
+- `GET /api/v1/dataset/od/{datasetid}`
+- Params (optional)
+  - `from_version`
+    - (Inclusive)
+  - `to_version`
+    - (Exclusive)
+  - Examples:
+    - Requesting the latest version:
+      - `GET /api/v1/dataset/od/90jj9d20n3d`
+    - Requesting a specific version:
+      - `GET /api/v1/dataset/od/90jj9d20n3d?from_version=0`
+    - Requesting the first two versions:
+      - `GET /api/v1/dataset/od/90jj9d20n3d?from_version=0&to_version=2`
+- Response:
+  ```json
+  [
+    type: MynahODDataset
   ]
   ```
 

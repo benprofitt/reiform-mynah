@@ -456,6 +456,42 @@ func TestAPIReportFilter(t *testing.T) {
 	}
 }
 
+//test dataset list
+func TestListDatasetsEndpoint(t *testing.T) {
+	mynahSettings := settings.DefaultSettings()
+
+	//load the testing context
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
+		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
+			return c.WithCreateICDataset(user, func(icDataset *model.MynahICDataset) error {
+				return c.WithCreateODDataset(user, func(odDataset *model.MynahODDataset) error {
+					c.Router.HandleHTTPRequest("GET", "dataset/list",
+						allDatasetList(c.DBProvider))
+
+					req, reqErr := http.NewRequest("GET", path.Join(mynahSettings.ApiPrefix, "dataset/list"), nil)
+					if reqErr != nil {
+						return reqErr
+					}
+
+					return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+						if code != http.StatusOK {
+							return fmt.Errorf("dataset/list returned non 200 status: %d", code)
+						}
+
+						//TODO decode result, check dataset types
+
+						return nil
+					})
+				})
+			})
+		})
+	})
+
+	if err != nil {
+		t.Fatalf("TestListDatasetsEndpoint error: %s", err)
+	}
+}
+
 //test upload and download endpoints
 func TestAPIFileEndpoints(t *testing.T) {
 

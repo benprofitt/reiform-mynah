@@ -40,12 +40,15 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("POST", "dataset/ic/diagnosis/start",
 		startICDiagnosisJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
+	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
+
 	router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(dbProvider, storageProvider))
 	router.HandleHTTPRequest("GET", "dataset/ic/list", icDatasetList(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", datasetIdKey), icDatasetGet(dbProvider))
 
 	//router.HandleHTTPRequest("POST", "dataset/od/create", ocDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("GET", "dataset/od/list", odDatasetList(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/od/{%s}", datasetIdKey), odDatasetGet(dbProvider))
 
 	//register admin endpoints
 	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))

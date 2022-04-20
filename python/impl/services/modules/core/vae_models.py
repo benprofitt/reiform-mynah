@@ -108,9 +108,7 @@ def linear_vae_loss(recon_x, x, mu, logvar, clss: NDArray):
     # classification_loss = np.sum(np.absolute(torch.argmax(mu, axis=1).to("cpu").detach().numpy() - clss.to("cpu").detach().numpy())) #type: ignore
     class_arr = np.array([[0, 1] if x == 1 else [1, 0] for x in clss.to("cpu").detach().numpy()])
     classification_loss = np.sum(np.absolute(mu.to("cpu").detach().numpy() - class_arr)) #type: ignore
-    # print(classification_loss)
-    # print(recon_loss)
-    # print(kldivergence)
+
     return (recon_loss + VARIATIONAL_BETA * kldivergence ) * classification_loss * classification_loss * classification_loss
 
 
@@ -122,7 +120,7 @@ def train_linear_vae(vae : nn.Module, dataloader : torch.utils.data.DataLoader, 
 
     train_loss_avg : List[float] = []
 
-    print('Training ...')
+    ReiformInfo('Training ...')
     for epoch in range(epochs):
         train_loss_avg.append(0)
         num_batches = 0
@@ -148,7 +146,7 @@ def train_linear_vae(vae : nn.Module, dataloader : torch.utils.data.DataLoader, 
             num_batches += 1
             ITERATION =[0]
         train_loss_avg[-1] /= num_batches
-        print('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+        ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
     return vae, train_loss_avg
 
 def train_vae(vae : nn.Module, dataloader : Any, optimizer : torch.optim.Optimizer, epochs: int):
@@ -159,7 +157,7 @@ def train_vae(vae : nn.Module, dataloader : Any, optimizer : torch.optim.Optimiz
 
   train_loss_avg : List[float] = []
 
-  print('Training ...')
+  ReiformInfo('Training ...')
   for epoch in range(epochs):
       train_loss_avg.append(0)
       num_batches = 0
@@ -168,14 +166,11 @@ def train_vae(vae : nn.Module, dataloader : Any, optimizer : torch.optim.Optimiz
       for image_batch, _ in dataloader:
           torch.cuda.empty_cache()
           image_batch = image_batch.to(device)
-          if (num_batches % 10) == 0:
-            print("Batch: {}".format(num_batches))
+          
           # vae reconstruction
           image_batch_recon, latent_mu, latent_logvar = vae(image_batch)
           
           # reconstruction error
-          # print(np.unique(image_batch_recon.detach().numpy()))
-          # print(np.unique(image_batch.detach().numpy()))
           loss = vae_loss(image_batch_recon, image_batch, latent_mu, latent_logvar)
           
           # backpropagation
@@ -189,6 +184,6 @@ def train_vae(vae : nn.Module, dataloader : Any, optimizer : torch.optim.Optimiz
           num_batches += 1
           ITERATION =[0]
       train_loss_avg[-1] /= num_batches
-      print('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+      ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
   return vae, train_loss_avg
 

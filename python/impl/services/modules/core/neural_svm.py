@@ -29,8 +29,6 @@ def train_SVM(X, Y, ins, outs, epochs):
 
             sum_loss += float(loss)
 
-        # print("Epoch: {:4d}\tloss: {}".format(epoch, sum_loss / N))
-
     return model
 
 def eval_SVM(X, Y, model):

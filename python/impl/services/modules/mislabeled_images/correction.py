@@ -87,7 +87,7 @@ def monte_carlo_label_correction(simulations: int,
     to_correct : ReiformICDataSet = outliers.copy()
 
     for i in range(simulations):
-        print("Simulation: {}".format(i+1))
+        ReiformInfo("Simulation: {}".format(i+1))
         incl, dinc = inliers.split(0.9)
 
         if outliers.file_count() == 0:
@@ -132,7 +132,7 @@ def iterative_reinjection_label_correction(iterations : int,
     start = time.time()
     all_corrected : ReiformICDataSet = ReiformICDataSet(inliers.classes())
     for iter in range(iterations):
-        print("Iteration: {} / {}".format(iter+1, iterations))
+        ReiformInfo("Iteration: {} / {}".format(iter+1, iterations))
 
         corrected, dropped = monte_carlo_label_correction(monte_carlo_simulations, inliers, outliers)
         all_corrected.merge_in(corrected)
@@ -144,10 +144,10 @@ def iterative_reinjection_label_correction(iterations : int,
         inliers.merge_in(corrected)
 
         if outliers == dropped:
-            print("Early termination of iterative label correction: outliers == dropped (no improvement)")
+            ReiformInfo("Early termination of iterative label correction: outliers == dropped (no improvement)")
             break
 
         outliers = dropped
 
-    print("Full Monte Carlo timing: {} seconds".format(round(time.time() - start) ))
+    ReiformInfo("Full Monte Carlo timing: {} seconds".format(round(time.time() - start) ))
     return inliers, outliers, corrected

@@ -37,8 +37,8 @@ func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 	return &versionResponse, nil
 }
 
-// ICDiagnosisJob start a diagnosis job
-func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error) {
+// ICDiagnoseCleanJob start a diagnosis job
+func (p *localImplProvider) ICDiagnoseCleanJob(user *model.MynahUser, request *ICDiagnoseCleanJobRequest) (*ICDiagnoseCleanJobResponse, error) {
 	//initialize the function
 	fn, err := p.pythonProvider.InitFunction(p.moduleName, "start_diagnosis_job")
 	if err != nil {
@@ -48,7 +48,7 @@ func (p *localImplProvider) ICDiagnosisJob(user *model.MynahUser, request *ICDia
 	//call the function
 	res := fn.Call(user, request)
 
-	var jobResponse ICDiagnosisJobResponse
+	var jobResponse ICDiagnoseCleanJobResponse
 
 	//parse the response
 	resErr := res.GetResponse(&jobResponse)

@@ -24,8 +24,6 @@ type DBProvider interface {
 	GetICDatasets([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahICDataset, error)
 	// GetODDatasets get multiple oc datasets from the database
 	GetODDatasets([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahODDataset, error)
-	// GetICDiagnosisReport get a diagnosis report
-	GetICDiagnosisReport(model.MynahUuid, *model.MynahUser) (*model.MynahICDiagnosisReport, error)
 	// ListUsers list all users, arg is requestor
 	ListUsers(*model.MynahUser) ([]*model.MynahUser, error)
 	// ListFiles list all files, arg is requestor
@@ -42,8 +40,6 @@ type DBProvider interface {
 	CreateICDataset(*model.MynahUser, func(*model.MynahICDataset) error) (*model.MynahICDataset, error)
 	// CreateODDataset create a new dataset
 	CreateODDataset(*model.MynahUser, func(*model.MynahODDataset) error) (*model.MynahODDataset, error)
-	// CreateICDiagnosisReport creates a new ic diagnosis report in the database
-	CreateICDiagnosisReport(*model.MynahUser, func(*model.MynahICDiagnosisReport) error) (*model.MynahICDiagnosisReport, error)
 	// UpdateUser update a user in the database. First arg is user to update, second is requestor, remaining
 	//are keys to update.
 	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error
@@ -51,6 +47,8 @@ type DBProvider interface {
 	UpdateICDataset(*model.MynahICDataset, *model.MynahUser, ...string) error
 	// UpdateODDataset update a dataset
 	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, ...string) error
+	// UpdateFile updates a file
+	UpdateFile(*model.MynahFile, *model.MynahUser, ...string) error
 	// DeleteUser delete a user in the database, second arg is requestor
 	DeleteUser(model.MynahUuid, *model.MynahUser) error
 	// DeleteFile delete a file in the database, second arg is requestor

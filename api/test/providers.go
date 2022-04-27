@@ -205,27 +205,6 @@ func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []model.My
 	return err
 }
 
-// WithCreateICDataset create an icdataset and pass to the handler
-func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, handler func(*model.MynahICDataset) error) error {
-	dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
-		_, _, err := tools.MakeICDatasetVersion(d, owner, t.StorageProvider, t.DBProvider)
-		return err
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create dataset in database: %s", err)
-	}
-
-	//pass to handler
-	err = handler(dataset)
-
-	//clean the dataset
-	if deleteErr := t.DBProvider.DeleteICDataset(dataset.Uuid, owner); deleteErr != nil {
-		return fmt.Errorf("failed to delete dataset: %s", deleteErr)
-	}
-
-	return err
-}
-
 // WithCreateODDataset create an oddataset and pass to the handler
 func (t *TestContext) WithCreateODDataset(owner *model.MynahUser, handler func(*model.MynahODDataset) error) error {
 	dataset, err := t.DBProvider.CreateODDataset(owner, func(d *model.MynahODDataset) error {
@@ -247,45 +226,8 @@ func (t *TestContext) WithCreateODDataset(owner *model.MynahUser, handler func(*
 	return err
 }
 
-// WithCreateICDiagnosisReport create a diagnosis report
-func (t *TestContext) WithCreateICDiagnosisReport(owner *model.MynahUser, handler func(report *model.MynahICDiagnosisReport) error) error {
-	report, err := t.DBProvider.CreateICDiagnosisReport(owner, func(report *model.MynahICDiagnosisReport) error {
-		report.ImageData["imageid"] = &model.MynahICDiagnosisReportImageMetadata{
-			Class:      "class1",
-			Mislabeled: true,
-			Point: model.MynahICDiagnosisReportPoint{
-				X: 0,
-				Y: 0,
-			},
-			OutlierSets: []string{"lighting"},
-		}
-		report.ImageData["imageid2"] = &model.MynahICDiagnosisReportImageMetadata{
-			Class:      "class2",
-			Mislabeled: false,
-			Point: model.MynahICDiagnosisReportPoint{
-				X: 0,
-				Y: 0,
-			},
-			OutlierSets: []string{},
-		}
-		report.Breakdown["class1"] = &model.MynahICDiagnosisReportBucket{}
-		report.Breakdown["class2"] = &model.MynahICDiagnosisReportBucket{}
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create report in database: %s", err)
-	}
-
-	//pass to handler
-	err = handler(report)
-
-	//TODO clean report?
-
-	return err
-}
-
-// WithCreateFullICDataset create a complete ic dataset
-func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileIds []model.MynahUuid, handler func(*model.MynahICDataset) error) error {
+// WithCreateICDataset create a complete ic dataset
+func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []model.MynahUuid, handler func(*model.MynahICDataset) error) error {
 	//create a file
 	err := t.WithCreateFiles(owner, withFileIds, func(files []*model.MynahFile) error {
 
@@ -338,7 +280,9 @@ func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileId
 
 		//create a dataset
 		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
-			if initialVersion, _, err := tools.MakeICDatasetVersion(d, owner, t.StorageProvider, t.DBProvider); err == nil {
+			if initialVersion, err := tools.MakeICDatasetVersion(d, owner, t.StorageProvider, t.DBProvider); err == nil {
+				initialVersion.Report = model.NewMynahICDatasetReport()
+
 				for _, f := range files {
 					initialVersion.Files[f.Uuid] = &model.MynahICDatasetFile{
 						ImageVersionId:    model.LatestVersionId,
@@ -347,7 +291,18 @@ func (t *TestContext) WithCreateFullICDataset(owner *model.MynahUser, withFileId
 						ConfidenceVectors: make(model.ConfidenceVectors, 0),
 						Projections:       make(map[string][]int),
 					}
+					initialVersion.Report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{
+						Class:      "class1",
+						Mislabeled: true,
+						Point: model.MynahICDatasetReportPoint{
+							X: 0,
+							Y: 0,
+						},
+						OutlierSets: []string{"lighting"},
+					}
 				}
+				initialVersion.Report.Breakdown["class1"] = &model.MynahICDatasetReportBucket{}
+
 			} else {
 				return err
 			}

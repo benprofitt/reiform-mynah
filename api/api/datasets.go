@@ -38,16 +38,12 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
 			//create an initial version of the dataset
-			if initialVersion, _, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
+			if initialVersion, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
 				//add the file id -> class name mappings, use the latest version of the file
 				for fileId, className := range req.Files {
-					initialVersion.Files[fileId] = &model.MynahICDatasetFile{
-						ImageVersionId:    model.LatestVersionId,
-						CurrentClass:      className,
-						OriginalClass:     className,
-						ConfidenceVectors: make(model.ConfidenceVectors, 0),
-						Projections:       make(map[string][]int),
-					}
+					initialVersion.Files[fileId] = model.NewICDatasetFile()
+					initialVersion.Files[fileId].CurrentClass = className
+					initialVersion.Files[fileId].OriginalClass = className
 				}
 
 				//TODO do we want to cut explicit versions for these files? If they're updated in a different

@@ -12,18 +12,17 @@ import (
 	"reiform.com/mynah/tools"
 )
 
-const icReportKey string = "report"
 const icReportBadImagesKey = "bad_images"
 const icReportClassKey = "class"
 
 // icDiagnosisReportFilter filters a report based on the provided options
-func icDiagnosisReportFilter(report *model.MynahICDiagnosisReport,
+func icDiagnosisReportFilter(report *model.MynahICDatasetReport,
 	classes tools.UniqueSet,
-	badImagesFilter bool) *model.MynahICDiagnosisReport {
+	badImagesFilter bool) *model.MynahICDatasetReport {
 
 	imageIds := make([]model.MynahUuid, 0)
-	imageData := make(map[model.MynahUuid]*model.MynahICDiagnosisReportImageMetadata)
-	breakdown := make(map[string]*model.MynahICDiagnosisReportBucket)
+	imageData := make(map[model.MynahUuid]*model.MynahICDatasetReportImageMetadata)
+	breakdown := make(map[string]*model.MynahICDatasetReportBucket)
 
 	//add images within the filtered classes
 	for fileId, metadata := range report.ImageData {
@@ -54,10 +53,10 @@ func icDiagnosisReportView(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		reportId, ok := mux.Vars(request)[icReportKey]
+		datasetId, ok := mux.Vars(request)[datasetIdKey]
 		//get request params
 		if !ok {
-			log.Errorf("report request path missing %s key", icReportKey)
+			log.Errorf("report request path missing %s key", datasetIdKey)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -80,15 +79,22 @@ func icDiagnosisReportView(dbProvider db.DBProvider) http.HandlerFunc {
 		badImagesFilter := request.Form.Get(icReportBadImagesKey) == "true"
 
 		//get the report from the database
-		if report, err := dbProvider.GetICDiagnosisReport(model.MynahUuid(reportId), user); err == nil {
-			//filter the report
-			if err := responseWriteJson(writer, icDiagnosisReportFilter(report, classes, badImagesFilter)); err != nil {
-				log.Errorf("failed to write response as json: %s", err)
-				writer.WriteHeader(http.StatusInternalServerError)
+		if dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user); err == nil {
+			//get the latest version
+			if version, err := tools.GetICDatasetLatest(dataset); err == nil {
+				//filter the report
+				if err := responseWriteJson(writer, icDiagnosisReportFilter(version.Report, classes, badImagesFilter)); err != nil {
+					log.Errorf("failed to write response as json: %s", err)
+					writer.WriteHeader(http.StatusInternalServerError)
+				}
+			} else {
+				log.Warnf("failed to get ic report from dataset with id %s: %s", datasetId, err)
+				writer.WriteHeader(http.StatusBadRequest)
+				return
 			}
 
 		} else {
-			log.Warnf("failed to get ic report with id %s: %s", reportId, err)
+			log.Warnf("failed to get ic report from dataset with id %s: %s", datasetId, err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}

@@ -177,19 +177,16 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 			expectedFileIds := tools.NewUniqueSet()
 			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 			//create a file
-			return c.WithCreateFullICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
+			return c.WithCreateICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
 
 				errChan := make(chan error)
 				readyChan := make(chan struct{})
 
 				//listen for websocket response
 				go c.WebsocketListener(jwt, 1, readyChan, errChan, func(res []byte) error {
-					var report model.MynahICDiagnosisReport
+					var report model.MynahICDatasetReport
 					//parse as a report
 					if err := json.Unmarshal(res, &report); err == nil {
-
-						//generate expected image versionid
-						expectedVersionId := model.MynahFileVersionId("6410687e280fef2ae3ed75a1c3a99ec7bc72d08f")
 
 						reportFileIds := tools.NewUniqueSet()
 						reportFileIds.UuidsUnion(report.ImageIds...)
@@ -198,12 +195,12 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 							return fmt.Errorf("unexpected fileids set: %v vs %v", expectedFileIds.Vals(), reportFileIds.Vals())
 						}
 
-						expectedBreakdown := make(map[string]*model.MynahICDiagnosisReportBucket)
-						expectedBreakdown["class1"] = &model.MynahICDiagnosisReportBucket{
+						expectedBreakdown := make(map[string]*model.MynahICDatasetReportBucket)
+						expectedBreakdown["class1"] = &model.MynahICDatasetReportBucket{
 							Bad:        0,
 							Acceptable: 2,
 						}
-						expectedBreakdown["class2"] = &model.MynahICDiagnosisReportBucket{
+						expectedBreakdown["class2"] = &model.MynahICDatasetReportBucket{
 							Bad:        2,
 							Acceptable: 0,
 						}
@@ -212,11 +209,11 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 							return fmt.Errorf("unexpected breakdown map: %v vs %v", report.Breakdown, expectedBreakdown)
 						}
 
-						expectedFileData1 := &model.MynahICDiagnosisReportImageMetadata{
-							ImageVersionId: expectedVersionId,
+						expectedFileData1 := &model.MynahICDatasetReportImageMetadata{
+							ImageVersionId: model.LatestVersionId,
 							Class:          "class1",
 							Mislabeled:     false,
-							Point: model.MynahICDiagnosisReportPoint{
+							Point: model.MynahICDatasetReportPoint{
 								X: 0,
 								Y: 0,
 							},
@@ -227,11 +224,11 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 							return fmt.Errorf("unexpected fileid1 data: %#v vs %#v", report.ImageData["fileuuid1"], expectedFileData1)
 						}
 
-						expectedFileData3 := &model.MynahICDiagnosisReportImageMetadata{
-							ImageVersionId: expectedVersionId,
+						expectedFileData3 := &model.MynahICDatasetReportImageMetadata{
+							ImageVersionId: model.LatestVersionId,
 							Class:          "class2",
 							Mislabeled:     true,
-							Point: model.MynahICDiagnosisReportPoint{
+							Point: model.MynahICDatasetReportPoint{
 								X: 0,
 								Y: 0,
 							},
@@ -252,7 +249,9 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				<-readyChan
 
 				//create the request body
-				reqBody := StartDiagnosisJobRequest{
+				reqBody := ICCleanDiagnoseJobRequest{
+					Diagnose:    true,
+					Clean:       false,
 					DatasetUuid: dataset.Uuid,
 				}
 
@@ -270,7 +269,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 				//handle user creation endpoint
 				c.Router.HandleHTTPRequest("POST", "dataset/ic/diagnosis/start",
-					startICDiagnosisJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
+					icDiagnoseCleanJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
 
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
@@ -371,24 +370,27 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 func TestAPIReportFilter(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 
-	//load the testing context
+	//load the testing concd /vag	text
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
-			return c.WithCreateICDiagnosisReport(user, func(report *model.MynahICDiagnosisReport) error {
+			expectedFileIds := tools.NewUniqueSet()
+			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
+
+			return c.WithCreateICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
 
 				c.Router.HandleHTTPRequest("GET",
-					fmt.Sprintf("dataset/ic/report/{%s}", icReportKey),
+					fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
 					icDiagnosisReportView(c.DBProvider))
 
 				//make a standard request
-				requestPath := path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid))
+				requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid)))
 				req, reqErr := http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
 				}
 
 				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					var res model.MynahICDiagnosisReport
+					var res model.MynahICDatasetReport
 					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
 						if len(res.ImageData) != 0 || len(res.ImageIds) != 0 || len(res.Breakdown) != 0 {
 							return errors.New("unexpected data in report")
@@ -403,16 +405,16 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add class filter
-				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid)), "?class=class1")
+				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid))), "?class=class1")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
 				}
 
 				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					var res model.MynahICDiagnosisReport
+					var res model.MynahICDatasetReport
 					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
-						if len(res.ImageData) != 1 || len(res.ImageIds) != 1 || len(res.Breakdown) != 1 {
+						if len(res.ImageData) != 4 || len(res.ImageIds) != 4 || len(res.Breakdown) != 1 {
 							return errors.New("unexpected data in report")
 						}
 						return nil
@@ -425,16 +427,16 @@ func TestAPIReportFilter(t *testing.T) {
 				}
 
 				//add bad images filter
-				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, "dataset/ic/report", string(report.Uuid)), "?class=class1&class=class2&bad_images=true")
+				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid))), "?class=class1&class=class2&bad_images=true")
 				req, reqErr = http.NewRequest("GET", requestPath, nil)
 				if reqErr != nil {
 					return reqErr
 				}
 
 				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					var res model.MynahICDiagnosisReport
+					var res model.MynahICDatasetReport
 					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
-						if len(res.ImageData) != 1 || len(res.ImageIds) != 1 || len(res.Breakdown) != 2 {
+						if len(res.ImageData) != 4 || len(res.ImageIds) != 4 || len(res.Breakdown) != 1 {
 							return errors.New("unexpected data in report")
 						}
 						return nil
@@ -463,7 +465,7 @@ func TestListDatasetsEndpoint(t *testing.T) {
 	//load the testing context
 	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
-			return c.WithCreateICDataset(user, func(icDataset *model.MynahICDataset) error {
+			return c.WithCreateICDataset(user, []model.MynahUuid{}, func(icDataset *model.MynahICDataset) error {
 				return c.WithCreateODDataset(user, func(odDataset *model.MynahODDataset) error {
 					c.Router.HandleHTTPRequest("GET", "dataset/list",
 						allDatasetList(c.DBProvider))

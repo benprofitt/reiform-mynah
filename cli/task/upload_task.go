@@ -117,6 +117,8 @@ func (t MynahUploadTask) ExecuteTask(mynahServer *server.MynahClient,
 
 	resChan := make(chan uploadResult, len(t.FolderPaths))
 
+	totalFiles := 0
+
 	for _, dirPath := range t.FolderPaths {
 		if err := pathMustBeDir(dirPath); err != nil {
 			return nil, fmt.Errorf("failed to upload files: %s", err)
@@ -127,6 +129,7 @@ func (t MynahUploadTask) ExecuteTask(mynahServer *server.MynahClient,
 			if err != nil {
 				return err
 			} else if !info.IsDir() {
+				totalFiles++
 				if t.Multithread {
 					go executeUpload(mynahServer, path, resChan)
 				} else {
@@ -143,7 +146,7 @@ func (t MynahUploadTask) ExecuteTask(mynahServer *server.MynahClient,
 
 	uploadedSet := make(UploadedFilesSet)
 
-	for i := 0; i < len(t.FolderPaths); i++ {
+	for i := 0; i < totalFiles; i++ {
 		uploadRes := <-resChan
 
 		if uploadRes.err != nil {

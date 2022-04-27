@@ -31,7 +31,7 @@ type MynahDataset struct {
 	//the id of the organization this dataset is part of
 	OrgId MynahUuid `json:"-" xorm:"varchar(36) not null 'org_id'"`
 	//permissions for users
-	Permissions map[MynahUuid]Permissions `json:"owner_uuid" xorm:"TEXT 'permissions'"`
+	Permissions map[MynahUuid]Permissions `json:"permissions" xorm:"TEXT 'permissions'"`
 	//the name of the dataset
 	DatasetName string `json:"dataset_name" xorm:"TEXT 'dataset_name'"`
 	//the date created as a unix timestamp

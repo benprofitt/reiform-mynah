@@ -12,6 +12,9 @@ from PIL import Image # type: ignore
 
 import sklearn # type: ignore
 from sklearn.ensemble import IsolationForest # type: ignore
+from sklearn.decomposition import PCA  # type: ignore
+
+from glob import glob # type: ignore
 
 import torch # type: ignore
 import torchvision # type: ignore
@@ -20,7 +23,7 @@ import torch.nn as nn # type: ignore
 import torch.nn.functional as F # type: ignore
 
 import typing
-from typing import List, Tuple, Dict, Any, Callable
+from typing import List, Tuple, Dict, Any, Callable, Optional
 from nptyping import NDArray # type: ignore
 
 from impl.services.modules.utils.reiform_exceptions import *
@@ -33,6 +36,20 @@ VERBOSE = False
 
 PROJECTION_LABEL : str = "inception_projection"
 PROJECTION_LABEL_2D : str = "2D_projection"
+
+LOCAL_EMBEDDING_PATH : str = "models/embedding"
+
+PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION = "PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION "
+PROJECTION_LABEL_REDUCED_EMBEDDING = "PROJECTION_LABEL_REDUCED_EMBEDDING"
+
+CHANNELS = "channels"
+SIZE = "size"
+CROP = "crop"
+RESIZE = "resize"
+MEAN = "mean"
+STD = "std"
+LATENT_SIZE = "latent_size"
+NAME = "dataset_name"
 
 VARIATIONAL_BETA = 0.0000001
 VAE_PROJECTION_TRAINING_EPOCHS = 100

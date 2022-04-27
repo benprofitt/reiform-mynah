@@ -3,12 +3,15 @@ from impl.services.image_classification.resources import *
 from impl.services.modules.mislabeled_images.detection import *
 from impl.services.modules.mislabeled_images.correction import *
 from impl.services.modules.mislabeled_images.report_generation import *
+from impl.services.modules.core.embeddings.pretrained_embedding import *
 
+logging.getLogger('PIL').setLevel(logging.WARNING)
 
 def test_projection(data : ReiformICDataSet) -> ReiformICDataSet:
     data = data.mislabel(5)
     start = time.time()
-    results : ReiformICDataSet = vae_projection(data, 2)
+    channels_in, edge_size, dataloader, projection_dataloader = create_dataloaders(data)
+    results : ReiformICDataSet = vae_projection(data, 2, channels_in, edge_size, dataloader, projection_dataloader)
     print("Time for latent projection: {}".format(time.time() - start))
     try:
         pass
@@ -20,13 +23,6 @@ def test_projection(data : ReiformICDataSet) -> ReiformICDataSet:
 
 def test_detection(results : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
     inliers, outliers = find_outliers_isolation_forest(results, 0.2)
-    return inliers, outliers
-
-
-def test_2D_report_projection(inliers : ReiformICDataSet,
-                              outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet,
-                                                                  ReiformICDataSet]:
-    inliers, outliers = projection_2D_from_outlier_projection_one_class(inliers, outliers)
     return inliers, outliers
 
 
@@ -56,6 +52,8 @@ def run_tests():
 
     data_path : str = "./python/impl/test/test_data_mnist"
     results_path : str = "./python/impl/test/test_results"
+    # data_path : str = "./impl/test/test_data_color"
+    # results_path : str = "./impl/test/test_results"
     do_test_detection = True
     do_test_correction = True
 
@@ -77,7 +75,7 @@ def run_tests():
 
         inliers, outliers, corrected = run_label_correction(inliers, outliers)
 
-        print("Diff: {}".format(inliers.count_differences(dataset)))
+        ReiformInfo("Diff: {}".format(inliers.count_differences(dataset)))
 
         for prefix, ds in zip(["in", "out"], [corrected, outliers]):
 

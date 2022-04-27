@@ -276,7 +276,7 @@ def train_inception_detection(model : LightingDetector, dataloader : torch.utils
       model.train()
   return model, train_loss_avg
 
-def train_detection(model : LightingDetector, dataloader : torch.utils.data.DataLoader, 
+def train_detection(model : LightingDetectorSparse, dataloader : torch.utils.data.DataLoader, 
                     val_dataloader : torch.utils.data.DataLoader, 
                     epochs: int, optimizer : torch.optim.Optimizer):
 

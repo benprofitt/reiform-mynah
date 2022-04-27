@@ -12,19 +12,25 @@
     "dataset_uuid": "uuid_of_dataset",
     "dataset": {
       "classes" : ["class1", "class2"],
+      "mean": [0.3, 0.4, 0.1],
+      "std_dev": [0.1, 0.12, 0.03],
       "class_files" : {
         "class1" : {
           "/tmp/uuid1.png" : {
             "uuid": "uuid1",
             "width": 32,
             "height": 32,
-            "channels": 3
+            "channels": 3,
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
           },
           "/tmp/uuid2.png" : {
             "uuid": "uuid2",
             "width": 32,
             "height": 32,
-            "channels": 3
+            "channels": 3,
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
           }
         },
         "class2" : {
@@ -32,13 +38,17 @@
             "uuid": "uuid3",
             "width": 32,
             "height": 32,
-            "channels": 3
+            "channels": 3,
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
           },
           "/tmp/uuid4.jpeg" : {
             "uuid": "uuid4.",
             "width": 32,
             "height": 32,
-            "channels": 3
+            "channels": 3,
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
           }
         }
       }
@@ -60,6 +70,8 @@
         "datasets": {
           "outliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
               },
@@ -72,7 +84,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 },
                 "fileuuid4" : {
                   "uuid": "uuid4",
@@ -82,13 +96,17 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               }
             }
           },
           "inliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid1" : {
@@ -99,7 +117,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 },
                 "fileuuid2" : {
                   "uuid": "uuid2",
@@ -109,7 +129,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               },
               "class2" : {
@@ -122,6 +144,8 @@
         "datasets": {
           "outliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid1" : {
@@ -132,7 +156,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               },
               "class2" : {
@@ -144,13 +170,17 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               }
             }
           },
           "inliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid2" : {
@@ -161,7 +191,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
 
                 }
               },
@@ -174,7 +206,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
 
                 }
               }
@@ -200,6 +234,8 @@
         "datasets": {
           "outliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
               },
@@ -212,7 +248,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 },
                 "fileuuid4" : {
                   "uuid": "uuid4",
@@ -222,13 +260,17 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               }
             }
           },
           "inliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid1" : {
@@ -239,7 +281,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 },
                 "fileuuid2" : {
                   "uuid": "uuid2",
@@ -249,7 +293,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               },
               "class2" : {
@@ -262,6 +308,8 @@
         "datasets": {
           "outliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid1" : {
@@ -272,7 +320,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               },
               "class2" : {
@@ -284,13 +334,17 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               }
             }
           },
           "inliers" : {
             "classes" : ["class1", "class2"],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03],
             "class_files" : {
               "class1" : {
                 "fileuuid2" : {
@@ -301,7 +355,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               },
               "class2" : {
@@ -313,7 +369,9 @@
                   "height": 32,
                   "channels": 3,
                   "projections": {"2d": [1, 2]},
-                  "confidence_vectors": [[1.0, 2.0]]
+                  "confidence_vectors": [[1.0, 2.0]],
+                  "mean": [0.3, 0.4, 0.1],
+                  "std_dev": [0.1, 0.12, 0.03]
                 }
               }
             }
@@ -330,6 +388,8 @@
     "dataset_uuid": "uuid_of_dataset",
       "corrected" : {
         "classes" : ["class1", "class2"],
+        "mean": [0.3, 0.4, 0.1],
+        "std_dev": [0.1, 0.12, 0.03],
         "class_files" : {
           "class1" : {
           },
@@ -342,7 +402,9 @@
               "height": 32,
               "channels": 3,
               "projections": {},
-              "confidence_vectors": [[1.0, 2.0]]
+              "confidence_vectors": [[1.0, 2.0]],
+              "mean": [0.3, 0.4, 0.1],
+              "std_dev": [0.1, 0.12, 0.03]
             },
             "fileuuid4" : {
               "uuid": "uuid4",
@@ -352,12 +414,16 @@
               "height": 32,
               "channels": 3,
               "projections": {},
-              "confidence_vectors": [[1.0, 2.0]]
+              "confidence_vectors": [[1.0, 2.0]],
+              "mean": [0.3, 0.4, 0.1],
+              "std_dev": [0.1, 0.12, 0.03]
             }
           }
         },
       "removed" : {
         "classes" : ["class1", "class2"],
+        "mean": [0.3, 0.4, 0.1],
+        "std_dev": [0.1, 0.12, 0.03],
         "class_files" : {
           "class1" : {
             "fileuuid1" : {
@@ -368,7 +434,9 @@
               "height": 32,
               "channels": 3,
               "projections": {"2d": [1, 2]},
-              "confidence_vectors": [[1.0, 2.0]]
+              "confidence_vectors": [[1.0, 2.0]],
+              "mean": [0.3, 0.4, 0.1],
+              "std_dev": [0.1, 0.12, 0.03]
             },
             "fileuuid2" : {
               "uuid": "uuid2",
@@ -378,7 +446,9 @@
               "height": 32,
               "channels": 3,
               "projections": {"2d": [1, 2]},
-              "confidence_vectors": [[1.0, 2.0]]
+              "confidence_vectors": [[1.0, 2.0]],
+              "mean": [0.3, 0.4, 0.1],
+              "std_dev": [0.1, 0.12, 0.03]
             }
           },
           "class2" : {
@@ -404,6 +474,8 @@
     {
       "channels" : 3,
       "height" : 32,
-      "width" : 64
+      "width" : 64,
+      "mean": [0.3, 0.4, 0.1],
+      "std_dev": [0.1, 0.12, 0.03]
     }
   ```

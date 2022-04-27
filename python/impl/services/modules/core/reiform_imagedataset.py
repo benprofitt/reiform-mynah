@@ -36,6 +36,12 @@ class Projections():
 
         return new_proj
 
+    def combine_projections(self, label : str, labels : List[str]):
+        arr = np.array([])
+        for l in labels:
+            arr = np.concatenate((arr, self.projections[l]))
+        self.insert(label, arr)
+
     def __deepcopy__(self, memo) -> Projections:
         copied : Projections = Projections()
         copied.projections = copy.deepcopy(self.projections)
@@ -77,6 +83,9 @@ class ReiformImageFile():
         self.width : int = 0
         self.height : int = 0
         self.channels : int = 3
+
+        self.mean : List[float] = []
+        self.std_dev : List[float] = []
 
         self.projections : Projections = Projections()
 

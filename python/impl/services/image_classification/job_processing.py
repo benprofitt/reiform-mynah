@@ -1,4 +1,5 @@
 from .resources import *
+from impl.services.modules.core.reiform_imageclassificationdataset import *
 
 class Processing_Job():
     def __init__(self, job_json : Dict[str, Any]) -> None:
@@ -7,10 +8,9 @@ class Processing_Job():
 
     def make_dataset(self, body : Dict[str, Any]) -> ReiformICDataSet:
         classes : List[str] = body["classes"]
-        files : Dict[str, Dict[str, Dict[str, Any]]] = body["class_files"]
         
         ds : ReiformICDataSet = ReiformICDataSet(classes)
-        ds.from_json(files)
+        ds.from_json(body)
 
         return ds
 

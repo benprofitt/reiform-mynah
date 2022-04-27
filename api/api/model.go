@@ -29,13 +29,12 @@ type CreateICDatasetRequest struct {
 	Files map[model.MynahUuid]string `json:"files"`
 }
 
-// StartDiagnosisJobRequest request type for start diagnosis job
-type StartDiagnosisJobRequest struct {
+// ICCleanDiagnoseJobRequest request type for starting a diagnosis/clean job
+type ICCleanDiagnoseJobRequest struct {
+	//whether to run the diagnosis step
+	Diagnose bool `json:"diagnose"`
+	//whether to run the clean step
+	Clean bool `json:"clean"`
 	//the dataset id
 	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
-}
-
-// StartDiagnosisJobResponse response type for start diagnosis job
-type StartDiagnosisJobResponse struct {
-	//TODO
 }

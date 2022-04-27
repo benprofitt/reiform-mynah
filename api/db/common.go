@@ -36,7 +36,7 @@ func commonGetUser(user *model.MynahUser, requestor *model.MynahUser) error {
 //get a file by id or return an error
 func commonGetFile(file *model.MynahFile, requestor *model.MynahUser) error {
 	//check that the user is the file owner (or admin)
-	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
+	if requestor.IsAdmin || file.GetPermissions(requestor) >= model.Read {
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to request file %s", requestor.Uuid, file.Uuid)
@@ -49,15 +49,6 @@ func commonGetDataset(dataset model.MynahAbstractDataset, requestor *model.Mynah
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to request dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
-}
-
-//get a report
-func commonGetReport(report model.MynahAbstractReport, requestor *model.MynahUser) error {
-	//check that the user is the report owner (or admin)
-	if requestor.IsAdmin || report.GetBaseReport().GetPermissions(requestor) >= model.Read {
-		return nil
-	}
-	return fmt.Errorf("user %s does not have permission to request report %s", requestor.Uuid, report.GetBaseReport().Uuid)
 }
 
 //check that the user is an admin (org checked in query)
@@ -138,6 +129,19 @@ func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.My
 	return fmt.Errorf("user %s does not have permission to update dataset %s", requestor.Uuid, dataset.GetBaseDataset().Uuid)
 }
 
+//update a file metadata
+func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys *[]string) error {
+	//check that keys are not restricted
+	if restrictedKeys(keys) {
+		return errors.New("file update contained restricted keys")
+	}
+
+	if requestor.IsAdmin || file.GetPermissions(requestor) >= model.Edit {
+		return nil
+	}
+	return fmt.Errorf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid)
+}
+
 //check that the requestor has permission
 func commonDeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {
@@ -149,7 +153,7 @@ func commonDeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 //check that the requestor has permission to delete the file
 func commonDeleteFile(file *model.MynahFile, requestor *model.MynahUser) error {
 	//TODO check if file is part of dataset
-	if requestor.IsAdmin || requestor.Uuid == file.OwnerUuid {
+	if requestor.IsAdmin || file.GetPermissions(requestor) == model.Owner {
 		return nil
 	}
 	return fmt.Errorf("user %s does not have permission to delete file %s", requestor.Uuid, file.Uuid)

@@ -43,6 +43,16 @@
         "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
         "dataset_name": "test dataset 2"
       }
+    },
+    {
+      "task_id": "diagnose_clean",
+      "task_type": "mynah::ic::diagnose_clean",
+      "task_data": {
+        "from_existing" : "",
+        "from_task" : "create_ic_dataset2",
+        "diagnose": true,
+        "clean": false
+      }
     }
   ]
 }

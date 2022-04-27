@@ -90,7 +90,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
-			&model.MynahICDiagnosisReport{})
+			&model.MynahICDatasetReport{})
 
 		if tableErr != nil {
 			return nil, tableErr
@@ -100,7 +100,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
-			&model.MynahICDiagnosisReport{})
+			&model.MynahICDatasetReport{})
 
 		if syncErr != nil {
 			return nil, syncErr
@@ -290,30 +290,6 @@ func (d *localDB) GetODDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	return res, nil
 }
 
-// GetICDiagnosisReport get a diagnosis report
-func (d *localDB) GetICDiagnosisReport(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahICDiagnosisReport, error) {
-	report := model.MynahICDiagnosisReport{
-		MynahReport: model.MynahReport{
-			Uuid: uuid,
-		},
-	}
-
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&report)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return nil, fmt.Errorf("report %s not found", uuid)
-	}
-
-	//check that the user has permission
-	if commonErr := commonGetReport(&report, requestor); commonErr != nil {
-		return nil, commonErr
-	}
-
-	return &report, nil
-}
-
 // ListUsers list all users
 func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUser, err error) {
 	if commonErr := commonListUsers(requestor); commonErr != nil {
@@ -427,24 +403,6 @@ func (d *localDB) CreateODDataset(creator *model.MynahUser, precommit func(*mode
 	return dataset, nil
 }
 
-// CreateICDiagnosisReport creates a new ic diagnosis report in the database
-func (d *localDB) CreateICDiagnosisReport(creator *model.MynahUser, precommit func(*model.MynahICDiagnosisReport) error) (*model.MynahICDiagnosisReport, error) {
-	report := model.NewICDiagnosisReport(creator)
-
-	if err := precommit(report); err != nil {
-		return nil, err
-	}
-
-	affected, err := d.engine.Insert(report)
-	if err != nil {
-		return nil, err
-	}
-	if affected == 0 {
-		return nil, fmt.Errorf("report %s not created (no records affected)", report.Uuid)
-	}
-	return report, nil
-}
-
 // UpdateUser update a user in the database
 func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateUser(user, requestor, &keys); commonErr != nil {
@@ -486,6 +444,21 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 	}
 	if affected == 0 {
 		return fmt.Errorf("oddataset %s not updated (no records affected)", dataset.Uuid)
+	}
+	return nil
+}
+
+// UpdateFile updates a file
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys ...string) error {
+	if commonErr := commonUpdateFile(file, requestor, &keys); commonErr != nil {
+		return commonErr
+	}
+	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(file)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("file %s not updated (no records affected)", file.Uuid)
 	}
 	return nil
 }

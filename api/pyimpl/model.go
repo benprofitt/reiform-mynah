@@ -12,8 +12,8 @@ const MislabeledTaskName = "mislabeled_images"
 type PyImplProvider interface {
 	// GetMynahImplVersion get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
-	// ICDiagnosisJob start ic diagnosis
-	ICDiagnosisJob(*model.MynahUser, *ICDiagnosisJobRequest) (*ICDiagnosisJobResponse, error)
+	// ICDiagnoseCleanJob start ic diagnosis
+	ICDiagnoseCleanJob(*model.MynahUser, *ICDiagnoseCleanJobRequest) (*ICDiagnoseCleanJobResponse, error)
 	// ImageMetadata get image metadata
 	ImageMetadata(*model.MynahUser, *ImageMetadataRequest) (*ImageMetadataResponse, error)
 }
@@ -24,8 +24,8 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-// ICDiagnosisJobRequestFile format of files for a start diagnosis request
-type ICDiagnosisJobRequestFile struct {
+// ICDiagnoseCleanJobRequestFile format of files for a start diagnosis request
+type ICDiagnoseCleanJobRequestFile struct {
 	//the uuid for the file
 	Uuid model.MynahUuid `json:"uuid"`
 	//the width of the image
@@ -36,14 +36,14 @@ type ICDiagnosisJobRequestFile struct {
 	Channels int64 `json:"channels"`
 }
 
-// ICDiagnosisJobRequestTask defines a task to perform
-type ICDiagnosisJobRequestTask struct {
+// ICDiagnoseCleanJobRequestTask defines a task to perform
+type ICDiagnoseCleanJobRequestTask struct {
 	//the name of the task
 	Name string `json:"name"`
 }
 
-// ICDiagnosisJobRequest request format for a diagnosis job
-type ICDiagnosisJobRequest struct {
+// ICDiagnoseCleanJobRequest request format for a diagnosis job
+type ICDiagnoseCleanJobRequest struct {
 	Auto bool `json:"auto"`
 	//the uuid of the dataset
 	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
@@ -52,14 +52,14 @@ type ICDiagnosisJobRequest struct {
 		//all classes in the dataset
 		Classes []string `json:"classes"`
 		//map by class to map by temp path
-		ClassFiles map[string]map[string]ICDiagnosisJobRequestFile `json:"class_files"`
+		ClassFiles map[string]map[string]ICDiagnoseCleanJobRequestFile `json:"class_files"`
 	} `json:"dataset"`
 	//tasks to perform
-	Tasks []ICDiagnosisJobRequestTask `json:"tasks"`
+	Tasks []ICDiagnoseCleanJobRequestTask `json:"tasks"`
 }
 
-// ICDiagnosisJobResponseFile file data returned in response
-type ICDiagnosisJobResponseFile struct {
+// ICDiagnoseCleanJobResponseFile file data returned in response
+type ICDiagnoseCleanJobResponseFile struct {
 	//the uuid of the file
 	Uuid model.MynahUuid `json:"uuid"`
 	//the current class for this file
@@ -78,8 +78,8 @@ type ICDiagnosisJobResponseFile struct {
 	ConfidenceVectors model.ConfidenceVectors `json:"confidence_vectors"`
 }
 
-// ICDiagnosisJobResponse response format for a diagnosis job
-type ICDiagnosisJobResponse struct {
+// ICDiagnoseCleanJobResponse response format for a diagnosis job
+type ICDiagnoseCleanJobResponse struct {
 	//the uuid of the dataset
 	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
 	//the tasks in the dataset
@@ -93,14 +93,14 @@ type ICDiagnosisJobResponse struct {
 				//classes
 				Classes []string `json:"classes"`
 				//map from class to map by fileid to file data
-				ClassFiles map[string]map[model.MynahUuid]ICDiagnosisJobResponseFile `json:"class_files"`
+				ClassFiles map[string]map[model.MynahUuid]ICDiagnoseCleanJobResponseFile `json:"class_files"`
 			} `json:"outliers"`
 			//the inliers in the dataset
 			Inliers struct {
 				//classes
 				Classes []string `json:"classes"`
 				//map from class to map by fileid to file data
-				ClassFiles map[string]map[model.MynahUuid]ICDiagnosisJobResponseFile `json:"class_files"`
+				ClassFiles map[string]map[model.MynahUuid]ICDiagnoseCleanJobResponseFile `json:"class_files"`
 			} `json:"inliers"`
 		} `json:"datasets"`
 	} `json:"tasks"`

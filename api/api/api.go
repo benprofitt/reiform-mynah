@@ -33,12 +33,12 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 
 	router.HandleHTTPRequest("GET",
-		fmt.Sprintf("dataset/ic/report/{%s}", icReportKey),
+		fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
 		icDiagnosisReportView(dbProvider))
 
 	//register the ic diagnosis job endpoint
-	router.HandleHTTPRequest("POST", "dataset/ic/diagnosis/start",
-		startICDiagnosisJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/diagnose_clean/start",
+		icDiagnoseCleanJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
 	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 

@@ -34,10 +34,7 @@
           },
           ...
         },
-        "reports" : {
-          "cleaning_report" : "d2d89n923d",
-          "diagnosis_report": "493fn39f3f"
-        }
+        "report": type MynahICDatasetReport
       },
       ...
     }
@@ -156,7 +153,7 @@
   }
   ```
 
-### `MynahICDiagnosisReport`
+### `MynahICDatasetReport`
   ```json
   {
     "uuid": "",
@@ -344,13 +341,17 @@
   ```
 
 ### Starting an image classification diagnosis job
-- `POST /api/v1/dataset/ic/diagnosis/start`
+- `POST /api/v1/dataset/ic/diagnose_clean/start`
 - Request body
   ```json
   {
+    "diagnose": true,
+    "clean": true,
     "dataset_uuid" : "uuid"
   }
   ```
+    - `diagnose`: whether to run the diagnosis step
+    - `clean`: whether to run the cleaning step
     - `dataset_uuid`: The id of the dataset to diagnose
 
 ### Getting an image classification diagnosis report
@@ -361,6 +362,6 @@
   - Example: `GET /api/v1/icdataset/report/1?bad_images=true&class=class1&class=class2`
 - Response:
   ```json
-  type: MynahICDiagnosisReport
+  type: MynahICDatasetReport
   ```
   - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_tag"]`

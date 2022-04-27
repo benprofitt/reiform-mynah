@@ -1,6 +1,6 @@
 from impl.services.modules.core.resources import *
 
-from impl.services.modules.core.latent_projection import *
+from impl.services.modules.core.embeddings.latent_projection import *
 from impl.services.modules.core.vae_auto_net import *
 from impl.services.modules.core.reiform_imageclassificationdataset import *
 

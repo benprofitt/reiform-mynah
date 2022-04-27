@@ -36,7 +36,7 @@ class EncoderAutoNet(nn.Module):
 
         if VERBOSE:
             for l in self.conv_seq:
-                ReiformInfo(str(x.size()))
+                ReiformInfo("Size: {}".format(str(x.size())))
                 x = l(x)
         else:
             x = self.conv_seq(x)
@@ -237,7 +237,7 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
           else:
             train_loss_avg[-1] += vae_loss.item()
           num_batches += 1
-          ITERATION =[0]
+          
       train_loss_avg[-1] /= num_batches
       ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
   return vae, train_loss_avg

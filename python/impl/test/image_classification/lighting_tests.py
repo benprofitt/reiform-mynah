@@ -46,38 +46,6 @@ def test_train_detection(path : str, val_path: str):
 
     return model
 
-def test_train_detection_inception(path : str, val_path : str):
-    learning_rate = 0.00005
-    momentum = 0.94
-    epochs = 2
-    edge_size = 299
-    batch_size = 8
-    model = Inception_ForLightingDetection_Both()
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=0.001)
-
-    start = time.time()
-    ds = dataset_from_path(path)
-    val_ds = dataset_from_path(val_path)
-    print("read in dataset: {}".format(round(time.time() - start)))
-    transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(edge_size),
-            transforms.CenterCrop(edge_size)
-        ])
-
-    pt_ds = DatasetForLightingDetection(ds, transform)
-    val_pt_ds = DatasetForLightingDetection(val_ds, transform)
-
-    print("pt dataset")
-    dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_dataloader = torch.utils.data.DataLoader(val_pt_ds, batch_size=1, shuffle=False, num_workers=1)
-
-    print("pt dataloader")
-    start = time.time()
-    model, loss_list = train_inception_detection(model, dataloader, val_dataloader, epochs, optimizer)
-    print("Training Duration: {}".format(round(time.time() - start)))
-
-    return model
-
 def test_train_detection_tensor(path : str):
     learning_rate = 0.001
     momentum = 0.95

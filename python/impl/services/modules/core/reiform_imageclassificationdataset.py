@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from impl.services.modules.utils.image_utils import get_image_metadata
 from .reiform_imagedataset import *
 
 class ReiformICFile(ReiformImageFile):
@@ -13,7 +15,7 @@ class ReiformICFile(ReiformImageFile):
         self.was_outlier : bool = False
 
     def from_json(self, body: Dict[str, Any]):
-        for attrib in ["uuid", "width", "height", "channels", "current_class", "original_class"]:
+        for attrib in ["uuid", "width", "height", "channels", "current_class", "original_class", "mean", "std_dev"]:
             if attrib in body:
                 setattr(self, attrib, body[attrib])
 
@@ -60,6 +62,9 @@ class ReiformICFile(ReiformImageFile):
     def clear_confidence_vectors(self) -> None:
         self.confidence_vectors = []
 
+    def combine_projections(self, label : str, labels : List[str]):
+        self.projections.combine_projections(label, labels)
+
     def merge(self, other: ReiformICFile) -> ReiformICFile:
         # Assuming 'other' is an updated version that is merging in - other overwrites self in conflicts
         if self.name != other.name:
@@ -96,6 +101,10 @@ class ReiformICDataSet(ReiformImageDataset):
         super().__init__(classes)
 
         self.files : Dict[str, Dict[str, ReiformICFile]] = {}
+
+        self.mean : List[float] = []
+        self.std_dev : List[float] = []
+
         for c in self.class_list:
             self.files[c] = {}
 
@@ -252,11 +261,13 @@ class ReiformICDataSet(ReiformImageDataset):
     def merge_in(self, other : ReiformICDataSet) -> None:
         self = self.merge(other)
 
-    def from_json(self, files: Dict[str, Dict[str, Dict[str, Any]]]):
+    def from_json(self, body: Dict[str, Any]):
+
         if len(self.class_list) == 0:
             return
 
         else:
+            files : Dict[str, Dict[str, Dict[str, Any]]] = body["class_files"]
             for c in self.class_list:
                 class_files = files[c]
                 for filename, file in class_files.items():
@@ -264,11 +275,18 @@ class ReiformICDataSet(ReiformImageDataset):
                     new_file.from_json(file)
                     self.add_file(new_file)
 
+            for attrib in ["mean", "std_dev"]:
+                if attrib in body:
+                    setattr(self, attrib, body[attrib])
+
     def to_json(self) -> Dict[str, Any]:
         results : Dict[str, Any] = self.__dict__
 
         for c in self.class_list:
-            results["files"][c] = results["files"][c].to_json()
+            results["class_files"][c] = results["files"][c].to_json()
+        
+
+        del results["files"]
 
         return results
 
@@ -281,6 +299,11 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return new_ds
 
+    def combine_projections(self, label : str, labels : List[str]):
+        for file in self.all_files():
+            file.combine_projections(label, labels)
+
+
     def _files_and_labels(self) -> List[Tuple[str, int]]:
         files_and_labels : List[Tuple[str, int]] = []
         for i, c in enumerate(self.classes()):
@@ -289,6 +312,40 @@ class ReiformICDataSet(ReiformImageDataset):
                 files_and_labels.append((filename, i))
 
         return files_and_labels
+
+    def _mean_and_std_dev(self) -> None:
+
+        def add_mean_and_std(f1 : ReiformICFile, f2 : ReiformICFile):
+
+            nf = ReiformICFile("temp", f1.current_class)
+
+            m1 = f1.mean
+            m2 = f2.mean
+            nf.mean = [m1[i] + m2[i] for i in range(len(m1))]
+
+            m1 = f1.std_dev
+            m2 = f2.std_dev
+            nf.std_dev = [m1[i] + m2[i] for i in range(len(m1))]
+
+            return nf
+
+        avg_file : ReiformICFile = self.reduce_files(add_mean_and_std)
+
+        mean_list : List[float] = avg_file.mean
+        self.mean = [m/self.file_count() for m in mean_list]
+
+        std_dev_list : List[float] = avg_file.std_dev
+        self.std_dev = [m/self.file_count() for m in std_dev_list]
+
+    def get_mean(self) -> List[float]:
+        if self.mean == []:
+            self._mean_and_std_dev()
+        return self.mean
+
+    def get_std_dev(self) -> List[float]:
+        if self.std_dev == []:
+            self._mean_and_std_dev()
+        return self.std_dev
 
     def _files_labels_projections(self, projection_key : str) -> List[Tuple[str, int, NDArray]]:
         files_and_data : List[Tuple[str, int, NDArray]] = []
@@ -299,9 +356,9 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return files_and_data
 
-    def get_dataloader(self, in_size: int, edge_size: int, batch_size: int = 16) -> torch.utils.data.DataLoader:
+    def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None) -> torch.utils.data.DataLoader:
         
-        image_data = DatasetFromReiformDataset(self, in_size, edge_size)
+        image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
         dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=workers)
 
         return dataloader
@@ -348,24 +405,27 @@ class ReiformICDataSet(ReiformImageDataset):
         
 class DatasetFromReiformDataset(torch.utils.data.Dataset):
 
-    def __init__(self, files : ReiformICDataSet, in_size: int, edge_size: int) -> None:
+    def __init__(self, files : ReiformICDataSet, in_size: int, edge_size: int, transformation = None) -> None:
         super().__init__()
         self.files_and_labels : List[Tuple[str, int]] = files._files_and_labels()
 
         self.layer_count = in_size
 
-        mean=[0.485, 0.456, 0.406] 
-        std=[0.229, 0.224, 0.225]
-        if in_size == 1:
-            mean=[0.485]
-            std=[0.229]
+        if transformation is None:
+            mean=[0.485, 0.456, 0.406] 
+            std=[0.229, 0.224, 0.225]
+            if in_size == 1:
+                mean=[0.485]
+                std=[0.229]
 
-        self.transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(edge_size),
-            transforms.CenterCrop(edge_size),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=mean, std=std)
-        ])
+            self.transform : torchvision.transforms.Compose = transforms.Compose([
+                transforms.Resize(edge_size),
+                transforms.CenterCrop(edge_size),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=mean, std=std)
+            ])
+        else:
+            self.transform = transformation
 
     def __len__(self) -> int:
         return len(self.files_and_labels)
@@ -448,14 +508,15 @@ def make_file(package):
     name, label = package
     new_file : ReiformICFile = ReiformICFile(name, label)
 
-    if name.split(".")[-1] == "pt":
-        sizes = torch.load(name).size()
-    else:
-        sizes = np.array(Image.open(name)).shape
+    data = get_image_metadata(name)
 
-    new_file.width  = sizes[0]
-    new_file.height = sizes[1]
-    new_file.layers = 1 if len(sizes) < 3 else sizes[2]
+    new_file.width  = data["width"]
+    new_file.height = data["height"]
+    new_file.channels = data["channels"]
+
+    new_file.mean = data["mean"]
+    new_file.std_dev = data["std_dev"]
+
     return new_file
 
 def dataset_from_path(path_to_data : str) -> ReiformICDataSet:

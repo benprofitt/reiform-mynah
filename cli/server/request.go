@@ -63,3 +63,24 @@ func (s MynahClient) ExecutePostJsonRequest(path string, requestBody interface{}
 
 	return nil
 }
+
+// ExecuteGetRequest creates a get request that receives json
+func (s MynahClient) ExecuteGetRequest(path string, responseBody interface{}) error {
+	//create a new post request
+	request, err := s.NewRequest("GET", path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create mynah server request: %s", err)
+	}
+
+	response, err := s.MakeRequest(request)
+	if err != nil {
+		return fmt.Errorf("failed to create mynah server request: %s", err)
+	}
+
+	//parse the response
+	if err = RequestParseJson(response, responseBody); err != nil {
+		return fmt.Errorf("failed to parse mynah server response: %s", err)
+	}
+
+	return nil
+}

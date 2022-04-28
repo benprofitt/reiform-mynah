@@ -353,6 +353,13 @@
     - `diagnose`: whether to run the diagnosis step
     - `clean`: whether to run the cleaning step
     - `dataset_uuid`: The id of the dataset to diagnose
+- Response:
+  ```json
+  {
+    "task_uuid": "as8fh2n39083nf"
+  }
+  ```
+    - `task_uuid`: Identifier for the async task started (used to query task status, see "Async task endpoints")
 
 ### Getting an image classification diagnosis report
 - `GET /api/v1/dataset/ic/report/{reportid}`
@@ -365,3 +372,14 @@
   type: MynahICDatasetReport
   ```
   - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_tag"]`
+
+## Async task endpoints
+
+### Getting the status of a task
+- `GET /api/v1/task/status/{taskid}`
+- Response:
+  ```json
+  {
+    "task_status": "pending" | "running" | "completed" | "failed"
+  }
+  ```

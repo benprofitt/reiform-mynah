@@ -53,7 +53,7 @@ func main() {
 
 			log.Infof("completed task (%d/%d)", i+1, len(taskSet.Tasks))
 		} else {
-			log.Fatalf("task %d failed: %s", i, err)
+			log.Fatalf("task %d failed: %s", i+1, err)
 		}
 	}
 }

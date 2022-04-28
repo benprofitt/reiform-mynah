@@ -16,3 +16,4 @@ mynah_container_data_*/*
 /python/impl/test/test_results/
 .venv/
 .idea/
+/python/impl/test/test_data_color

@@ -528,11 +528,15 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
     
     dataset : ReiformICDataSet = ReiformICDataSet(class_list)
 
+    start = time.time()
+
     packages = zip(image_names, labels)
     with Pool(16) as p:
         files = p.map(make_file, packages)
 
     for file in files:
         dataset.add_file(file)
+
+    print("Time: {}".format(time.time() - start))
 
     return dataset

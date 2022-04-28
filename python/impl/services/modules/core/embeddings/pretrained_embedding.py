@@ -4,19 +4,7 @@ from impl.services.modules.core.resources import *
 from impl.services.modules.core.vae_auto_net import *
 from impl.services.modules.core.vae_models import *
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-
-
-def closest_power_of_2(max_size):
-    closest_size : int = 2
-    while closest_size < max_size:
-        closest_size *= 2
-    return closest_size
-
-def max_sizes(data):
-    # Find the closest power of 2 for the edge size
-    sizes : Tuple[int, int, int] = data.find_max_image_size()
-    max_size : int = max(sizes)
-    return sizes, max_size
+from impl.services.modules.utils.image_utils import max_sizes, closest_power_of_2
 
 
 def save_embedding_model(model : torch.nn.Module, channels : int, 

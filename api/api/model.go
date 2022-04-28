@@ -3,6 +3,7 @@
 package api
 
 import (
+	"reiform.com/mynah/async"
 	"reiform.com/mynah/model"
 )
 
@@ -37,4 +38,16 @@ type ICCleanDiagnoseJobRequest struct {
 	Clean bool `json:"clean"`
 	//the dataset id
 	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
+}
+
+// ICCleanDiagnoseJobResponse response type for start diagnosis job
+type ICCleanDiagnoseJobResponse struct {
+	//the id of the task
+	TaskUuid model.MynahUuid `json:"task_uuid"`
+}
+
+// TaskStatusResponse response type for querying the status of a task
+type TaskStatusResponse struct {
+	//the status of the task
+	TaskStatus async.MynahAsyncTaskStatus `json:"task_status"`
 }

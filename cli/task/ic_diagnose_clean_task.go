@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"reiform.com/mynah-cli/server"
 	"reiform.com/mynah/api"
+	"reiform.com/mynah/async"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
+	"time"
 )
 
 // MynahICDiagnoseCleanTask defines the task of starting a clean/diagnose job
@@ -21,23 +24,12 @@ type MynahICDiagnoseCleanTask struct {
 	Diagnose bool `json:"diagnose"`
 	//whether to run the clean step
 	Clean bool `json:"clean"`
+	//the task polling frequency
+	PollFrequency int `json:"poll_frequency"`
 }
 
 //run the diagnosis/clean job
-func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid, diagnose, clean bool) error {
-	expectWsMessages := 0
-	if diagnose {
-		expectWsMessages++
-	}
-	if clean {
-		expectWsMessages++
-	}
-
-	resChan := make(chan server.WsRes)
-
-	//start a websocket listener
-	go mynahServer.WebsocketListener(expectWsMessages, resChan)
-
+func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid, diagnose, clean bool, pollFreq int) error {
 	//make the request
 	icDiagnoseCleanReq := api.ICCleanDiagnoseJobRequest{
 		Diagnose:    diagnose,
@@ -45,21 +37,36 @@ func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid,
 		DatasetUuid: datasetId,
 	}
 
+	var response api.ICCleanDiagnoseJobResponse
+
 	//make the request
-	if err := mynahServer.ExecutePostJsonRequest("dataset/ic/diagnose_clean/start", &icDiagnoseCleanReq, nil); err != nil {
+	if err := mynahServer.ExecutePostJsonRequest("dataset/ic/diagnose_clean/start", &icDiagnoseCleanReq, &response); err != nil {
 		return fmt.Errorf("failed to create ic diagnose/clean job: %s", err)
 	}
 
-	for i := 0; i < expectWsMessages; i++ {
-		wsRes := <-resChan
-		if wsRes.Error != nil {
-			return wsRes.Error
-		}
-
-		//TODO unpack result
+	if pollFreq <= 0 {
+		pollFreq = 10
 	}
 
-	return nil
+	//wait for completion
+	for {
+		var taskStatus api.TaskStatusResponse
+		if err := mynahServer.ExecuteGetRequest(fmt.Sprintf("task/status/%s", response.TaskUuid), &taskStatus); err == nil {
+			if taskStatus.TaskStatus == async.StatusCompleted {
+				return nil
+			} else if taskStatus.TaskStatus == async.StatusFailed {
+				return errors.New("image classification diagnose/clean task failed")
+			} else {
+				log.Infof("image classification diagnose/clean task is %s", taskStatus.TaskStatus)
+			}
+
+		} else {
+			return fmt.Errorf("failed to check status of ic diagnose/clean job: %s", err)
+		}
+
+		//wait to retry
+		time.Sleep(time.Second * time.Duration(pollFreq))
+	}
 }
 
 // ExecuteTask executes the create icdataset task
@@ -71,14 +78,14 @@ func (t MynahICDiagnoseCleanTask) ExecuteTask(mynahServer *server.MynahClient,
 	}
 
 	if len(t.FromExisting) > 0 {
-		if err := icDiagnoseClean(mynahServer, t.FromExisting, t.Diagnose, t.Clean); err != nil {
+		if err := icDiagnoseClean(mynahServer, t.FromExisting, t.Diagnose, t.Clean, t.PollFrequency); err != nil {
 			return nil, err
 		}
 
 	} else if len(t.FromTask) > 0 {
 		if datasetTaskData, ok := tctx[t.FromTask]; ok {
 			if datasetId, ok := datasetTaskData.Value(CreatedICDatasetKey).(model.MynahUuid); ok {
-				if err := icDiagnoseClean(mynahServer, datasetId, t.Diagnose, t.Clean); err != nil {
+				if err := icDiagnoseClean(mynahServer, datasetId, t.Diagnose, t.Clean, t.PollFrequency); err != nil {
 					return nil, err
 				}
 			} else {

@@ -51,7 +51,8 @@
         "from_existing" : "",
         "from_task" : "create_ic_dataset2",
         "diagnose": true,
-        "clean": false
+        "clean": false,
+        "poll_frequency": 5
       }
     }
   ]

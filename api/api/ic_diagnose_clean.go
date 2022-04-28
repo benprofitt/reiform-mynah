@@ -363,7 +363,18 @@ func icDiagnoseCleanJob(dbProvider db.DBProvider,
 			}
 
 			//kick off async job
-			asyncProvider.StartAsyncTask(user, ctx.icDiagnoseCleanAsyncJob(runDiagnosisStep, runCleanStep))
+			taskId := asyncProvider.StartAsyncTask(user, ctx.icDiagnoseCleanAsyncJob(runDiagnosisStep, runCleanStep))
+
+			//respond with the task id
+			response := ICCleanDiagnoseJobResponse{
+				TaskUuid: taskId,
+			}
+
+			//write the response
+			if err := responseWriteJson(writer, &response); err != nil {
+				log.Warnf("failed to write response as json: %s", err)
+				writer.WriteHeader(http.StatusInternalServerError)
+			}
 
 		} else {
 			log.Warnf("failed to create new version of dataset %s for ic diagnose/clean job: %s", dataset.Uuid, err)

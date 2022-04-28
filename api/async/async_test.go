@@ -67,3 +67,52 @@ func TestAsync(t *testing.T) {
 		<-resultChan
 	}
 }
+
+//test the status function
+func TestAsyncStatus(t *testing.T) {
+	mynahSettings := settings.DefaultSettings()
+
+	//init the websocket server
+	wsProvider := websockets.NewWebSocketProvider(mynahSettings)
+	defer wsProvider.Close()
+
+	//init the async engine
+	asyncProvider := NewAsyncProvider(mynahSettings, wsProvider)
+	defer asyncProvider.Close()
+
+	user := model.MynahUser{
+		Uuid: "test_async_user",
+	}
+
+	taskChan := make(chan int)
+
+	taskId := asyncProvider.StartAsyncTask(&user, func(uuid model.MynahUuid) ([]byte, error) {
+		//wait to exit
+		<-taskChan
+		return nil, nil
+	})
+
+	time.Sleep(time.Second * 1)
+
+	if status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId); err == nil {
+		if status != StatusRunning {
+			t.Fatalf("expected task status to be %s but got %s", StatusRunning, status)
+		}
+	} else {
+		t.Fatalf("query task status returned error: %s", err)
+	}
+
+	//cause the task to end
+	taskChan <- 0
+
+	time.Sleep(time.Second * 1)
+
+	//get the status again
+	if status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId); err == nil {
+		if status != StatusCompleted {
+			t.Fatalf("expected task status to be %s but got %s", StatusCompleted, status)
+		}
+	} else {
+		t.Fatalf("query task status returned error: %s", err)
+	}
+}

@@ -26,6 +26,11 @@ class ReiformWarning():
     def __init__(self, message : str="Unimplemented Warning Type"):
         ReiformLogger().logger.warning(message)
 
+class ReiformMethodWarning(ReiformWarning):
+    def __init__(self, class_name: str, method_name: str, 
+                 message: str = "Unimplemented Warning Type"):
+        super().__init__("{}::{} -> {}".format(class_name, method_name, message))
+
 class ReiformException(Exception):
     def __init__(self, message : str="Unimplemented Exception Type"):
         super().__init__(message)

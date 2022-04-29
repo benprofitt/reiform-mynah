@@ -91,20 +91,42 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
 
     embeddings : List[NDArray] = []
     names : List[Tuple[str, str]] = []
+
+    embeddings_by_class : Dict[str, List[NDArray]]
+    names_by_class : Dict[str, List[str]]
+
     for c in dataset.classes():
+        embeddings_by_class[c] = []
+        names_by_class[c] = []
         for name, file in dataset.get_items(c):
 
             embeddings.append(file.get_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION))
             names.append((c, name))
+
+            embeddings_by_class[c].append(file.get_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION))
+            names_by_class[c].append(name)
     
-    # Embedding for outlier detection
+    for c in dataset.classes():
+        # Per-class embedding reduction -> used for class splitting
+        pca = PCA(n_components="mle")
+        reduced_embeddings = pca.fit_transform(embeddings_by_class[c])
+        for i, name in enumerate(names_by_class[c]):
+            dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS, reduced_embeddings[i])
+
+        pca = PCA(n_components=3)
+        reduced_embeddings = pca.fit_transform(embeddings_by_class[c])
+        for i, name in enumerate(names_by_class[c]):
+            dataset.get_file(c, name).add_projection(PROJECTION_LABEL_3D_PER_CLASS, reduced_embeddings[i])
+
+
+    # Entire dataset embedding reduction -> used for outlier detection
     pca = PCA(n_components="mle")
     reduced_embeddings = pca.fit_transform(embeddings)
 
     for i, (c, name) in enumerate(names):
         dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING, reduced_embeddings[i])
 
-    # 2D projections
+    # 2D projections -> Used to show user what's up with these embeddings
     pca = PCA(n_components=2)
     reduced_embeddings = pca.fit_transform(embeddings)
 

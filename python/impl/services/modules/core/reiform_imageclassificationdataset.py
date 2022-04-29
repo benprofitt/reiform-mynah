@@ -130,6 +130,12 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return total
 
+    def add_class(self, new_label : str) -> None:
+        if new_label in self.class_list:
+            ReiformMethodWarning("ReiformICDataset", "add_class", "label already exists")
+            return
+        self.class_list.append(new_label)
+
     def add_file(self, file : ReiformICFile) -> None:
         if file.current_class not in self.class_list:
             ReiformWarning("File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))

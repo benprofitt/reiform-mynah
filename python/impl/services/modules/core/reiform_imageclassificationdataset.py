@@ -148,6 +148,24 @@ class ReiformICDataSet(ReiformImageDataset):
             else:
                 raise ReiformICDataSetException("File not in dataset", "get_file")
 
+    def get_file_by_uuid(self, name : str):
+        for c in self.class_list:
+            if name in self.files[c]:
+                return self.files[c][name]
+        raise ReiformICDataSetException("File not in dataset", "get_file_by_uuid")
+
+    def set_file_class(self, label : str, name : str, new_label : str):
+        # Removes the file from the old class and adds it back to the new one
+        if new_label not in self.class_list or label not in self.class_list:
+            raise ReiformDataSetException(
+                        "one of classes {}, {} not in dataset".format(label, new_label),
+                                        "set_file_class")
+        else:
+            file = self.get_file(label, name)
+            del self.files[label][name]
+            file.set_class(new_label)
+            self.add_file(file)
+
     def remove_file(self, label : str, name : str) -> None:
         if label in self.files:
             if name in self.files[label]:
@@ -179,6 +197,16 @@ class ReiformICDataSet(ReiformImageDataset):
                     side_b.add_file(file)
 
         return side_a, side_b
+
+    def combine_classes(self, group : List[str]):
+        for c in group:
+            if c not in self.class_list:
+                ReiformDataSetException("class not in dataset", "combine_classes", "ICDataset")
+        main_class = group[0]
+        for g in group[1:]:
+            for name, file in self.get_items(g):
+                self.set_file_class(g, name, main_class)
+
 
     def filter_classes(self, c : str) -> ReiformICDataSet:
         filtered_ds : ReiformICDataSet = ReiformICDataSet([c])

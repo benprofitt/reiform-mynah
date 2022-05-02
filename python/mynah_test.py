@@ -41,7 +41,7 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
 
     return '{"msg": "%s"}' % contents['msg']
 
-def start_diagnosis_job(uuid: str, request_str: str, sock_addr: str) -> str:
+def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
 
     contents = json.loads(request_str)

@@ -57,7 +57,6 @@ class LightingDetector(nn.Module):
 
         return torch.sigmoid(x)
 
-
 def sparse_maxpool_block(in_size, out_size):
     return nn.Sequential(
         nn.MaxPool2d(2, 2),
@@ -66,7 +65,7 @@ def sparse_maxpool_block(in_size, out_size):
 
 class LightingDetectorSparse(nn.Module):
 
-    def __init__(self) -> None:
+    def __init__(self, channels: int, edge_size : int) -> None:
         super().__init__()
 
         self.c1 = create_conv_block(3, 64, 3, 1, 1)  # 128
@@ -101,8 +100,8 @@ class LightingDetectorSparse(nn.Module):
         self.fc2a = linear_block(128, 64)
         self.fc2b = linear_block(128, 64)
 
-        # self.fc3 = linear_block(128, 3, dropout=0.0, relu=False)
-        self.fc3 = linear_block(128, 2, dropout=0.0, relu=False)
+        # self.fc3 = linear_block(128, 2, dropout=0.0, relu=False)
+        self.fc3 = linear_block(128, 3, dropout=0.0, relu=False)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -149,44 +148,6 @@ class LightingDetectorSparse(nn.Module):
         return torch.sigmoid(x)
 
 
-
-class Inception_ForLightingDetection(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-        self.main = torchvision.models.inception_v3(pretrained=True, transform_input=False)
-        self.aux_lin = linear_block(1000, 2, dropout=0.0, relu=False)
-        self.final_lin = linear_block(1000, 2, dropout=0.0, relu=False)
-
-    def forward(self, x):
-        x = self.main(x)
-        if self.training:
-            aux_x = self.aux_lin(x.aux_logits)
-            x = self.final_lin(x.logits)
-            return aux_x, x
-        else:
-            x = self.final_lin(x)
-            return x
-
-
-class Inception_ForLightingDetection_Both(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-        self.main = torchvision.models.inception_v3(pretrained=True, transform_input=False)
-        self.aux_lin = linear_block(1000, 3, dropout=0.0, relu=False)
-        self.final_lin = linear_block(1000, 3, dropout=0.0, relu=False)
-
-    def forward(self, x):
-        x = self.main(x)
-        if self.training:
-            aux_x = self.aux_lin(x.aux_logits)
-            x = self.final_lin(x.logits)
-            return aux_x, x
-        else:
-            x = self.final_lin(x)
-            return x
-
 def eval_model(dataloader, model):
     model = model.to(device)
     model.eval()
@@ -224,66 +185,12 @@ def eval_model(dataloader, model):
     for k in labels:
         ReiformInfo("Class {}: {}/{} = {}".format(k, labels_correct[k], labels[k], round(labels_correct[k]/labels[k], 3)))
 
-def train_inception_detection(model : LightingDetector, dataloader : torch.utils.data.DataLoader, val_dataloader : torch.utils.data.DataLoader, epochs: int, optimizer : torch.optim.Optimizer):
-
-  # EX: optimizer = torch.optim.Adam(params=vae.parameters(), lr=learning_rate, weight_decay=1e-2)
-  def loss_func(pred, target):
-    return nn.CrossEntropyLoss()(pred, target)
-
-
-  # set to training mode
-  model.train()
-  model.to(device)
-
-  train_loss_avg : List[float] = []
-
-  ReiformInfo('Training ...')
-  for epoch in range(epochs):
-      train_loss_avg.append(0)
-      num_batches = 0
-      
-      for image_batch, labels in dataloader:
-          
-          if image_batch.size()[0] == 1:
-            continue
-          torch.cuda.empty_cache()
-          image_batch = image_batch.to(device)
-          labels = labels.to(device)
-          
-          # preds
-          aux_pred, predictions = model(image_batch)
-          
-          # loss
-          pred_loss = loss_func(predictions, labels)
-          aux_loss = loss_func(aux_pred, labels)
-
-          loss = pred_loss + 0.4*aux_loss
-          
-          # backpropagation
-          optimizer.zero_grad()
-          loss.backward()
-          
-          # one step of the optmizer (using the gradients from backpropagation)
-          optimizer.step()
-          
-          train_loss_avg[-1] += loss.item()
-          num_batches += 1
-          
-      train_loss_avg[-1] /= num_batches
-      
-      ReiformInfo('Epoch [%d / %d] avg loss: %f' % (epoch+1, epochs, round(train_loss_avg[-1], 3)))
-      eval_model(val_dataloader, model)
-      model.train()
-  return model, train_loss_avg
-
 def train_detection(model : LightingDetectorSparse, dataloader : torch.utils.data.DataLoader, 
-                    val_dataloader : torch.utils.data.DataLoader, 
                     epochs: int, optimizer : torch.optim.Optimizer):
 
   # EX: optimizer = torch.optim.Adam(params=vae.parameters(), lr=learning_rate, weight_decay=1e-2)
   def loss_func(pred, target):
     return nn.CrossEntropyLoss()(pred, target)
-
 
   # set to training mode
   model.train()
@@ -316,9 +223,8 @@ def train_detection(model : LightingDetectorSparse, dataloader : torch.utils.dat
           
           train_loss_avg[-1] += loss.item()
           num_batches += 1
-          ITERATION =[0]
+          
       train_loss_avg[-1] /= num_batches
       ReiformInfo('Epoch [%d / %d] avg loss: %f' % (epoch+1, epochs, round(train_loss_avg[-1], 3)))
-      eval_model(val_dataloader, model)
       model.train()
   return model, train_loss_avg

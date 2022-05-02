@@ -22,7 +22,7 @@ def save_embedding_model(model : torch.nn.Module, channels : int,
         NAME: dataset_name
     }
 
-    local_path = get_embedding_path(channels, size, resize, mean, std, dataset_name, LOCAL_EMBEDDING_PATH)
+    local_path = get_embedding_path(LOCAL_EMBEDDING_PATH, channels, size, resize, mean, std, dataset_name)
     Path("/".join(local_path.split("/")[0:-1])).mkdir(exist_ok=True)
 
     model_path = "{}{}".format(local_path, "_model.pt")
@@ -35,7 +35,7 @@ def save_embedding_model(model : torch.nn.Module, channels : int,
 
     return
 
-def get_embedding_path(channels=None, size=None, resize=None, mean=None, std=None, dataset_name=None, local_path=None):
+def get_embedding_path(local_path, channels=None, size=None, resize=None, mean=None, std=None, dataset_name=None):
     
     additions = [channels, size, resize]
 

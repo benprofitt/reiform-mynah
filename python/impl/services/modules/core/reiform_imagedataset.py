@@ -19,6 +19,10 @@ class Projections():
     def insert(self, label: str, proj : NDArray) -> None:
         self.projections[label] = proj
 
+    def remove(self, label : str) -> None:
+        if label in self.projections:
+            del self.projections[label]
+
     def get(self, label: str) -> NDArray:
         return self.projections[label]
 
@@ -100,6 +104,9 @@ class ReiformImageFile():
 
     def get_projection(self, label : str) -> NDArray:
         return self.projections.get(label)
+
+    def remove_projection(self, label : str) -> None:
+        self.projections.remove(label)
 
     def clear_projections(self) -> None:
         self.projections = Projections()

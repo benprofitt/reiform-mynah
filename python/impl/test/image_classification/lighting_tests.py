@@ -4,74 +4,14 @@ from impl.services.modules.lighting_correction.lighting_utils import *
 from impl.services.modules.lighting_correction.correction import *
 from .test_utils import dataset_evaluation, train_model_for_eval
 
-def test_train_detection(path : str, val_path: str):
-    learning_rate = 0.00005
-    momentum = 0.94
-    epochs = 5
-    edge_size = 128
-    batch_size = 32
-    model = LightingDetectorSparse()
-    
-    optimizer = torch.optim.SGD(params=model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=1e-2)
-
-    start = time.time()
-    ds = dataset_from_path(path)
-    val_ds = dataset_from_path(val_path)
-    ReiformInfo("Read in dataset: {}".format(round(time.time() - start)))
-    transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(edge_size),
-            transforms.CenterCrop(edge_size)
-        ])
-
-    pt_ds = DatasetForLightingDetection(ds, transform)
-    val_pt_ds = DatasetForLightingDetection(val_ds, transform)
-
-    dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_dataloader = torch.utils.data.DataLoader(val_pt_ds, batch_size=32, shuffle=False, num_workers=1)
-
-    start = time.time()
-    model, loss_list = train_detection(model, dataloader, val_dataloader, epochs, optimizer)
-    ReiformInfo("Training Duration: {}".format(round(time.time() - start)))
-
-    return model
-
-def test_train_correction(path: str, val_path: str, model_path=None, epoch_start=0):
-    learning_rate = 0.00005
-    momentum = 0.94
-    epochs = 40
-    edge_size = 128
-    batch_size = 240
-
-    model = LightingCorrectionNet(edge_size)
-    if model_path != None:
-        model.load_state_dict(torch.load(model_path))
-    
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-2)
-
-    start = time.time()
-    ds = dataset_from_path(path)
-    val_ds = dataset_from_path(val_path)
-    ReiformInfo("read in dataset: {}".format(round(time.time() - start)))
-    transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(edge_size),
-            transforms.CenterCrop(edge_size)
-        ])
-
-    pt_ds = DatasetForLightingCorrection(ds, transform)
-    val_pt_ds = DatasetForLightingCorrection(val_ds, transform)
-
-    dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_dataloader = torch.utils.data.DataLoader(val_pt_ds, batch_size=batch_size, shuffle=False, num_workers=workers)
-
-    start = time.time()
-    model, loss_list = train_lighting_correction(model, dataloader, val_dataloader, epochs, optimizer, epoch_start=epoch_start)
-    ReiformInfo("Training Duration: {}".format(round(time.time() - start)))
-
-    return model
 
 def test_detection_model(model_path, path, all_dark, all_light, bare_model_class):
-    edge_size = 128
+    
     ds = dataset_from_path(path)
+    
+    sizes, _ = max_sizes(ds)
+    edge_size = min(256, closest_power_of_2(max(sizes[:2])))
+    channels = sizes[2]
     
     transform : torchvision.transforms.Compose = transforms.Compose([
             transforms.Resize(edge_size),
@@ -82,7 +22,7 @@ def test_detection_model(model_path, path, all_dark, all_light, bare_model_class
 
     dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=1, shuffle=False, num_workers=1)
 
-    model = bare_model_class()
+    model = bare_model_class(channels, edge_size)
     model.load_state_dict(torch.load(model_path))
 
     eval_model(dataloader, model)
@@ -107,6 +47,7 @@ def test_correction_model(model_path, path):
 
     correct_train_dl = torch.utils.data.DataLoader(DatasetForLightingCorrectionTest(train_ds, transform),
                                            batch_size=128, shuffle=False, num_workers=1)
+    # This will be resolved with the issue #123
     test_temp_path : str = "./impl/test/working/temp"
 
     model = model.to(device)
@@ -149,23 +90,20 @@ def test_correction_model(model_path, path):
     ReiformInfo("Scores for model trained on uncorrected data: {}".format(str(precorrection_scores)))
     ReiformInfo("Scores for model trained on corrected data: {}".format(str(corrected_scores)))
 
-def test():
-    
-    # The paths will be updated in a different PR! (Issues 122/123)
-    val_path = "/home/ben/Data/open_images/images/train/"
-    
-    correction_model_path : str = "checkpoint.pt"
-    test_correction_model(correction_model_path, val_path)
+def test(val_path : str, correction_model_path : str, detection_model_path):
 
-    detection_model_path_dark : str = "detection_dark.pt"
-    detection_model_path_bright : str = "detection_bright.pt"
-    detection_model_path_both : str = "detection_both.pt"
-
+    # Test different Detection models
     model_type = LightingDetectorSparse
-    test_detection_model(detection_model_path_dark, val_path, True, False, model_type )
-    test_detection_model(detection_model_path_bright, val_path, False, True, model_type )
-    test_detection_model(detection_model_path_both, val_path, False, False, model_type )
-
+    test_detection_model(detection_model_path, val_path, False, False, model_type )
+    
+    # Test Correction
+    test_correction_model(correction_model_path, val_path)
     
 if __name__ == "__main__":
-    test()
+    data_path = sys.argv[1]
+    corr_model_path = sys.argv[2]
+    det_model_path = sys.argv[3]
+
+    test(data_path,
+        corr_model_path,
+        det_model_path)

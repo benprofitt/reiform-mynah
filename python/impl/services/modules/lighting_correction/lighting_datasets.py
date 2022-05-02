@@ -43,12 +43,10 @@ class DatasetForLightingDetection(torch.utils.data.Dataset):
 
         if p == 1:
             image = make_bright(image, rand=True)
-            # label = 1
-            label = 0
+            label = 1
         elif p == 2:
             image = make_dark(image, rand=True)
-            label = 1
-            # label = 2
+            label = 2
 
         #      image,               class
         return transforms.ToTensor()(image), label

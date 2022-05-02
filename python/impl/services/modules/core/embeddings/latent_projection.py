@@ -8,7 +8,7 @@ from .pretrained_embedding import *
 def pretrained_projection(data : ReiformICDataSet, model : torch.nn.Module, 
                           preprocess : transforms.Compose, label : str) -> ReiformICDataSet:
     
-    dataloader = data.get_dataloader_with_names(preprocess)
+    dataloader = data.get_dataloader_with_names(preprocess, CORRECTION_MODEL_BATCH_SIZE)
 
     return trained_model_projection(data, model, dataloader, label)
 
@@ -56,7 +56,7 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
     channels = sizes[2]
     closest_size = closest_power_of_2(max_)
 
-    path_to_models = get_embedding_path(channels, closest_size, local_path=path_to_embeddings)
+    path_to_models = get_embedding_path(path_to_embeddings, channels, closest_size)
 
     # TODO: Get all model files under this ^ path, 
     # process dataset, and add the projections to 

@@ -31,6 +31,6 @@ def split_dataset(dataset : ReiformICDataSet, classes_to_cluster : List[str]) ->
             dataset.add_class(name)
 
             for file_name in new_split[i]:
-                dataset.get_file(c, file_name).set_class(name)
+                dataset.set_file_class(c, file_name, name)
     
     return dataset, potential_cluster_count, potential_clusters

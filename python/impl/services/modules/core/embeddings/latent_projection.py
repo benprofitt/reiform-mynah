@@ -58,7 +58,7 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
 
     path_to_models = get_embedding_path(path_to_embeddings, channels, closest_size)
 
-    # TODO: Get all model files under this ^ path, 
+    # Get all model files under this ^ path, 
     # process dataset, and add the projections to 
     # the dataset. Then combine all of the projections, 
     # and use PCA to reduce to fewer dimensions. (for outliers)

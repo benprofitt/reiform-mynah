@@ -13,6 +13,8 @@ from PIL import Image # type: ignore
 import sklearn # type: ignore
 from sklearn.ensemble import IsolationForest # type: ignore
 from sklearn.decomposition import PCA  # type: ignore
+from sklearn.covariance import EllipticEnvelope # type: ignore
+from sklearn.neighbors import LocalOutlierFactor # type: ignore
 
 from glob import glob # type: ignore
 

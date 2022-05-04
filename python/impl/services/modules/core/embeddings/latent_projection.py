@@ -17,7 +17,6 @@ def trained_model_projection(data : ReiformICDataSet, model : nn.Module,
                              projection_label : str = PROJECTION_LABEL) -> ReiformICDataSet:
     
     model = model.to(device)
-    
     with torch.no_grad():
         model.eval()
         for batch, label, names in dataloader:
@@ -27,13 +26,14 @@ def trained_model_projection(data : ReiformICDataSet, model : nn.Module,
             projection = projection.to("cpu").numpy()
             
             label = label.to("cpu").numpy()
-
+            
             for idx in range(len(names)):
-                file : ReiformICFile = data.get_file(label[idx], names[idx])
+                l : str = data.classes()[label[idx]]
+                
+                file : ReiformICFile = data.get_file(l, names[idx])
                 file.add_projection(projection_label, projection[idx])
 
     return data
-
 
 def vae_projection(data : ReiformICDataSet, latent_size : int, 
                    channels_in : int, edge_size : int, 
@@ -92,8 +92,8 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
     embeddings : List[NDArray] = []
     names : List[Tuple[str, str]] = []
 
-    embeddings_by_class : Dict[str, List[NDArray]]
-    names_by_class : Dict[str, List[str]]
+    embeddings_by_class : Dict[str, List[NDArray]] = {}
+    names_by_class : Dict[str, List[str]] = {}
 
     for c in dataset.classes():
         embeddings_by_class[c] = []

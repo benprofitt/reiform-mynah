@@ -8,6 +8,8 @@ def make_predictions(embeddings, names, clf):
     cluster_ids = set(predictions)
     count = len(cluster_ids)
 
+    clusters = []
+
     if count > 1:
         clusters = []
         for i in range(count):
@@ -23,8 +25,8 @@ def perform_split(dataset : ReiformICDataSet,
                   projection_label : str, clf_generator : Callable, 
                   classes : List[str]) -> Tuple[Dict[str, int], Dict[str, List[List[str]]]]:
 
-    potential_cluster_count : Dict[str, int]        # class -> number of new classes
-    potential_clusters : Dict[str, List[List[str]]] # class -> List of "New_Classes = (Lists of file uuids)"
+    potential_cluster_count : Dict[str, int] = {}        # class -> number of new classes
+    potential_clusters : Dict[str, List[List[str]]] = {} # class -> List of "New_Classes = (Lists of file uuids)"
 
     for c in classes:
 

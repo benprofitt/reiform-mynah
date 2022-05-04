@@ -144,8 +144,8 @@ def train_correction_for_dataset(path: str, val_path: str, model_path=None, epoc
     pt_ds = DatasetForLightingCorrection(ds, transform)
     val_pt_ds = DatasetForLightingCorrection(val_ds, transform)
 
-    dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_dataloader = torch.utils.data.DataLoader(val_pt_ds, batch_size=batch_size, shuffle=False, num_workers=workers)
+    dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=batch_size, shuffle=True, num_workers=WORKERS)
+    val_dataloader = torch.utils.data.DataLoader(val_pt_ds, batch_size=batch_size, shuffle=False, num_workers=WORKERS)
 
     start = time.time()
     model, loss_list = train_lighting_correction(model, dataloader, val_dataloader, epochs, optimizer, epoch_start=epoch_start)

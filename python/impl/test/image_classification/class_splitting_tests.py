@@ -2,7 +2,7 @@ from impl.services.modules.class_splitting.detection import *
 from impl.services.modules.class_splitting.correction import *
 from impl.services.modules.core.embeddings.latent_projection import get_dataset_embedding
 from impl.services.modules.core.reiform_imageclassificationdataset import dataset_from_path
-from .test_utils import dataset_evaluation
+from impl.test.image_classification.test_utils import dataset_evaluation
 
 def test_splitting_detection(dataset : ReiformICDataSet, 
                              groups_to_combine : List[List[str]]):
@@ -85,11 +85,12 @@ def test():
     dataset = dataset_from_path(dataset_path)
 
     classes_to_group = sys.argv[2]
-    groups = classes_to_group.split("--")
-    groups_to_combine = [g.split("  ") for g in groups]
+    groups = classes_to_group.split("  ")
+    groups_to_combine = [g.split("--") for g in groups]
 
     test_splitting_detection(dataset, groups_to_combine)
 
+    dataset = dataset_from_path(dataset_path)
     test_splitting_correction(dataset, groups_to_combine)
 
 if __name__ == "__main__":

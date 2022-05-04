@@ -86,11 +86,11 @@ class AutoNet(nn.Module):
     def forward(self, x):
 
         if VERBOSE:
-            print(x.size())
+            ReiformInfo(x.size())
 
             for layer in self.conv:
                 x = layer(x)
-                print(x.size())
+                ReiformInfo(x.size())
         else:
             x = self.conv(x)
 
@@ -160,11 +160,11 @@ class SmallAutoNet(nn.Module):
     def forward(self, x):
 
         if VERBOSE:
-            print(x.size())
+            ReiformInfo(x.size())
 
             for layer in self.conv:
                 x = layer(x)
-                print(x.size())
+                ReiformInfo(x.size())
         else:
             x = self.conv(x)
 

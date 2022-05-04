@@ -157,21 +157,27 @@ def vae_projection_loss(recon_x, x, mu, logvar, edge_size):
     
     return (recon_loss + VARIATIONAL_BETA * kldivergence )
 
-def train_loss_from_svm(mu, labels, epoch, proj_dataloader, enc):
+def train_loss_from_svm(mu, labels, proj_dataloader, enc):
     
     X = []
     Y = []
     enc.eval()
-    for image_batch, label, name in proj_dataloader:
+    class_labels = {}
+    classes = 0
+    for image_batch, label, _ in proj_dataloader:
         torch.cuda.empty_cache()
         if random.random() < 0.2:
             torch.cuda.empty_cache()
             image_batch = image_batch.to(device)
             label = label.to(device)
+            for l in label:
+                if l not in class_labels:
+                    class_labels[l] = 1
+                    classes += 1
             X.append(enc(image_batch))
             Y.append(label)
     enc.train()
-    model = train_SVM(X, Y, 2, 10, 50)
+    model = train_SVM(X, Y, EMBEDDING_DIM_SIZE, classes, 50)
     del X
     return eval_SVM(mu, labels, model)
 
@@ -195,7 +201,7 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
 
   train_loss_avg : List[float] = []
 
-  start_enc_loss_percent : int = 3
+  start_enc_loss_percent : int = 5
 
   ReiformInfo('Training Projection VAE...')
   for epoch in range(epochs):
@@ -217,7 +223,7 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
         
           # reconstruction error 
           if include_enc_loss:
-            enc_loss = train_loss_from_svm(latent_mu, label, epoch, proj_dataloader, enc)
+            enc_loss = train_loss_from_svm(latent_mu, label, proj_dataloader, enc)
           
           # backpropagation
           if include_enc_loss:

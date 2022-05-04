@@ -143,10 +143,12 @@ class ReiformICDataSet(ReiformImageDataset):
         self.files[file.get_class()][file.get_name()] = file
 
     def get_file(self, label : str, name : str) -> ReiformICFile:
-            if name in self.files[label]:
-                return self.files[label][name]
-            else:
-                raise ReiformICDataSetException("File not in dataset", "get_file")
+        label = str(label)
+        
+        if name in self.files[label]:
+            return self.files[label][name]
+        else:
+            raise ReiformICDataSetException("File not in dataset", "get_file")
 
     def get_file_by_uuid(self, name : str):
         for c in self.class_list:
@@ -162,9 +164,9 @@ class ReiformICDataSet(ReiformImageDataset):
                                         "set_file_class")
         else:
             file = self.get_file(label, name)
-            del self.files[label][name]
             file.set_class(new_label)
             self.add_file(file)
+            del self.files[label][name]
 
     def remove_file(self, label : str, name : str) -> None:
         if label in self.files:
@@ -203,9 +205,12 @@ class ReiformICDataSet(ReiformImageDataset):
             if c not in self.class_list:
                 ReiformDataSetException("class not in dataset", "combine_classes", "ICDataset")
         main_class = group[0]
+        
         for g in group[1:]:
-            for name, file in self.get_items(g):
+            for name in list(self.files[g].keys()):
                 self.set_file_class(g, name, main_class)
+            del self.files[g]
+            self.class_list.remove(g)
 
 
     def filter_classes(self, c : str) -> ReiformICDataSet:
@@ -393,13 +398,13 @@ class ReiformICDataSet(ReiformImageDataset):
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None) -> torch.utils.data.DataLoader:
         
         image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
-        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=workers)
+        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=WORKERS)
 
         return dataloader
 
     def get_dataloader_with_names(self, preprocess : torchvision.transforms.Compose, batch_size: int = 16) -> torch.utils.data.DataLoader:
         image_data = ImageNameDataset(self, preprocess)
-        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=workers)
+        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=WORKERS)
 
         return dataloader
 
@@ -571,6 +576,6 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
     for file in files:
         dataset.add_file(file)
 
-    print("Time: {}".format(time.time() - start))
+    ReiformInfo("Time: {}".format(time.time() - start))
 
     return dataset

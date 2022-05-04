@@ -28,10 +28,12 @@ from nptyping import NDArray # type: ignore
 
 from impl.services.modules.utils.reiform_exceptions import *
 
+logging.getLogger('PIL').setLevel(logging.WARNING)
+
 random.seed(7343432676)
 
 image_extns : List[str] = ["png", "jpeg", "jpg", "tif", "tiff"]
-workers : int = 4
+WORKERS : int = 2
 VERBOSE = False
 
 PROJECTION_LABEL : str = "inception_projection"
@@ -56,8 +58,10 @@ STD = "std"
 LATENT_SIZE = "latent_size"
 NAME = "dataset_name"
 
+EMBEDDING_DIM_SIZE = 4
+
 VARIATIONAL_BETA = 0.0000001
-VAE_PROJECTION_TRAINING_EPOCHS = 100
+VAE_PROJECTION_TRAINING_EPOCHS = 10
 CORRECTION_MODEL_BATCH_SIZE = 364
 
 # From Mislabeled Correction - need to be more dynamic

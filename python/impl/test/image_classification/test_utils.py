@@ -12,7 +12,7 @@ def get_predictions(dataloader, model):
     labels = []
     predictions = []
 
-    for image, label in dataloader:
+    for image, label, _ in dataloader:
         image = image.to(device)
         pred = model(image)
         for i in range(len(label)):    
@@ -78,7 +78,7 @@ def train_model_for_eval(train_dl_pt, test_dl_pt, sizes, edge_size, epochs, clas
 
     true_y, pred_y = get_predictions(test_dl_pt, model)
 
-    scores = precision_recall_fscore_support(true_y, pred_y, average='macro')
+    scores = precision_recall_fscore_support(true_y, pred_y, average=None)
 
     return scores
 

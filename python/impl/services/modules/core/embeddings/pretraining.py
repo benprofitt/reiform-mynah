@@ -1,4 +1,4 @@
-from .pretrained_embedding import *
+from impl.services.modules.core.embeddings.pretrained_embedding import *
 
 if __name__ == "__main__":
 

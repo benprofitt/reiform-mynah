@@ -12,11 +12,11 @@ def test_projection(data : ReiformICDataSet) -> ReiformICDataSet:
     start = time.time()
     channels_in, edge_size, dataloader, projection_dataloader = create_dataloaders(data)
     results : ReiformICDataSet = vae_projection(data, 2, channels_in, edge_size, dataloader, projection_dataloader)
-    print("Time for latent projection: {}".format(time.time() - start))
+    ReiformInfo("Time for latent projection: {}".format(time.time() - start))
     try:
         pass
     except:
-        print("Failure at test_projection")
+        ReiformInfo("Failure at test_projection")
         return ReiformICDataSet([])
     return results
 
@@ -39,8 +39,8 @@ def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet,
 
     inl, new_out, corrected = run_label_correction(inliers, outliers)
 
-    print("Diff: {}".format(inl.count_differences(dataset)))
-    print("Outliers Remaining: {}".format(new_out.file_count()))
+    ReiformInfo("Diff: {}".format(inl.count_differences(dataset)))
+    ReiformInfo("Outliers Remaining: {}".format(new_out.file_count()))
 
     return new_out, corrected
 
@@ -63,12 +63,12 @@ def run_tests():
     if do_test_detection:
         results : ReiformICDataSet = test_projection(dataset)
 
-        print(results.file_count())
+        ReiformInfo(results.file_count())
 
         inliers, outliers = test_detection(results)
 
-        print(inliers.file_count())
-        print(outliers.file_count())
+        ReiformInfo(inliers.file_count())
+        ReiformInfo(outliers.file_count())
         
         # inliers, outliers = test_2D_report_projection(inliers, outliers)
         plot_in_2D(list((inliers, outliers)), PROJECTION_LABEL)

@@ -5,6 +5,8 @@ from impl.services.modules.utils.progress_logger import ProgressLogger # type: i
 from impl.services.modules.utils import image_utils
 from string import Template
 
+from impl.services.modules.utils.reiform_exceptions import ReiformInfo
+
 
 def test0(_int : int, _float : float) -> str:
     if (_int != 3) or (_float != 1.2):
@@ -29,7 +31,7 @@ def test4() -> int:
 def image_metadata_test():
     path : str = "impl/test/test_data_mnist/0/img_322.jpg"
     try:
-        print(get_image_metadata(path))
+        ReiformInfo(get_image_metadata(path))
     except:
         raise FileNotFoundError("File {} not found. Run the test from inside python".format(path))
 

@@ -23,7 +23,7 @@ def save_embedding_model(model : torch.nn.Module, channels : int,
     }
 
     local_path = get_embedding_path(LOCAL_EMBEDDING_PATH, channels, size, resize, mean, std, dataset_name)
-    Path("/".join(local_path.split("/")[0:-1])).mkdir(exist_ok=True)
+    Path("/".join(local_path.split("/")[0:-1])).mkdir(exist_ok=True, parents=True)
 
     model_path = "{}{}".format(local_path, "_model.pt")
     metadata_path = "{}{}".format(local_path, "_metadata.json")
@@ -76,8 +76,9 @@ def train_embedding(dataset : ReiformICDataSet, transformation : transforms.Comp
                     edge_size : int, channels : int, latent_size : int):
 
     # Training a single embedding for a dataset and size
-    dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=CORRECTION_MODEL_BATCH_SIZE, transformation=transformation)
-    proj_dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=CORRECTION_MODEL_BATCH_SIZE, transformation=transformation)
+    batch_size=int(CORRECTION_MODEL_BATCH_SIZE//(edge_size/128))
+    dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=batch_size, transformation=transformation)
+    proj_dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=batch_size, transformation=transformation)
 
     vae = train_encoder_vae(latent_size, channels, edge_size, 
                             dataloader, proj_dataloader)
@@ -111,7 +112,7 @@ def train_embedding_for_dataset(path_to_dataset : str, name : str):
     dataset = dataset_from_path(path_to_dataset)
     sizes, _ = max_sizes(dataset)
     channels = sizes[2]
-    latent_size = 4
+    latent_size = EMBEDDING_DIM_SIZE
 
     for resize in ["min_size", "stretch"]:
         train_embedding_sizes(dataset, channels, resize, dataset.get_mean(), 

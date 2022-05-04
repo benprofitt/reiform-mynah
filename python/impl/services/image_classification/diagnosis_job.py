@@ -31,7 +31,7 @@ class Diagnosis_Job(Processing_Job):
 
         projection : ReiformICDataSet = vae_projection(self.data.copy(), 2)
 
-        inliers, outliers = find_outliers_loda(projection)
+        inliers, outliers = find_outliers_loda(projection, 0.1, PROJECTION_LABEL_REDUCED_EMBEDDING)
 
         return  {
                     "inliers": inliers.to_json(), 

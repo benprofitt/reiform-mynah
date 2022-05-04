@@ -150,4 +150,4 @@ def iterative_reinjection_label_correction(iterations : int,
         outliers = dropped
 
     ReiformInfo("Full Monte Carlo timing: {} seconds".format(round(time.time() - start) ))
-    return inliers, outliers, corrected
+    return inliers, outliers, all_corrected

@@ -7,9 +7,11 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/posener/wstest"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
@@ -43,6 +45,7 @@ type TestContext struct {
 
 // WithTestContext load test context and pass to test handler
 func WithTestContext(mynahSettings *settings.MynahSettings,
+	pythonProvider python.PythonProvider,
 	handler func(t *TestContext) error) error {
 	//initialize auth
 	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
@@ -58,19 +61,15 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	}
 	defer dbProvider.Close()
 
-	//initialize python
-	pythonProvider := python.NewPythonProvider(mynahSettings)
-	defer pythonProvider.Close()
-
-	//create the python impl provider
-	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
-
 	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings, pyImplProvider)
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
 	if storageErr != nil {
 		return storageErr
 	}
 	defer storageProvider.Close()
+
+	//create the python impl provider
+	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider, dbProvider, storageProvider)
 
 	//initialize websockets
 	websocketProvider := websockets.NewWebSocketProvider(mynahSettings)
@@ -140,7 +139,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	//create a new file
 	file, err := t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
 		//create the file in storage
-		return t.StorageProvider.StoreFile(mynahFile, owner, func(f *os.File) error {
+		return t.StorageProvider.StoreFile(mynahFile, func(f *os.File) error {
 			//write contents to the file
 			_, err := f.WriteString(contents)
 			return err
@@ -175,7 +174,7 @@ func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []model.My
 		file, err := t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
 			mynahFile.Uuid = fileId
 			//create the file in storage
-			return t.StorageProvider.StoreFile(mynahFile, owner, func(f *os.File) error {
+			return t.StorageProvider.StoreFile(mynahFile, func(f *os.File) error {
 				//write contents to the file
 				_, err := f.WriteString("(empty)")
 				return err
@@ -235,9 +234,9 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 
 		for _, f := range files {
 			//write an image to the file
-			if err := t.StorageProvider.GetStoredFile(f, model.LatestVersionId, func(path *string) error {
+			if err := t.StorageProvider.GetStoredFile(f, model.LatestVersionId, func(path string) error {
 				//remove the placeholder
-				if err := os.Remove(*path); err != nil {
+				if err := os.Remove(path); err != nil {
 					return err
 				}
 
@@ -259,14 +258,14 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 					}
 				}(source)
 
-				destination, err := os.Create(*path)
+				destination, err := os.Create(filepath.Clean(path))
 				if err != nil {
-					return fmt.Errorf("failed to create target file %s: %s", *path, err)
+					return fmt.Errorf("failed to create target file %s: %s", path, err)
 				}
 				defer func(destination *os.File) {
 					err := destination.Close()
 					if err != nil {
-						log.Warnf("failed to close test file %s: %s", *path, err)
+						log.Warnf("failed to close test file %s: %s", path, err)
 					}
 				}(destination)
 
@@ -292,13 +291,12 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						Projections:       make(map[string][]int),
 					}
 					initialVersion.Report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{
-						Class:      "class1",
-						Mislabeled: true,
+						Class: "class1",
 						Point: model.MynahICDatasetReportPoint{
 							X: 0,
 							Y: 0,
 						},
-						OutlierSets: []string{"lighting"},
+						OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessCorrectLightingConditionsTask},
 					}
 				}
 				initialVersion.Report.Breakdown["class1"] = &model.MynahICDatasetReportBucket{}
@@ -376,4 +374,42 @@ func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan s
 	}
 
 	close(errChan)
+}
+
+// WithCreateFileFromPath loads a file from a path
+func (t *TestContext) WithCreateFileFromPath(owner *model.MynahUser, targetPath string, handler func(file *model.MynahFile) error) error {
+	//create a new file
+	file, err := t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
+		//create the file in storage
+		if err := t.StorageProvider.StoreFile(mynahFile, func(f *os.File) error { return nil }); err != nil {
+			return err
+		}
+		//write the contents
+		return t.StorageProvider.GetStoredFile(mynahFile, model.OriginalVersionId, func(filePath string) error {
+			input, err := ioutil.ReadFile(filepath.Clean(targetPath))
+			if err != nil {
+				return err
+			}
+
+			return ioutil.WriteFile(filepath.Clean(filePath), input, 0600)
+		})
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to create file in database: %s", err)
+	}
+
+	//pass to handler
+	err = handler(file)
+
+	if deleteErr := t.StorageProvider.DeleteFile(file); deleteErr != nil {
+		return fmt.Errorf("failed to delete file: %s", deleteErr)
+	}
+
+	//clean the file
+	if deleteErr := t.DBProvider.DeleteFile(file.Uuid, owner); deleteErr != nil {
+		return fmt.Errorf("failed to delete file: %s", deleteErr)
+	}
+
+	return err
 }

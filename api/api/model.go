@@ -30,18 +30,16 @@ type CreateICDatasetRequest struct {
 	Files map[model.MynahUuid]string `json:"files"`
 }
 
-// ICCleanDiagnoseJobRequest request type for starting a diagnosis/clean job
-type ICCleanDiagnoseJobRequest struct {
-	//whether to run the diagnosis step
-	Diagnose bool `json:"diagnose"`
-	//whether to run the clean step
-	Clean bool `json:"clean"`
+// ICProcessJobRequest request type for starting a process job
+type ICProcessJobRequest struct {
+	//The tasks to perform
+	Tasks []model.MynahICProcessTaskType `json:"tasks"`
 	//the dataset id
 	DatasetUuid model.MynahUuid `json:"dataset_uuid"`
 }
 
-// ICCleanDiagnoseJobResponse response type for start diagnosis job
-type ICCleanDiagnoseJobResponse struct {
+// ICProcessJobResponse response type for start process job
+type ICProcessJobResponse struct {
 	//the id of the task
 	TaskUuid model.MynahUuid `json:"task_uuid"`
 }

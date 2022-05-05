@@ -13,8 +13,6 @@ import (
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/pyimpl"
-	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"testing"
@@ -138,14 +136,8 @@ func TestWSServerE2E(t *testing.T) {
 	}
 	defer dbProvider.Close()
 
-	//initialize python
-	pythonProvider := python.NewPythonProvider(mynahSettings)
-
-	//create the python impl provider
-	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
-
 	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings, pyImplProvider)
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
 	if storageErr != nil {
 		t.Errorf("failed to initialize storage %s", storageErr)
 		return

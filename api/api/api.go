@@ -30,15 +30,15 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("GET", "websocket", wsProvider.ServerHandler())
 
 	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey), handleViewFile(dbProvider, storageProvider))
-	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider, pyImplProvider))
 
 	router.HandleHTTPRequest("GET",
 		fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
-		icDiagnosisReportView(dbProvider))
+		icProcessReportView(dbProvider))
 
-	//register the ic diagnosis job endpoint
-	router.HandleHTTPRequest("POST", "dataset/ic/diagnose_clean/start",
-		icDiagnoseCleanJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
+	//register the ic process job endpoint
+	router.HandleHTTPRequest("POST", "dataset/ic/process/start",
+		icProcessJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
 	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 

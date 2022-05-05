@@ -30,10 +30,14 @@
                 0,
                 ...
               ]
-            }
+            },
+            "mean": [0,0,0],
+            "std_dev": [0,0,0]
           },
           ...
         },
+        "mean": [0,0,0],
+        "std_dev": [0,0,0],
         "report": type MynahICDatasetReport
       },
       ...
@@ -121,30 +125,30 @@
       "original" : {
         "exists_locally": true,
         "metadata" : {
-          "width" : "",
-          "length" : "",
-          "channels" : "",
-          "size": "",
-          ...      
+          "width" : 120,
+          "length" : 80,
+          "channels" : 3,
+          "size": 123123,
+          ...
         }
       },
       "latest" : {
          "exists_locally" : true,
          "metadata" : {
-           "width" : "",
-           "length" : "",
-           "channels" : "",
-           "size": "",
-           ...      
+           "width" : 120,
+           "length" : 80,
+           "channels" : 3,
+           "size": 123123,
+           ... 
         }     
       },
       "dsa98fn983nv9012dqwf4vew" : {
         "exists_locally" : true,
         "metadata" : {
-          "width" : "",
-          "length" : "",
-          "channels" : "",
-          "size": "",
+          "width" : 120,
+          "length" : 80,
+          "channels" : 3,
+          "size": 123123,
           ...
         }
       },
@@ -166,24 +170,26 @@
       "fileid1": {
         "image_version_id": "908ne9812en128easd2qe12",
         "class": "class1",
-        "mislabeled": true,
         "point": {
           "x": 0,
           "y": 0
         },
-        "outlier_sets": [
-          "lighting"
+        "outlier_tasks": [
+          MynahICProcessTaskType,
+          ...
         ]
       },
       "fileid2": {
         "image_version_id": "asd8932jn9uiqna9sdsar3",
         "class": "class2",
-        "mislabeled": false,
         "point": {
           "x": 20,
           "y": 55
         },
-        "outlier_sets": []
+        "outlier_tasks": [
+          MynahICProcessTaskType,
+          ...
+        ]
       },
       ...
     },
@@ -197,7 +203,101 @@
         "acceptable": 250
       },
       ...
-    }
+    },
+    "tasks": [
+      MynahICProcessTaskReport,
+      ...
+    ]
+  }
+  ```
+
+### MynahICProcessTaskType
+  ```
+  "ic::diagnose::mislabeled_images"
+  "ic::correct::mislabeled_images"
+  "ic::diagnose::class_splitting"
+  "ic::correct::class_splitting"
+  "ic::diagnose::lighting_conditions"
+  "ic::correct::lighting_conditions"
+  "ic::diagnose::image_blur"
+  "ic::correct::image_blur"
+  ```
+
+### MynahICProcessTaskReport
+  ```json
+  {
+    "type": MynahICProcessTaskType,
+    "metadata": MynahICProcessTaskReportMetadata
+  }
+  ```
+
+### MynahICProcessTaskReportMetadata
+- One of (by type): 
+```
+  MynahICProcessTaskDiagnoseMislabeledImagesReport
+  MynahICProcessTaskCorrectMislabeledImagesReport
+  MynahICProcessTaskDiagnoseClassSplittingReport
+  MynahICProcessTaskCorrectClassSplittingReport
+  MynahICProcessTaskDiagnoseLightingConditionsReport
+  MynahICProcessTaskCorrectLightingConditionsReport
+  MynahICProcessTaskDiagnoseImageBlurReport
+  MynahICProcessTaskCorrectImageBlurReport
+```
+
+#### MynahICProcessTaskDiagnoseMislabeledImagesReport
+- Type: `"ic::diagnose::mislabeled_images"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskCorrectMislabeledImagesReport
+- Type: `"ic::correct::mislabeled_images"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskDiagnoseClassSplittingReport
+- Type: `"ic::diagnose::class_splitting"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskCorrectClassSplittingReport
+- Type: `"ic::correct::class_splitting"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskDiagnoseLightingConditionsReport
+- Type: `"ic::diagnose::lighting_conditions"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskCorrectLightingConditionsReport
+- Type: `"ic::correct::lighting_conditions"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskDiagnoseImageBlurReport
+- Type: `"ic::diagnose::image_blur"`
+  ```json
+  {
+
+  }
+  ```
+#### MynahICProcessTaskCorrectImageBlurReport
+- Type: `"ic::correct::image_blur"`
+  ```json
+  {
+
   }
   ```
 
@@ -340,18 +440,19 @@
   type: MynahICDataset
   ```
 
-### Starting an image classification diagnosis job
-- `POST /api/v1/dataset/ic/diagnose_clean/start`
+### Starting an image classification process job
+- `POST /api/v1/dataset/ic/process/start`
 - Request body
   ```json
   {
-    "diagnose": true,
-    "clean": true,
+    "tasks": [
+      MynahICProcessTaskType,
+      ...
+    ],
     "dataset_uuid" : "uuid"
   }
   ```
-    - `diagnose`: whether to run the diagnosis step
-    - `clean`: whether to run the cleaning step
+    - `tasks`: the tasks to run on this dataset (report generated for each)
     - `dataset_uuid`: The id of the dataset to diagnose
 - Response:
   ```json
@@ -371,7 +472,7 @@
   ```json
   type: MynahICDatasetReport
   ```
-  - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_tag"]`
+  - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_version_id"]`
 
 ## Async task endpoints
 

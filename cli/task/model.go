@@ -16,14 +16,14 @@ type contextKey string
 const (
 	UploadTask          MynahTaskType = "mynah::upload"
 	CreateICDatasetTask MynahTaskType = "mynah::ic::dataset::create"
-	ICDiagnoseCleanTask MynahTaskType = "mynah::ic::diagnose_clean"
+	ICProcessTask       MynahTaskType = "mynah::ic::process"
 )
 
 // create new task data structs by type identifier
 var taskConstructor = map[MynahTaskType]func() MynahTaskData{
 	UploadTask:          func() MynahTaskData { return &MynahUploadTask{} },
 	CreateICDatasetTask: func() MynahTaskData { return &MynahCreateICDatasetTask{} },
-	ICDiagnoseCleanTask: func() MynahTaskData { return &MynahICDiagnoseCleanTask{} },
+	ICProcessTask:       func() MynahTaskData { return &MynahICProcessTask{} },
 }
 
 // MynahTaskId is the unique id for a task

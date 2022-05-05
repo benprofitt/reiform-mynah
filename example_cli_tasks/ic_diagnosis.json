@@ -46,12 +46,13 @@
     },
     {
       "task_id": "diagnose_clean",
-      "task_type": "mynah::ic::diagnose_clean",
+      "task_type": "mynah::ic::process",
       "task_data": {
         "from_existing" : "",
         "from_task" : "create_ic_dataset2",
-        "diagnose": true,
-        "clean": false,
+        "tasks": [
+          "ic::diagnose::mislabeled_images"
+        ],
         "poll_frequency": 5
       }
     }

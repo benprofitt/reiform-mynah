@@ -34,20 +34,39 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			return
 		}
 
+		//request referenced files as a group
+		fileIdSet := tools.NewUniqueSet()
+		for fileId := range req.Files {
+			fileIdSet.UuidsUnion(fileId)
+		}
+
+		//request all files
+		files, err := dbProvider.GetFiles(fileIdSet.UuidVals(), user)
+		if err != nil {
+			log.Errorf("failed request files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		//create the dataset, set the name and the files
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
 			//create an initial version of the dataset
 			if initialVersion, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
+
 				//add the file id -> class name mappings, use the latest version of the file
 				for fileId, className := range req.Files {
 					initialVersion.Files[fileId] = model.NewICDatasetFile()
 					initialVersion.Files[fileId].CurrentClass = className
 					initialVersion.Files[fileId].OriginalClass = className
-				}
 
-				//TODO do we want to cut explicit versions for these files? If they're updated in a different
-				//dataset the changes will be reflected in this one
+					if fileData, ok := files[fileId]; ok {
+						initialVersion.Files[fileId].Mean = fileData.InitialMean
+						initialVersion.Files[fileId].StdDev = fileData.InitialStdDev
+					} else {
+						return fmt.Errorf("failed to load file %s for dataset creation: %s", fileId, err)
+					}
+				}
 			} else {
 				return fmt.Errorf("failed to create initial dataset version: %s", err)
 			}

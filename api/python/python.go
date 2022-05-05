@@ -6,7 +6,7 @@ import (
 	"reiform.com/mynah/settings"
 )
 
-//Create a new python provider
+// NewPythonProvider Create a new python provider
 func NewPythonProvider(mynahSettings *settings.MynahSettings) PythonProvider {
 	//for now only supports local
 	return newLocalPythonProvider(mynahSettings)

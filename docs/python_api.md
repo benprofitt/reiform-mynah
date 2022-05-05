@@ -18,7 +18,7 @@
       "std_dev": [0.1, 0.12, 0.03],
       "class_files" : {
         "class1" : {
-          "/tmp/uuid1.png" : {
+          "/tmp/uuid1" : {
             "uuid": "uuid1",
             "width": 32,
             "height": 32,
@@ -26,7 +26,7 @@
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
-          "/tmp/uuid2.png" : {
+          "/tmp/uuid2" : {
             "uuid": "uuid2",
             "width": 32,
             "height": 32,
@@ -36,7 +36,7 @@
           }
         },
         "class2" : {
-          "/tmp/uuid3.png" : {
+          "/tmp/uuid3" : {
             "uuid": "uuid3",
             "width": 32,
             "height": 32,
@@ -44,7 +44,7 @@
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
-          "/tmp/uuid4.jpeg" : {
+          "/tmp/uuid4" : {
             "uuid": "uuid4",
             "width": 32,
             "height": 32,
@@ -56,9 +56,7 @@
       }
     },
     "tasks": [ 
-      {"name" : "diagnose_mislabeled_images"},
-      {"name" : "correct_lighting_conditions"},
-      {"name" : "<diagnose_|correct_>" + "<mislabeled_images|class_splitting|image_blur|lighting_conditions>"}
+      {"type" : MynahICProcessTaskType}
     ]
   }
   ```
@@ -73,25 +71,17 @@
       "std_dev": [0.1, 0.12, 0.03],
       "class_files" : {
         "class1" : {
-          "/tmp/uuid1.png" : {
+          "/tmp/uuid1" : {
             "uuid": "uuid1",
             "current_class": "class2",
-            "original_class": "class",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
             "projections": {},
             "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
-          "/tmp/uuid2.png" : {
+          "/tmp/uuid2" : {
             "uuid": "uuid2",
             "current_class": "class2",
-            "original_class": "class",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
             "projections": {},
             "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
@@ -99,25 +89,17 @@
           }
         },
         "class2" : {
-          "/tmp/uuid3.png" : {
+          "/tmp/uuid3" : {
             "uuid": "uuid3",
             "current_class": "class2",
-            "original_class": "class",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
             "projections": {},
             "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
-          "/tmp/uuid4.jpeg" : {
+          "/tmp/uuid4" : {
             "uuid": "uuid4",
             "current_class": "class2",
-            "original_class": "class",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
             "projections": {},
             "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
@@ -128,17 +110,75 @@
     },
     "tasks": [ 
       {
-        "name" : "diagnose_mislabeled_images",
-        "outliers" : ["uuid1", "uuid3"]
+        "type" : MynahICProcessTaskType,
+        "metadata": Metadata
       },
       {
-        "name" : "correct_lighting_conditions",
-        "removed" : ["uuid1", "uuid2"],
-        "corrected" : ["uuid3"]
+        "type" : MynahICProcessTaskType,
+        "metadata": Metadata
       }
     ]
   }
   ```
+
+#### MynahICProcessTaskType
+```
+  "ic::diagnose::mislabeled_images"
+  "ic::correct::mislabeled_images"
+  "ic::diagnose::class_splitting"
+  "ic::correct::class_splitting"
+  "ic::diagnose::lighting_conditions"
+  "ic::correct::lighting_conditions"
+  "ic::diagnose::image_blur"
+  "ic::correct::image_blur"
+```
+
+#### Metadata
+- `"ic::diagnose::mislabeled_images"`
+  ```json
+  {
+    "outliers": ["fileid", ...]
+  }
+  ```
+- `"ic::correct::mislabeled_images"`
+  ```json
+  {
+  
+  }
+  ```  
+- `"ic::diagnose::class_splitting"`
+  ```json
+  {
+  
+  }
+  ```  
+- `"ic::correct::class_splitting"`
+  ```json
+  {
+  
+  }
+  ```  
+- `"ic::diagnose::lighting_conditions"`
+  ```json
+  {
+  
+  }
+  ```  
+- `"ic::correct::lighting_conditions"`
+  ```json
+  {
+    "removed": ["fileid", ...],
+    "corrected": ["fileid", ...]
+  }
+  ```  
+- `"ic::diagnose::image_blur"`
+  ```json
+  {
+  
+  }
+  ```  
+- `"ic::correct::image_blur"`
+  
 
 ### Get Image Metadata
 - Name: `get_image_metadata(uuid: str, request: str, sock_addr: str)`

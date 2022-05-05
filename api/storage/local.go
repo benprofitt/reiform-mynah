@@ -5,13 +5,11 @@ package storage
 import (
 	"crypto/sha1" // #nosec
 	"fmt"
-	"github.com/gabriel-vasile/mimetype"
 	"io"
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 )
 
@@ -19,22 +17,6 @@ import (
 type localStorage struct {
 	//the local path to store files
 	localPath string
-	//the python interface provider
-	pyImplProvider pyimpl.PyImplProvider
-}
-
-//check if this is an image mime type
-func isImageType(mType *mimetype.MIME) bool {
-	switch mType.String() {
-	case "image/png":
-		return true
-	case "image/jpeg":
-		return true
-	case "image/tiff":
-		return true
-	default:
-		return false
-	}
 }
 
 // return a path for this file by version id
@@ -43,14 +25,13 @@ func (s *localStorage) getVersionedPath(file *model.MynahFile, versionId model.M
 }
 
 //create a new local storage provider
-func newLocalStorage(mynahSettings *settings.MynahSettings, pyImplProvider pyimpl.PyImplProvider) (*localStorage, error) {
+func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, error) {
 	//create the storage directory if it doesn't exist
 	if err := os.MkdirAll(mynahSettings.StorageSettings.LocalPath, os.ModePerm); err != nil {
 		return nil, err
 	}
 	return &localStorage{
-		localPath:      mynahSettings.StorageSettings.LocalPath,
-		pyImplProvider: pyImplProvider,
+		localPath: mynahSettings.StorageSettings.LocalPath,
 	}, nil
 }
 
@@ -115,7 +96,7 @@ func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersio
 }
 
 // StoreFile Save a file to the storage target
-func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, handler func(*os.File) error) error {
+func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
 	//insert the default version id if not found
 	if _, ok := file.Versions[model.OriginalVersionId]; !ok {
 		file.Versions[model.OriginalVersionId] = &model.MynahFileVersion{
@@ -144,30 +125,6 @@ func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, h
 			log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)
 		}
 
-		//check the mime type for image metadata
-		if mimeType, err := mimetype.DetectFile(filepath.Clean(fullPath)); err == nil {
-
-			if isImageType(mimeType) {
-				//get metadata for image
-				metadataRes, err := s.pyImplProvider.ImageMetadata(user, &pyimpl.ImageMetadataRequest{
-					Path: fullPath,
-				})
-
-				if err == nil {
-					file.Versions[model.OriginalVersionId].Metadata[model.MetadataWidth] = fmt.Sprintf("%d", metadataRes.Width)
-					file.Versions[model.OriginalVersionId].Metadata[model.MetadataHeight] = fmt.Sprintf("%d", metadataRes.Height)
-					file.Versions[model.OriginalVersionId].Metadata[model.MetadataChannels] = fmt.Sprintf("%d", metadataRes.Channels)
-				} else {
-					log.Warnf("failed to get metadata for %s: %s", file.Uuid, err)
-				}
-			} else {
-				log.Infof("skipping metadata read for non image file type: %s", mimeType.String())
-			}
-
-		} else {
-			log.Warnf("failed to read mime type for file %s: %s", file.Uuid, err)
-		}
-
 		//close the file before copying
 		if err := localFile.Close(); err != nil {
 			log.Errorf("error closing file %s: %s", file.Uuid, err)
@@ -190,7 +147,7 @@ func (s *localStorage) StoreFile(file *model.MynahFile, user *model.MynahUser, h
 }
 
 // GetStoredFile get the contents of a stored file
-func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(*string) error) error {
+func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(string) error) error {
 	if location, ok := file.Versions[versionId]; ok {
 		if !location.ExistsLocally {
 			return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", file.Uuid, versionId)
@@ -204,7 +161,7 @@ func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.Myna
 		if err != nil {
 			return err
 		}
-		return handler(&fullPath)
+		return handler(fullPath)
 	} else {
 		return fmt.Errorf("invalid version id for file %s: %s", file.Uuid, versionId)
 	}

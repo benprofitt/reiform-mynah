@@ -2,7 +2,7 @@ import socket
 import json
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 # from mynah import * # type: ignore
-from impl.services.modules.utils import image_utils
+import impl.services.modules.utils.image_utils as image_utils
 from string import Template
 
 from impl.services.modules.utils.reiform_exceptions import ReiformInfo
@@ -45,80 +45,67 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
 
 def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
-
     contents = json.loads(request_str)
-    dataset_uuid = contents['dataset_uuid']
+    dataset_uuid = contents['dataset']['uuid']
     t = Template('''{
-"dataset_uuid": "${dataset_uuid}",
-"tasks" : [
-    {
-        "name" : "mislabeled_images",
-        "datasets": {
-            "outliers" : {
-                "classes" : ["class1", "class2"],
-                "class_files" : {
-                    "class1" : {
-                    },
-                    "class2" : {
-                        "fileuuid3" : {
-                            "uuid": "uuid3",
-                            "current_class": "class2",
-                            "original_class": "class",
-                            "width": 32,
-                            "height": 32,
-                            "channels": 3,
-                            "projections": {},
-                            "confidence_vectors": [[1.0, 2.0]]
-                        },
-                        "fileuuid4" : {
-                            "uuid": "uuid4",
-                            "current_class": "class2",
-                            "original_class": "class",
-                            "width": 32,
-                            "height": 32,
-                            "channels": 3,
-                            "projections": {},
-                            "confidence_vectors": [[1.0, 2.0]]
-                        }
-                    }
-                }
-            },
-            "inliers" : {
-                "classes" : ["class1", "class2"],
-                "class_files" : {
-                    "class1" : {
-                        "fileuuid1" : {
-                            "uuid": "uuid1",
-                            "current_class": "class1",
-                            "original_class": "class",
-                            "width": 32,
-                            "height": 32,
-                            "channels": 3,
-                            "projections": {"2d": [1, 2]},
-                            "confidence_vectors": [[1.0, 2.0]]
-                        },
-                        "fileuuid2" : {
-                            "uuid": "uuid2",
-                            "current_class": "class1",
-                            "original_class": "class2",
-                            "width": 32,
-                            "height": 32,
-                            "channels": 3,
-                            "projections": {"2d": [1, 2]},
-                            "confidence_vectors": [[1.0, 2.0]]
-                        }
-                    },
-                    "class2" : {
-                    }
-                }
-            }
+    "dataset": {
+      "uuid": "${uuid}",
+      "classes" : ["class1", "class2"],
+      "mean": [0.3, 0.4, 0.1],
+      "std_dev": [0.1, 0.12, 0.03],
+      "class_files" : {
+        "class1" : {
+          "/tmp/fileuuid1" : {
+            "uuid": "fileuuid1",
+            "current_class": "class1",
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          },
+          "/tmp/fileuuid2" : {
+            "uuid": "fileuuid2",
+            "current_class": "class2",
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          }
+        },
+        "class2" : {
+          "/tmp/fileuuid3" : {
+            "uuid": "fileuuid3",
+            "current_class": "class2",
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          },
+          "/tmp/fileuuid4" : {
+            "uuid": "fileuuid4",
+            "current_class": "class2",
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          }
         }
-    }
-]
-}''')
-    return t.substitute(dataset_uuid=dataset_uuid)
-
-def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
-    '''Retrieve the image width, height, and channels'''
-    request = json.loads(request_str)
-    return json.dumps(image_utils.get_image_metadata(request['path']))
+      }
+    },
+    "tasks": [ 
+      {
+        "type" : "ic::diagnose::mislabeled_images",
+        "metadata": {
+          "outliers" : ["fileuuid1", "fileuuid3"]
+        }
+      },
+      {
+        "type" : "ic::correct::lighting_conditions",
+        "metadata": {
+          "removed" : ["fileuuid1", "fileuuid2"],
+          "corrected" : ["fileuuid3"]
+        }
+      }
+    ]
+  }''')
+    return t.substitute(uuid=dataset_uuid)

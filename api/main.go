@@ -24,6 +24,9 @@ import (
 
 //entrypoint
 func main() {
+
+	log.Infof("Reiform Mynah version %s", settings.MynahApplicationVersion)
+
 	settingsPtr := flag.String("settings", "data/mynah.json", "settings file path")
 	flag.Parse()
 
@@ -45,17 +48,17 @@ func main() {
 		log.Fatalf("failed to initialize database connection %s", dbErr)
 	}
 
+	//initialize storage
+	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
+	if storageErr != nil {
+		log.Fatalf("failed to initialize storage %s", storageErr)
+	}
+
 	//initialize python
 	pythonProvider := python.NewPythonProvider(mynahSettings)
 
 	//create the python impl provider
-	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider)
-
-	//initialize storage
-	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings, pyImplProvider)
-	if storageErr != nil {
-		log.Fatalf("failed to initialize storage %s", storageErr)
-	}
+	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider, dbProvider, storageProvider)
 
 	//initialize websockets
 	wsProvider := websockets.NewWebSocketProvider(mynahSettings)

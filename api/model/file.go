@@ -3,7 +3,6 @@
 package model
 
 import (
-	"strconv"
 	"time"
 )
 
@@ -28,8 +27,10 @@ const (
 	MetadataChannels MetadataKey = "channels"
 )
 
+type FileMetadataValueType interface{}
+
 // FileMetadata metadata type
-type FileMetadata map[MetadataKey]string
+type FileMetadata map[MetadataKey]FileMetadataValueType
 
 // MynahFileVersion a version of the file
 type MynahFileVersion struct {
@@ -53,15 +54,43 @@ type MynahFile struct {
 	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
 	//the http detected content type (original)
 	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
+	//the initial mean
+	InitialMean []float64 `json:"-" xorm:"TEXT 'initial_mean'"`
+	//the initial stddev
+	InitialStdDev []float64 `json:"-" xorm:"TEXT 'initial_std_dev'"`
 	//versions of the file
 	Versions map[MynahFileVersionId]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
 
-// GetDefaultInt GetDefault returns a value if the key is found or the default value provided
+// GetDefaultInt returns a value if the key is found or the default value provided
 func (m FileMetadata) GetDefaultInt(key MetadataKey, def int64) int64 {
 	if val, found := m[key]; found {
-		if intVal, err := strconv.ParseInt(val, 0, 8); err == nil {
-			return intVal
+		switch v := val.(type) {
+		case int64:
+			return v
+		case int:
+			return int64(v)
+		default:
+			return def
+		}
+	}
+	return def
+}
+
+// GetDefaultFloatSlice returns a value if the key is found or the default value provided
+func (m FileMetadata) GetDefaultFloatSlice(key MetadataKey, def []float64) []float64 {
+	if val, found := m[key]; found {
+		switch v := val.(type) {
+		case []float64:
+			return v
+		case []float32:
+			res := make([]float64, len(v))
+			for i := 0; i < len(v); i++ {
+				res[i] = float64(v[i])
+			}
+			return res
+		default:
+			return def
 		}
 	}
 	return def

@@ -14,6 +14,8 @@ import (
 	"runtime"
 )
 
+var initialized = false
+
 //response returned by calling python locally
 type localPython3_7Response struct {
 	//the response
@@ -88,9 +90,14 @@ func (f *localPython3_7Function) Call(user *model.MynahUser, req interface{}) My
 
 //Create a new local execution python provider
 func newLocalPythonProvider(mynahSettings *settings.MynahSettings) *localPython3_7 {
-	python3.Py_Initialize()
+	if initialized {
+		panic("python has already been initialized by this process")
+	}
 
-	if !python3.Py_IsInitialized() {
+	python3.Py_Initialize()
+	initialized = python3.Py_IsInitialized()
+
+	if !initialized {
 		log.Fatalf("error initializing the python interpreter")
 	}
 
@@ -315,6 +322,15 @@ func (p *localPython3_7) localCallFunction(module string, function string, args 
 // Close on shutdown
 func (p *localPython3_7) Close() {
 	log.Infof("python engine shutdown")
+
+	//clean up references
+	for _, module := range p.modules {
+		for _, function := range module.functions {
+			function.DecRef()
+		}
+		module.module.DecRef()
+	}
+
 	python3.PyEval_RestoreThread(p.gilState)
 	python3.Py_Finalize()
 }

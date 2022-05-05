@@ -14,34 +14,31 @@ import (
 	"time"
 )
 
-// MynahICDiagnoseCleanTask defines the task of starting a clean/diagnose job
-type MynahICDiagnoseCleanTask struct {
+// MynahICProcessTask defines the task of starting a clean/diagnose job
+type MynahICProcessTask struct {
 	//reference a dataset created previously
 	FromExisting model.MynahUuid `json:"from_existing"`
 	//reference dataset created in a previous task
 	FromTask MynahTaskId `json:"from_task"`
-	//whether to run the diagnose step
-	Diagnose bool `json:"diagnose"`
-	//whether to run the clean step
-	Clean bool `json:"clean"`
+	//tasks to run on this dataset
+	Tasks []model.MynahICProcessTaskType `json:"tasks"`
 	//the task polling frequency
 	PollFrequency int `json:"poll_frequency"`
 }
 
 //run the diagnosis/clean job
-func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid, diagnose, clean bool, pollFreq int) error {
+func icProcess(mynahServer *server.MynahClient, datasetId model.MynahUuid, tasks []model.MynahICProcessTaskType, pollFreq int) error {
 	//make the request
-	icDiagnoseCleanReq := api.ICCleanDiagnoseJobRequest{
-		Diagnose:    diagnose,
-		Clean:       clean,
+	icprocessReq := api.ICProcessJobRequest{
+		Tasks:       tasks,
 		DatasetUuid: datasetId,
 	}
 
-	var response api.ICCleanDiagnoseJobResponse
+	var response api.ICProcessJobResponse
 
 	//make the request
-	if err := mynahServer.ExecutePostJsonRequest("dataset/ic/diagnose_clean/start", &icDiagnoseCleanReq, &response); err != nil {
-		return fmt.Errorf("failed to create ic diagnose/clean job: %s", err)
+	if err := mynahServer.ExecutePostJsonRequest("dataset/ic/process/start", &icprocessReq, &response); err != nil {
+		return fmt.Errorf("failed to create ic process job: %s", err)
 	}
 
 	if pollFreq <= 0 {
@@ -55,13 +52,13 @@ func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid,
 			if taskStatus.TaskStatus == async.StatusCompleted {
 				return nil
 			} else if taskStatus.TaskStatus == async.StatusFailed {
-				return errors.New("image classification diagnose/clean task failed")
+				return errors.New("image classification process task failed")
 			} else {
-				log.Infof("image classification diagnose/clean task is %s", taskStatus.TaskStatus)
+				log.Infof("image classification process task is %s", taskStatus.TaskStatus)
 			}
 
 		} else {
-			return fmt.Errorf("failed to check status of ic diagnose/clean job: %s", err)
+			return fmt.Errorf("failed to check status of ic process job: %s", err)
 		}
 
 		//wait to retry
@@ -70,22 +67,22 @@ func icDiagnoseClean(mynahServer *server.MynahClient, datasetId model.MynahUuid,
 }
 
 // ExecuteTask executes the create icdataset task
-func (t MynahICDiagnoseCleanTask) ExecuteTask(mynahServer *server.MynahClient,
+func (t MynahICProcessTask) ExecuteTask(mynahServer *server.MynahClient,
 	tctx MynahTaskContext) (context.Context, error) {
 
 	if (len(t.FromExisting) > 0) && (len(t.FromTask) > 0) {
-		return nil, errors.New("failed to start diagnosis/cleaning, 'from_existing' and 'from_task' both set")
+		return nil, errors.New("failed to start ic process job, 'from_existing' and 'from_task' both set")
 	}
 
 	if len(t.FromExisting) > 0 {
-		if err := icDiagnoseClean(mynahServer, t.FromExisting, t.Diagnose, t.Clean, t.PollFrequency); err != nil {
+		if err := icProcess(mynahServer, t.FromExisting, t.Tasks, t.PollFrequency); err != nil {
 			return nil, err
 		}
 
 	} else if len(t.FromTask) > 0 {
 		if datasetTaskData, ok := tctx[t.FromTask]; ok {
 			if datasetId, ok := datasetTaskData.Value(CreatedICDatasetKey).(model.MynahUuid); ok {
-				if err := icDiagnoseClean(mynahServer, datasetId, t.Diagnose, t.Clean, t.PollFrequency); err != nil {
+				if err := icProcess(mynahServer, datasetId, t.Tasks, t.PollFrequency); err != nil {
 					return nil, err
 				}
 			} else {
@@ -96,7 +93,7 @@ func (t MynahICDiagnoseCleanTask) ExecuteTask(mynahServer *server.MynahClient,
 		}
 
 	} else {
-		return nil, errors.New("failed to start diagnosis/cleaning, at least one of 'from_existing' or 'from_task' must be set")
+		return nil, errors.New("failed to start ic process job, at least one of 'from_existing' or 'from_task' must be set")
 	}
 
 	//TODO report as output?

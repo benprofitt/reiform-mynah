@@ -4,14 +4,17 @@ package api
 
 import (
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"time"
@@ -27,8 +30,25 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
+//check if this is an image mime type
+func isImageType(mType *mimetype.MIME) bool {
+	switch mType.String() {
+	case "image/png":
+		return true
+	case "image/jpeg":
+		return true
+	case "image/tiff":
+		return true
+	default:
+		return false
+	}
+}
+
 //accept a file upload, save the file using the storage provider, and reference as part of the dataset
-func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+func handleFileUpload(mynahSettings *settings.MynahSettings,
+	dbProvider db.DBProvider,
+	storageProvider storage.StorageProvider,
+	pyImplProvider pyimpl.PyImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user uploading the file
 		user := middleware.GetUserFromRequest(request)
@@ -85,11 +105,31 @@ func handleFileUpload(mynahSettings *settings.MynahSettings, dbProvider db.DBPro
 
 		mynahFile, err := dbProvider.CreateFile(user, func(f *model.MynahFile) error {
 			f.Name = "<unknown>" //TODO read this from the multipart form
-
 			//write the contents of the file to storage
-			return storageProvider.StoreFile(f, user, func(f *os.File) error {
-				_, err := f.Write(fileContents)
+			if err := storageProvider.StoreFile(f, func(osFile *os.File) error {
+				_, err := osFile.Write(fileContents)
 				return err
+			}); err != nil {
+				return err
+			}
+
+			//determine the dimensions, channels of the file (if applicable)
+			return storageProvider.GetStoredFile(f, model.OriginalVersionId, func(path string) error {
+				//check the mime type for image metadata
+				if mimeType, err := mimetype.DetectFile(filepath.Clean(path)); err == nil {
+					if isImageType(mimeType) {
+						if err = pyImplProvider.ImageMetadata(user, path, f, f.Versions[model.OriginalVersionId]); err != nil {
+							log.Warnf("failed to get image metadata for %s: %s", f.Uuid, err)
+						}
+					} else {
+						log.Infof("skipping metadata read for non image file type: %s", mimeType.String())
+					}
+
+				} else {
+					log.Warnf("failed to read mime type for file %s: %s", f.Uuid, err)
+				}
+
+				return nil
 			})
 		})
 
@@ -125,9 +165,9 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 			//load the file metadata
 			if file, fileErr := dbProvider.GetFile(model.MynahUuid(fileId), user); fileErr == nil {
 				//serve the file contents
-				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path *string) error {
+				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path string) error {
 					//open the file
-					osFile, osErr := os.Open(*path)
+					osFile, osErr := os.Open(filepath.Clean(path))
 					if osErr != nil {
 						return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
 					}

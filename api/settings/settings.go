@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// MynahApplicationVersion is the current application version
+const MynahApplicationVersion = "0.1.0"
+
 type DBSetting string
 
 const (
@@ -45,6 +48,8 @@ type MynahStorageSettings struct {
 	LocalPath string `json:"local_path"`
 	//the max upload size
 	MaxUpload int64 `json:"max_upload"`
+	//the path to where models are stored
+	ModelsPath string `json:"models_path"`
 }
 
 // MynahPythonSettings defines configuration settings for python
@@ -111,9 +116,10 @@ func DefaultSettings() *MynahSettings {
 			JwtHeader:   "api-key",
 		},
 		StorageSettings: MynahStorageSettings{
-			S3Storage: true,
-			LocalPath: `data/tmp`,
-			MaxUpload: 100 * 1024 * 1024 * 1024,
+			S3Storage:  true,
+			LocalPath:  `data/tmp`,
+			MaxUpload:  100 * 1024 * 1024 * 1024,
+			ModelsPath: "data/models", //TODO: default
 		},
 		PythonSettings: MynahPythonSettings{
 			ModulePath: "./python",

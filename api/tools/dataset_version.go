@@ -29,6 +29,71 @@ func GetICDatasetPrevious(dataset *model.MynahICDataset) (*model.MynahICDatasetV
 	return nil, fmt.Errorf("dataset %s does not have a previous version", dataset.Uuid)
 }
 
+// FreezeICDatasetFileVersions freezes the ids of images in a dataset and report
+func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
+	user *model.MynahUser,
+	storageProvider storage.StorageProvider,
+	dbProvider db.DBProvider) error {
+	//map from fileid to the SHA1 version created
+	newImageSHAVersions := make(map[model.MynahUuid]model.MynahFileVersionId)
+
+	fileIdSet := NewUniqueSet()
+	for fileId := range version.Files {
+		fileIdSet.UuidsUnion(fileId)
+	}
+	//batch request files
+	files, err := dbProvider.GetFiles(fileIdSet.UuidVals(), user)
+	if err != nil {
+		return err
+	}
+
+	//version the files in the current "latest" so they won't be modified
+	for fileId, fileData := range version.Files {
+		if file, ok := files[fileId]; ok {
+			//generate a new sha1
+			newId, err := storageProvider.GenerateSHA1Id(file)
+			if err != nil {
+				return fmt.Errorf("failed to generate new version id for file: %s", err)
+			}
+
+			//only copy the file to the new version id if the id does not already exist (idempotent)
+			if _, ok := file.Versions[newId]; !ok {
+				//copy the latest version of the file to an explicit SHA1 version
+				if err := storageProvider.CopyFile(file, model.LatestVersionId, newId); err != nil {
+					return fmt.Errorf("failed to version file from current latest version: %s", err)
+				}
+
+				//update the file in the database with the new version
+				if err := dbProvider.UpdateFile(file, user, "versions"); err != nil {
+					return fmt.Errorf("failed to update file while freezing file version: %s", err)
+				}
+			}
+
+			//set the new id (specific SHA1 version)
+			fileData.ImageVersionId = newId
+			//record for update in report section
+			newImageSHAVersions[fileId] = newId
+
+		} else {
+			return fmt.Errorf("failed to get file %s when freezing version", fileId)
+		}
+	}
+
+	//update the report image tags to be SHA1 tags, not "latest"
+	if version.Report != nil {
+		for imageId, imageMetadata := range version.Report.ImageData {
+			//set the specific image version
+			if imageVersion, ok := newImageSHAVersions[imageId]; ok {
+				imageMetadata.ImageVersionId = imageVersion
+			} else {
+				log.Errorf("(likely bug) dataset has image %s in report but not in dataset files, skipping version tag update", imageId)
+			}
+		}
+	}
+
+	return nil
+}
+
 // MakeICDatasetVersion creates a new ic dataset version.
 // If a latest version exists, the files it references are versioned so that they won't be modified.
 // Note: updates files in db, but does not update dataset
@@ -46,7 +111,9 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 
 	//create a new version
 	newVersion = &model.MynahICDatasetVersion{
-		Files: make(map[model.MynahUuid]*model.MynahICDatasetFile),
+		Files:  make(map[model.MynahUuid]*model.MynahICDatasetFile),
+		Mean:   make([]float64, 0),
+		StdDev: make([]float64, 0),
 		//report is nil for new versions
 	}
 
@@ -55,56 +122,18 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 
 	//check if there is a previous version
 	if latestVersion, err := GetICDatasetPrevious(dataset); err == nil {
-		//map from fileid to the SHA1 version created
-		newImageSHAVersions := make(map[model.MynahUuid]model.MynahFileVersionId)
+		//copy the dataset level mean and stddev
+		copy(newVersion.Mean, latestVersion.Mean)
+		copy(newVersion.StdDev, latestVersion.StdDev)
 
-		//version the files in the current "latest" so they won't be modified
 		for fileId, fileData := range latestVersion.Files {
-			//request the file
-			if file, err := dbProvider.GetFile(fileId, user); err == nil {
-				//generate a new sha1
-				newId, err := storageProvider.GenerateSHA1Id(file)
-				if err != nil {
-					return nil, fmt.Errorf("failed to generate new version id for file: %s", err)
-				}
-
-				//only copy the file to the new version id if the id does not already exist
-				if _, ok := file.Versions[newId]; !ok {
-					//copy the latest version of the file to an explicit SHA1 version
-					if err := storageProvider.CopyFile(file, model.LatestVersionId, newId); err != nil {
-						return nil, fmt.Errorf("failed to version from current latest dataset version: %s", err)
-					}
-
-					//update the file in the database
-					if err := dbProvider.UpdateFile(file, user, "versions"); err != nil {
-						return nil, fmt.Errorf("failed to create new dataset version: %s", err)
-					}
-				}
-
-				//set the new id (specific SHA1 version)
-				fileData.ImageVersionId = newId
-
-				//record for update in report section
-				newImageSHAVersions[fileId] = newId
-
-				//copy file data to the new version
-				newVersion.Files[fileId] = model.CopyICDatasetFile(fileData)
-
-			} else {
-				return nil, fmt.Errorf("failed to version from current latest dataset version: %s", err)
-			}
+			//copy file data to the new version
+			newVersion.Files[fileId] = model.CopyICDatasetFile(fileData)
 		}
 
-		//update the report image tags to be SHA1 tags, not "latest"
-		if latestVersion.Report != nil {
-			for imageId, imageMetadata := range latestVersion.Report.ImageData {
-				//set the specific image version
-				if imageVersion, ok := newImageSHAVersions[imageId]; ok {
-					imageMetadata.ImageVersionId = imageVersion
-				} else {
-					log.Warnf("dataset %s has image %s in report but not in dataset files, skipping version tag update", dataset.Uuid, imageId)
-				}
-			}
+		//freeze the existing fileids (if not frozen already -- this is idempotent)
+		if err = FreezeICDatasetFileVersions(latestVersion, user, storageProvider, dbProvider); err != nil {
+			return nil, fmt.Errorf("failed to freeze file versions for dataset %s: %s", dataset.Uuid, err)
 		}
 	}
 
@@ -128,37 +157,13 @@ func MakeODDatasetVersion(dataset *model.MynahODDataset,
 	}
 
 	//get the previous version id
-	latestVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(dataset.Versions) - 1))
+	//latestVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(dataset.Versions) - 1))
 
-	//check if there is a previous version
-	if latestVersion, ok := dataset.Versions[latestVersionId]; ok {
-		previousVersion = latestVersion
-		//version the files in the current "latest" so they won't be modified
-		for fileId, fileData := range latestVersion.Files {
-			//request the file
-			if file, err := dbProvider.GetFile(fileId, user); err == nil {
-				//generate a new sha1
-				newId, err := storageProvider.GenerateSHA1Id(file)
-				if err != nil {
-					return nil, nil, fmt.Errorf("failed to generate new version id for file: %s", err)
-				}
-
-				//only copy the file to the new version id if the id does not already exist
-				if _, ok := file.Versions[newId]; !ok {
-					//copy the latest version of the file to an explicit SHA1 version
-					if err := storageProvider.CopyFile(file, model.LatestVersionId, newId); err != nil {
-						return nil, nil, fmt.Errorf("failed to version from current latest dataset version: %s", err)
-					}
-				}
-
-				//set the new id
-				fileData.ImageVersionId = newId
-
-			} else {
-				return nil, nil, fmt.Errorf("failed to version from current latest dataset version: %s", err)
-			}
-		}
-	}
+	////check if there is a previous version
+	//if _, ok := dataset.Versions[latestVersionId]; ok {
+	//
+	//	//TODO
+	//}
 
 	//create a new version
 	dataset.Versions[newVersionId] = &model.MynahODDatasetVersion{

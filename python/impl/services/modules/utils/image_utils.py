@@ -1,6 +1,6 @@
 from typing import Tuple
 from PIL import Image # type: ignore
-import numpy as np
+import numpy as np # type: ignore
 from .reiform_exceptions import *
 
 def get_image_metadata(path : str) -> dict:

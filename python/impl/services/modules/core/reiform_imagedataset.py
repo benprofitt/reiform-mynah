@@ -111,6 +111,14 @@ class ReiformImageFile():
     def clear_projections(self) -> None:
         self.projections = Projections()
 
+    def save_image(self, image : Image.Image) -> None:
+        im_types = {1 : "L", 3 : "RGB", 4 : "RGBA"}
+        if self.channels in im_types:
+            im_type = im_types[self.channels]
+            image.convert(im_type).save(self.name)
+        else:
+            image.save(self.name)
+
 
 class ReiformImageEntity():
     def __init__(self, label : str) -> None:

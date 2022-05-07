@@ -113,7 +113,7 @@ def train_detection_for_dataset(path_to_dataset : str, name : str):
     # Here we will train the embeddings for various datasets
 
     dataset = dataset_from_path(path_to_dataset)
-    sizes, _ = max_sizes(dataset)
+    sizes = dataset.find_max_image_dims()
     channels = sizes[2]
 
     resize = "stretch"

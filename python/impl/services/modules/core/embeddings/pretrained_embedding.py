@@ -4,7 +4,7 @@ from impl.services.modules.core.resources import *
 from impl.services.modules.core.vae_auto_net import *
 from impl.services.modules.core.vae_models import *
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-from impl.services.modules.utils.image_utils import max_sizes, closest_power_of_2
+from impl.services.modules.utils.image_utils import closest_power_of_2
 
 
 def save_embedding_model(model : torch.nn.Module, channels : int, 
@@ -75,8 +75,10 @@ def load_embedding_model(model_path : str, json_body : Dict[str, Any]) -> Encode
 def train_embedding(dataset : ReiformICDataSet, transformation : transforms.Compose, 
                     edge_size : int, channels : int, latent_size : int):
 
+    
+
     # Training a single embedding for a dataset and size
-    batch_size=int(CORRECTION_MODEL_BATCH_SIZE//(edge_size/128))
+    batch_size=min(int(BASE_EMBEDDING_MODEL_BATCH_SIZE * 1024**2/edge_size**2), MAX_EMBEDDING_MODEL_BATCH_SIZE)
     dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=batch_size, transformation=transformation)
     proj_dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=batch_size, transformation=transformation)
 
@@ -90,7 +92,12 @@ def train_embedding_sizes(dataset : ReiformICDataSet, channels : int,
                           latent_size : int, dataset_name : str):
     # Here we will train embeddings for various sizes
     # TODO : Move these sizes to some config file/resources file
-    for edge_size in [32, 64, 128, 256, 512, 1024]:
+    for edge_size in [1024, 32, 64, 128, 256, 512]:
+        local_path = get_embedding_path(LOCAL_EMBEDDING_PATH, channels, edge_size, resize, mean, std, dataset_name)
+
+        if os.path.isfile(local_path):
+            ReiformWarning("You are trying to train a model that already exists: {}, {}, {}, {}. Skipping.".format(channels, edge_size, resize, dataset_name))
+            continue
 
         resize_str = "transforms.Resize" + ("({})".format(edge_size) if resize == "min_size" else "(({}, {}))".format(edge_size, edge_size))
 
@@ -106,11 +113,10 @@ def train_embedding_sizes(dataset : ReiformICDataSet, channels : int,
         save_embedding_model(encoder, channels, edge_size, resize, mean, 
                              std, latent_size, dataset_name)
 
-def train_embedding_for_dataset(path_to_dataset : str, name : str):
+def train_embedding_for_dataset(dataset : ReiformICDataSet, name : str):
     # Here we will train the embeddings for various datasets
 
-    dataset = dataset_from_path(path_to_dataset)
-    sizes, _ = max_sizes(dataset)
+    sizes = dataset.find_max_image_dims()
     channels = sizes[2]
     latent_size = EMBEDDING_DIM_SIZE
 
@@ -131,7 +137,8 @@ def train_encoder_vae(latent_size : int, channels_in : int, edge_size : int,
     return vae
 
 def create_dataloaders(data : ReiformICDataSet):
-    sizes, max_size = max_sizes(data)
+    sizes = data.find_max_image_dims()
+    max_size = max(sizes)
     channels_in : int = sizes[2]
 
     closest_size = closest_power_of_2(max_size)

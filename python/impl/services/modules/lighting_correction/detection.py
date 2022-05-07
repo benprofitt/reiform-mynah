@@ -3,7 +3,8 @@ from .pretraining import *
 
 def get_detection_model(dataset : ReiformICDataSet, 
                         local_model_path : str) :
-    sizes, max_ = max_sizes(dataset)
+    sizes = dataset.find_max_image_dims()
+    max_ = max(sizes)
 
     edge_size = min(256, closest_power_of_2(max_))
     channels = sizes[2]

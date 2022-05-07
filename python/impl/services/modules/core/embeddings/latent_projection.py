@@ -52,7 +52,8 @@ def vae_projection(data : ReiformICDataSet, latent_size : int,
 
 
 def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
-    sizes, max_ = max_sizes(dataset)
+    sizes = dataset.find_max_image_dims()
+    max_ = max(sizes)
     channels = sizes[2]
     closest_size = closest_power_of_2(max_)
 

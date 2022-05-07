@@ -1,15 +1,15 @@
 from .pretraining import *
 
 
-def get_detection_model(dataset : ReiformICDataSet, 
+def run_detection_models(dataset : ReiformICDataSet, 
                         local_model_path : str) :
     sizes = dataset.find_max_image_dims()
     max_ = max(sizes)
 
-    edge_size = min(256, closest_power_of_2(max_))
+    edge_size = max(64, min(256, closest_power_of_2(max_)))
     channels = sizes[2]
 
-    path_to_models = get_pretrained_path_detection(local_model_path, channels, edge_size)
+    path_to_models = get_pretrained_path_lighting(local_model_path, channels, edge_size)
 
     model_files = glob(path_to_models + '/**/*.pt', recursive=True)
     json_files = glob(path_to_models + '/**/*.json', recursive=True)

@@ -10,3 +10,8 @@ import pyod.models as odm # type: ignore
 from pyod.models.loda import LODA # type: ignore
 
 from PIL import ImageEnhance # type: ignore
+
+# Sizing options for pretraining 
+# TODO: More formalization
+LIGHTING_DETECTION_EDGE_SIZES = [64, 128, 256, 512]
+LIGHTING_CORRECTION_EDGE_SIZES = [64, 256, 1024]

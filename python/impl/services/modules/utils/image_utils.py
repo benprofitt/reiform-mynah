@@ -53,6 +53,6 @@ def closest_power_of_2(max_size):
     return closest_size
 
 def max_sizes_(data ):
-    sizes : Tuple[int, int, int] = data.find_max_image_size()
+    sizes : Tuple[int, int, int] = data.find_max_image_dims()
     max_size : int = max(sizes)
     return sizes, max_size

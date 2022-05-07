@@ -112,12 +112,24 @@ class ReiformImageFile():
         self.projections = Projections()
 
     def save_image(self, image : Image.Image) -> None:
+        ReiformWarning("Overwriting file at {}".format(self.name))
         im_types = {1 : "L", 3 : "RGB", 4 : "RGBA"}
         if self.channels in im_types:
             im_type = im_types[self.channels]
             image.convert(im_type).save(self.name)
         else:
             image.save(self.name)
+
+    def move_image(self, path : str, delete : bool = False) -> None:
+    
+        new_location = "{}/{}".format(path, self.name.split("/")[-1])
+        Image.open(self.name).save(new_location)
+
+        if delete:
+            ReiformWarning("Deleting file at {}".format(self.name))
+            os.remove(self.name)
+
+        self.name = new_location
 
 
 class ReiformImageEntity():

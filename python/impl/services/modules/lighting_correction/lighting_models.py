@@ -68,23 +68,36 @@ class LightingDetectorSparse(nn.Module):
     def __init__(self, channels: int, edge_size : int) -> None:
         super().__init__()
 
-        self.c1 = create_conv_block(3, 64, 3, 1, 1)  # 128
-        self.c2 = create_conv_block(64, 96, 3, 1, 2, 2)
-        self.c3 = sparse_maxpool_block(96, 128) # 64
+        c1 = [create_conv_block(channels, 64, 3, 1, 1)] 
+
+        def make_lighting_layer(inl, outl):
+            return nn.Sequential(*[create_conv_block(inl, 128, 3, 1, 2, 2),
+                                   sparse_maxpool_block(128, outl)])
+
+        def make_lighting_layers(size):
+            layers = [create_conv_block(64, 96, 3, 1, 1)]
+
+            while size > 64:
+                layers.append(make_lighting_layer(96, 96))
+                size /=2
+
+            layers.append(create_conv_block(96, 128, 3, 1, 1))
+
+            return layers
+
+        c1 += make_lighting_layers(edge_size)
+
         self.c4a = create_conv_block(32, 32, 3, 1, 2, 2)
         self.c4b = create_conv_block(32, 32, 3, 1, 1)
         self.c4c = create_conv_block(32, 32, 5, 1, 2)
         self.c4d = create_conv_block(32, 32, 3, 1, 3, 3)
-        # self.c5 = sparse_maxpool_block(128, 64) # 64
         self.c6 = sparse_maxpool_block(128, 64) # 32
         self.c7a = create_conv_block(32, 32, 3, 1, 1)
         self.c7b = create_conv_block(32, 32, 3, 1, 3, 3)
         self.c8 = sparse_maxpool_block(64, 32) # 16 x 16
         self.c9 = sparse_maxpool_block(32, 16) # 8 x 8
 
-        self.conv1 = nn.Sequential(*[self.c1,
-                                     self.c2,
-                                    self.c3])
+        self.conv1 = nn.Sequential(*c1)
 
         # 1024 * (256 + 256) -> (512 * 256) + (512 * 256)
 
@@ -100,7 +113,6 @@ class LightingDetectorSparse(nn.Module):
         self.fc2a = linear_block(128, 64)
         self.fc2b = linear_block(128, 64)
 
-        # self.fc3 = linear_block(128, 2, dropout=0.0, relu=False)
         self.fc3 = linear_block(128, 3, dropout=0.0, relu=False)
 
     def forward(self, x):
@@ -113,7 +125,6 @@ class LightingDetectorSparse(nn.Module):
         xd = self.c4d(xd)
         x = torch.cat((xa, xb, xc, xd), dim=1)
 
-        # x = self.c5(x)
         x = self.c6(x)
         xa, xb = torch.split(x, [32, 32], dim=1)
         xa = self.c7a(xa)

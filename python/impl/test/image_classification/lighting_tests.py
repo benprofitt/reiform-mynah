@@ -1,18 +1,26 @@
 from impl.services.modules.lighting_correction.lighting_datasets import *
 from impl.services.modules.lighting_correction.lighting_models import *
 from impl.services.modules.lighting_correction.lighting_utils import *
-from impl.services.modules.lighting_correction.correction import *
+from impl.services.modules.lighting_correction.correction_models import *
+from impl.services.modules.lighting_correction.correction import run_correction_model
+from impl.services.modules.lighting_correction.detection import run_detection_models
+from impl.services.modules.lighting_correction.pretraining import get_pretrained_path_lighting
+from impl.services.modules.utils.data_formatting import load_dataset
 from .test_utils import dataset_evaluation, train_model_for_eval
 
 
-def test_detection_model(model_path, path, all_dark, all_light, bare_model_class):
+def test_detection_model(models_path, dataset, all_dark, all_light, bare_model_class):
     
-    ds = dataset_from_path(path)
-    
-    sizes, _ = max_sizes(ds)
-    edge_size = min(256, closest_power_of_2(max(sizes[:2])))
+    ds = dataset
+    sizes = ds.find_max_image_dims()
+    edge_size = max(64, min(512, closest_power_of_2(max(sizes[:2]))))
     channels = sizes[2]
-    
+
+    path_to_models = get_pretrained_path_lighting(models_path, channels, edge_size)
+    model_files = glob(path_to_models + '/**/*.pt', recursive=True)
+    _ = glob(path_to_models + '/**/*.json', recursive=True)
+    model_path = model_files[0]
+        
     transform : torchvision.transforms.Compose = transforms.Compose([
             transforms.Resize(edge_size),
             transforms.CenterCrop(edge_size)
@@ -27,47 +35,33 @@ def test_detection_model(model_path, path, all_dark, all_light, bare_model_class
 
     eval_model(dataloader, model)
 
-def test_correction_model(model_path, path):
-    edge_size = 128
-    ds = dataset_from_path(path)
+def test_correction_model(detection_models_path, corr_models_path, dataset : ReiformICDataSet, correction_save_path):
     
-    transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(edge_size),
-            transforms.CenterCrop(edge_size),
-            transforms.ToTensor()
-        ])
-
-    model = LightingCorrectionNet(edge_size)
-    model.load_state_dict(torch.load(model_path))
-    model.to(device)
-    model.eval()
-
     # Get a dataloader that has intentional lighting mistakes 
-    train_ds, test_ds = ds.split(0.9)
+    train_ds, test_ds = dataset.split(0.9)
 
-    correct_train_dl = torch.utils.data.DataLoader(DatasetForLightingCorrectionTest(train_ds, transform),
-                                           batch_size=128, shuffle=False, num_workers=1)
-    # This will be resolved with the issue #123
-    test_temp_path : str = "./impl/test/working/temp"
+    train_ds_to_correct = train_ds.copy()
+    _, affected = run_detection_models(train_ds_to_correct, detection_models_path)
 
-    model = model.to(device)
-    model.eval()
+    sizes = dataset.find_max_image_dims()
+    edge_size = max(64, min(1024, closest_power_of_2(max(sizes[:2]))*2))
+    edge_size = (edge_size if edge_size in LIGHTING_CORRECTION_EDGE_SIZES else edge_size*2)
+    
+    for k, v in affected.items():
+        for filename in v:
+            file = train_ds_to_correct.get_file_by_uuid(filename)
+            file.move_image(correction_save_path)
+    
+    run_correction_model(corr_models_path, train_ds_to_correct)
 
-    for image, label, name in correct_train_dl:
-        image = image.to(device)
-        pred = model(image)
-        for i in range(len(label)):
-            new_path = "{}/{}/{}".format(test_temp_path, label[i], name.split("/")[-1])
-            im = transforms.ToPILImage()(pred[i])
-            im.save(new_path)
-
-    corrected_train_ds = dataset_from_path(test_temp_path)
+    corrected_train_ds = train_ds_to_correct
 
     # Train a model using each, evaluate on the same dataset, and return results
     corrected_scores = dataset_evaluation(corrected_train_ds, test_ds)
     
     # Now raw
-    sizes, max_ = max_sizes(train_ds)
+    sizes = train_ds.find_max_image_dims()
+    max_ = max(sizes)
     edge_size = closest_power_of_2(max_)
     batch_size = 256
     epochs = 25
@@ -90,20 +84,28 @@ def test_correction_model(model_path, path):
     ReiformInfo("Scores for model trained on uncorrected data: {}".format(str(precorrection_scores)))
     ReiformInfo("Scores for model trained on corrected data: {}".format(str(corrected_scores)))
 
-def test(val_path : str, correction_model_path : str, detection_model_path):
+def test(dataset_path : str, correction_model_path : str, detection_model_path : str, save_path : str):
+
+    if int(sys.argv[5]):
+
+        dataset = dataset_from_path(dataset_path)
+    else:
+        dataset = load_dataset(dataset_path)
 
     # Test different Detection models
     model_type = LightingDetectorSparse
-    test_detection_model(detection_model_path, val_path, False, False, model_type )
+    test_detection_model(detection_model_path, dataset, False, False, model_type)
     
     # Test Correction
-    test_correction_model(correction_model_path, val_path)
+    test_correction_model(detection_model_path, correction_model_path, dataset, save_path)
     
 if __name__ == "__main__":
     data_path = sys.argv[1]
     corr_model_path = sys.argv[2]
-    det_model_path = sys.argv[3]
+    det_models_path = sys.argv[3]
+    save_path = sys.argv[4]
 
     test(data_path,
         corr_model_path,
-        det_model_path)
+        det_models_path,
+        save_path)

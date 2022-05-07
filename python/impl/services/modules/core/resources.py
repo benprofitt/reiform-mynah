@@ -35,7 +35,7 @@ logging.getLogger('PIL').setLevel(logging.WARNING)
 random.seed(7343432676)
 
 image_extns : List[str] = ["png", "jpeg", "jpg", "tif", "tiff"]
-WORKERS : int = 2
+WORKERS : int = 3
 VERBOSE = False
 
 PROJECTION_LABEL : str = "inception_projection"
@@ -63,8 +63,13 @@ NAME = "dataset_name"
 EMBEDDING_DIM_SIZE = 4
 
 VARIATIONAL_BETA = 0.0000001
-VAE_PROJECTION_TRAINING_EPOCHS = 10
-CORRECTION_MODEL_BATCH_SIZE = 364
+VAE_PROJECTION_TRAINING_EPOCHS = 50
+
+CORRECTION_MODEL_BATCH_SIZE = 1024
+MAX_CORRECTION_MODEL_BATCH_SIZE = 1024
+
+BASE_EMBEDDING_MODEL_BATCH_SIZE = 22
+MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3

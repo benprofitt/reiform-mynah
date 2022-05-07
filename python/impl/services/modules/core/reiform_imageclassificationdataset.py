@@ -25,10 +25,14 @@ class ReiformICFile(ReiformImageFile):
             self.confidence_vectors = [np.array(arr) for arr in body["confidence_vectors"]]
 
     def to_json(self) -> Dict[str, Any]:
-        results : Dict[str, Any] = self.__dict__
+        attr_dict : Dict[str, Any] = self.__dict__
+        results : Dict[str, Any] = {}
+        for k, v in attr_dict.items():
+            if k not in ["projections", "confidence_vectors"]:
+                results[k] = v
 
-        results["projections"] = results["projections"].to_json()
-        results["confidence_vectors"] = [v.tolist() for v in results["confidence_vectors"]]
+        results["projections"] = attr_dict["projections"].to_json()
+        results["confidence_vectors"] = [v.tolist() for v in attr_dict["confidence_vectors"]]
 
         return results
 
@@ -105,6 +109,10 @@ class ReiformICDataSet(ReiformImageDataset):
         self.mean : List[float] = []
         self.std_dev : List[float] = []
 
+        self.max_channels = 0
+        self.max_height = 0
+        self.max_width = 0
+
         for c in self.class_list:
             self.files[c] = {}
 
@@ -141,6 +149,8 @@ class ReiformICDataSet(ReiformImageDataset):
             ReiformWarning("File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))
             return
         self.files[file.get_class()][file.get_name()] = file
+        if self.max_channels < file.channels:
+            self.max_channels = file.channels
 
     def get_file(self, label : str, name : str) -> ReiformICFile:
         label = str(label)
@@ -236,20 +246,29 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return files
 
-    def find_max_image_size(self):
+    def find_max_image_dims(self, recalc : bool=False):
 
-        def find_max(file1 : ReiformICFile, file2 : ReiformICFile):
-            new_file : ReiformICFile = ReiformICFile(file1.name, file1.current_class)
+        if self.max_channels == 0 or recalc:
 
-            new_file.width = max(file1.width, file2.width)
-            new_file.height = max(file1.height, file2.height)
-            new_file.channels = max(file1.channels, file2.channels)
+            def find_max(file1 : ReiformICFile, file2 : ReiformICFile):
+                new_file : ReiformICFile = ReiformICFile(file1.name, file1.current_class)
 
-            return new_file
+                new_file.width = max(file1.width, file2.width)
+                new_file.height = max(file1.height, file2.height)
+                new_file.channels = max(file1.channels, file2.channels)
 
-        file = self.reduce_files(find_max)
+                return new_file
 
-        return file.width, file.height, file.channels
+            file = self.reduce_files(find_max)
+
+            self.max_channels = file.channels
+            self.max_height = file.height
+            self.max_width = file.width
+            
+        return self.max_width, self.max_height, self.max_channels
+
+    def max_size(self, recalc : bool = False):
+        return max(self.find_max_image_dims(recalc))
 
     def reduce_files(self, condition: Callable) -> ReiformICFile:
 
@@ -306,27 +325,30 @@ class ReiformICDataSet(ReiformImageDataset):
             return
 
         else:
-            files : Dict[str, Dict[str, Dict[str, Any]]] = body["class_files"]
+            files : Dict[str, Dict[str, Dict[str, Any]]] = body["files"]
             for c in self.class_list:
-                class_files = files[c]
-                for filename, file in class_files.items():
+                for filename, file in files[c].items():
                     new_file : ReiformICFile = ReiformICFile(filename, c)
                     new_file.from_json(file)
                     self.add_file(new_file)
 
-            for attrib in ["mean", "std_dev"]:
+            for attrib in ["mean", "std_dev", "max_channels", "max_height", "max_width"]:
                 if attrib in body:
                     setattr(self, attrib, body[attrib])
 
     def to_json(self) -> Dict[str, Any]:
-        results : Dict[str, Any] = self.__dict__
+        attr_dict : Dict[str, Any] = self.__dict__
+        
+        results : Dict[str, Any] = {"files" : {}}
+        for k, val in attr_dict.items():
+            if k != "files":
+                results[k] = val
 
         for c in self.class_list:
-            results["class_files"][c] = results["files"][c].to_json()
+            results["files"][c] = {}
+            for name, file in attr_dict["files"][c].items():
+                results["files"][c][name] = file.to_json()
         
-
-        del results["files"]
-
         return results
 
     def copy(self):
@@ -395,6 +417,12 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return files_and_data
 
+    def read_image(self, file : ReiformICFile):
+        if self.max_channels == 3 or self.max_channels == 4:
+            return Image.open(file.name).convert("RGB")
+        else:
+            return Image.open(file.name)
+
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None) -> torch.utils.data.DataLoader:
         
         image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
@@ -447,7 +475,7 @@ class DatasetFromReiformDataset(torch.utils.data.Dataset):
     def __init__(self, files : ReiformICDataSet, in_size: int, edge_size: int, transformation = None) -> None:
         super().__init__()
         self.files_and_labels : List[Tuple[str, int]] = files._files_and_labels()
-
+        self.dataset : ReiformICDataSet = files
         self.layer_count = in_size
 
         if transformation is None:
@@ -473,15 +501,9 @@ class DatasetFromReiformDataset(torch.utils.data.Dataset):
         name : str = self.files_and_labels[idx][0]
         label: int = self.files_and_labels[idx][1]
 
-        if self.layer_count == 3:
-            image = Image.open(name)
-            image = image.convert('RGB')
-            return self.transform(image), label, name
-        elif self.layer_count == 1:
-            return self.transform(Image.open(name).convert('L')), label, name
-        else:
-            raise ReiformClassMethodException("DatasetFromReiformDataset", "layer_count")
+        image = self.dataset.read_image(self.dataset.get_file(self.dataset.classes()[label], name))
 
+        return self.transform(image), label, name
 
 class ProjectionDataset(torch.utils.data.Dataset):
 
@@ -510,6 +532,7 @@ class DatasetFromFilenames(torch.utils.data.Dataset):
 
         super().__init__()
         self.files_and_labels : List[Tuple[str, int]] = dataset._files_and_labels()
+        self.dataset = dataset
 
         self.transform : torchvision.transforms.Compose = transform
 
@@ -519,8 +542,8 @@ class DatasetFromFilenames(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
         name : str = self.files_and_labels[idx][0]
         label : int = self.files_and_labels[idx][1]
-        #      image,                                           class, filename
-        return self.transform(Image.open(name).convert('RGB')), label, name
+        #      image,                                                                                               class, filename
+        return self.transform(self.dataset.read_image(self.dataset.get_file(self.dataset.classes()[label], name))), label, name
 
 class ImageNameDataset(torch.utils.data.Dataset):
 
@@ -540,10 +563,26 @@ class ImageNameDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
         name : str = self.image_names_and_labels[idx][0]
-        
-        return self.transform(Image.open(name).convert('RGB')), self.image_names_and_labels[idx][1], name
+        label = self.image_names_and_labels[idx][1]
 
-def make_file(package):
+        return self.transform(self.dataset.read_image(self.dataset.get_file(self.dataset.classes()[label], name))), label, name
+
+def make_file_with_RGB(package : Tuple):
+    name, label = package
+    new_file : ReiformICFile = ReiformICFile(name, label)
+
+    data = get_image_metadata(name, True)
+
+    new_file.width  = data["width"]
+    new_file.height = data["height"]
+    new_file.channels = data["channels"]
+
+    new_file.mean = data["mean"]
+    new_file.std_dev = data["std_dev"]
+
+    return new_file
+
+def make_file(package : Tuple):
     name, label = package
     new_file : ReiformICFile = ReiformICFile(name, label)
 

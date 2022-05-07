@@ -44,4 +44,6 @@ def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
 
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''
-    return json.dumps(image_utils.get_image_metadata(json.loads(request_str)['path']))
+    body = json.loads(request_str)
+    path = body['path']
+    return json.dumps(image_utils.get_image_metadata(path))

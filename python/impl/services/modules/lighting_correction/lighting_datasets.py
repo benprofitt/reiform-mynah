@@ -24,6 +24,7 @@ class DatasetForLightingDetection(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
         name : str = self.files_and_labels[idx][0]
         label : int = 0
+        # Lighting detection only offered for RGB for now
         image = self.transform(Image.open(name).convert('RGB'))
         p : int = 0
         if self.all_light or self.all_dark:
@@ -66,6 +67,7 @@ class DatasetForLightingCorrection(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, int]:
         name : str = self.files_and_labels[idx][0]
         label : int = 0
+        # Lighting correction only offered for RGB for now
         im = Image.open(name).convert('RGB')
         p = random.randint(0,1)
         if p == 0:
@@ -92,6 +94,7 @@ class DatasetForLightingCorrectionTest(torch.utils.data.Dataset):
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
         name : str = self.files_and_labels[idx][0]
         label : int = 0
+        # Lighting correction only offered for RGB for now
         im = Image.open(name).convert('RGB')
         p = random.randint(0,1)
         if p == 0:

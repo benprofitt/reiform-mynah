@@ -1,5 +1,5 @@
 from sklearn.metrics import precision_recall_fscore_support # type: ignore
-from impl.services.modules.utils.image_utils import closest_power_of_2, max_sizes
+from impl.services.modules.utils.image_utils import closest_power_of_2
 from impl.services.modules.core.reiform_imageclassificationdataset import *
 from impl.services.modules.core.reiform_models import AutoNet, train_conv_net
 
@@ -46,7 +46,8 @@ def get_predictions_with_names(dataloader, model):
 
 def dataset_evaluation(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
 
-    sizes, max_ = max_sizes(train_ds)
+    sizes = train_ds.find_max_image_dims()
+    max_ = max(sizes)
     edge_size = closest_power_of_2(max_)
     batch_size = 256
     epochs = 25

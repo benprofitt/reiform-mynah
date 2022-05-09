@@ -167,6 +167,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 
 	icDataset, err := dbProvider.CreateICDataset(&user, func(icDataset *model.MynahICDataset) error {
 		icDataset.DatasetName = "ic_dataset_test"
+		icDataset.Versions["0"] = &model.MynahICDatasetVersion{}
 		return nil
 	})
 
@@ -177,6 +178,15 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 
 	if icDataset.OrgId != user.OrgId {
 		t.Fatalf("dataset did not inherit user org id")
+	}
+
+	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, "versions")
+	if err != nil {
+		t.Fatalf("failed to request dataset: %s", err)
+	}
+
+	if omitDataset.Versions != nil {
+		t.Fatalf("got dataset column that was explicitly omitted")
 	}
 
 	//list datasets and verify same

@@ -16,10 +16,12 @@ type DBProvider interface {
 	GetFile(model.MynahUuid, *model.MynahUser) (*model.MynahFile, error)
 	// GetFiles get multiple files by id
 	GetFiles([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error)
-	// GetICDataset get a dataset from the database
-	GetICDataset(model.MynahUuid, *model.MynahUser) (*model.MynahICDataset, error)
+	// GetICDataset get a dataset from the database, optionally omit certain columns
+	GetICDataset(model.MynahUuid, *model.MynahUser, ...string) (*model.MynahICDataset, error)
 	// GetODDataset get a dataset from the database
 	GetODDataset(model.MynahUuid, *model.MynahUser) (*model.MynahODDataset, error)
+	// GetBinObject gets a cached object by uuid
+	GetBinObject(model.MynahUuid, *model.MynahUser) (*model.MynahBinObject, error)
 	// GetICDatasets get multiple ic datasets from the database
 	GetICDatasets([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahICDataset, error)
 	// GetODDatasets get multiple oc datasets from the database
@@ -40,6 +42,8 @@ type DBProvider interface {
 	CreateICDataset(*model.MynahUser, func(*model.MynahICDataset) error) (*model.MynahICDataset, error)
 	// CreateODDataset create a new dataset
 	CreateODDataset(*model.MynahUser, func(*model.MynahODDataset) error) (*model.MynahODDataset, error)
+	// CreateBinObject stores some binary data in the database
+	CreateBinObject(*model.MynahUser, func(*model.MynahBinObject) error) (*model.MynahBinObject, error)
 	// UpdateUser update a user in the database. First arg is user to update, second is requestor, remaining
 	//are keys to update.
 	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error

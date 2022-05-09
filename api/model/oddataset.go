@@ -45,3 +45,12 @@ func NewODDataset(creator *MynahUser) *MynahODDataset {
 		Versions:     make(map[MynahDatasetVersionId]*MynahODDatasetVersion),
 	}
 }
+
+// NewODDatasetVersion creates a new od dataset version
+func NewODDatasetVersion() *MynahODDatasetVersion {
+	return &MynahODDatasetVersion{
+		Entities:     make(map[MynahUuid]*MynahODDatasetEntity),
+		Files:        make(map[MynahUuid]*MynahODDatasetFile),
+		FileEntities: make(map[string][]MynahUuid),
+	}
+}

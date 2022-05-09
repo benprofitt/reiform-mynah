@@ -3,7 +3,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"reiform.com/mynah/async"
@@ -13,7 +12,6 @@ import (
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/storage"
-	"reiform.com/mynah/tools"
 )
 
 // icProcessJob handle request to start a new async job
@@ -43,33 +41,18 @@ func icProcessJob(dbProvider db.DBProvider,
 
 		//kick off async job
 		taskId := asyncProvider.StartAsyncTask(user, func(model.MynahUuid) ([]byte, error) {
-			//create a new version of the dataset to operate on
-			newVersion, err := tools.MakeICDatasetVersion(dataset,
-				user,
-				storageProvider,
-				dbProvider)
-			if err != nil {
-				return nil, fmt.Errorf("ic process task for dataset %s failed when creating new version: %s", req.DatasetUuid, err)
-			}
-
 			//start the python task
-			err = pyImplProvider.ICProcessJob(user, req.DatasetUuid, newVersion, req.Tasks)
+			err = pyImplProvider.ICProcessJob(user, dataset, req.Tasks)
 			if err != nil {
 				return nil, fmt.Errorf("ic process task for dataset %s failed: %s", req.DatasetUuid, err)
 			}
 
-			//freeze the fileids so that the "latest" versions aren't modified be a different dataset before a new version of this one is frozen
-			if err = tools.FreezeICDatasetFileVersions(newVersion, user, storageProvider, dbProvider); err != nil {
-				return nil, fmt.Errorf("ic process for dataset %s failed when freezing file versions: %s", req.DatasetUuid, err)
-			}
-
 			//update the results in the database (will overwrite any changes made to versions col since task started)
-			if err := dbProvider.UpdateICDataset(dataset, user, "versions"); err != nil {
-				return nil, fmt.Errorf("ic process for dataset %s failed when updating in database: %s", req.DatasetUuid, err)
+			if err := dbProvider.UpdateICDataset(dataset, user, "versions", "reports"); err != nil {
+				return nil, fmt.Errorf("ic process task for dataset %s failed when updating in database: %s", req.DatasetUuid, err)
 			}
 
-			//will distribute report over any websocket connections
-			return json.Marshal(newVersion.Report)
+			return nil, nil
 		})
 
 		//respond with the task id

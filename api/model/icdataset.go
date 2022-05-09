@@ -2,12 +2,6 @@
 
 package model
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
-)
-
 // ConfidenceVectors for a file
 type ConfidenceVectors [][]float64
 
@@ -25,91 +19,66 @@ const (
 	ICProcessCorrectImageBlurTask           MynahICProcessTaskType = "ic::correct::image_blur"
 )
 
-// MynahICProcessTaskReportMetadata defines report metadata specific to some task
-type MynahICProcessTaskReportMetadata interface {
+// MynahICProcessTaskMetadata defines metadata specific to some task
+type MynahICProcessTaskMetadata interface {
+	// ApplyToDataset makes changes to the dataset based on this metadata
+	ApplyToDataset(*MynahICDatasetVersion, MynahICProcessTaskType) error
+	// ApplyToReport makes changes to the report based on this metadata
+	ApplyToReport(*MynahICDatasetReport, MynahICProcessTaskType) error
 }
 
-// MynahICDatasetReportPoint a cartesian point
-type MynahICDatasetReportPoint struct {
-	X int64 `json:"x"`
-	Y int64 `json:"y"`
+// MynahICProcessTaskDiagnoseMislabeledImagesMetadata is metadata for
+//diagnosing mislabeled images task response
+type MynahICProcessTaskDiagnoseMislabeledImagesMetadata struct {
+	//ids of outlier images
+	Outliers []MynahUuid `json:"outliers"`
 }
 
-// MynahICDatasetReportBucket classifications for images in class
-type MynahICDatasetReportBucket struct {
-	Bad        int `json:"bad"`
-	Acceptable int `json:"acceptable"`
+// MynahICProcessTaskCorrectMislabeledImagesMetadata is metadata for
+//correcting mislabeled images task response
+type MynahICProcessTaskCorrectMislabeledImagesMetadata struct {
 }
 
-// MynahICDatasetReportImageMetadata defines the metadata associated with an image
-type MynahICDatasetReportImageMetadata struct {
-	//the version id for the file
-	ImageVersionId MynahFileVersionId `json:"image_version_id"`
-	//the class
-	Class string `json:"class"`
-	//point for display in graph
-	Point MynahICDatasetReportPoint `json:"point"`
-	//the tasks for which this image is an outlier
-	OutlierTasks []MynahICProcessTaskType `json:"outlier_tasks"`
+// MynahICProcessTaskDiagnoseClassSplittingMetadata is metadata for
+//diagnosing class splitting task response
+type MynahICProcessTaskDiagnoseClassSplittingMetadata struct {
 }
 
-// MynahICProcessTaskDiagnoseMislabeledImagesReport records diagnosis report info for mislabeled images
-type MynahICProcessTaskDiagnoseMislabeledImagesReport struct {
+// MynahICProcessTaskCorrectClassSplittingMetadata is metadata for
+//correcting class splitting task response
+type MynahICProcessTaskCorrectClassSplittingMetadata struct {
 }
 
-// MynahICProcessTaskCorrectMislabeledImagesReport records correction
-//report info for mislabeled images
-type MynahICProcessTaskCorrectMislabeledImagesReport struct {
+// MynahICProcessTaskDiagnoseLightingConditionsMetadata is metadata for
+//diagnosing lighting conditions task response
+type MynahICProcessTaskDiagnoseLightingConditionsMetadata struct {
 }
 
-// MynahICProcessTaskDiagnoseClassSplittingReport records diagnosis
-//report info for class splitting
-type MynahICProcessTaskDiagnoseClassSplittingReport struct {
+// MynahICProcessTaskCorrectLightingConditionsMetadata is metadata for
+//correcting lighting conditions task response
+type MynahICProcessTaskCorrectLightingConditionsMetadata struct {
+	//the uuids of removed images
+	Removed []MynahUuid `json:"removed"`
+	//the uuids of corrected images
+	Corrected []MynahUuid `json:"corrected"`
 }
 
-// MynahICProcessTaskCorrectClassSplittingReport records correction
-//report info for class splitting
-type MynahICProcessTaskCorrectClassSplittingReport struct {
+// MynahICProcessTaskDiagnoseImageBlurMetadata is metadata for
+//diagnosing image blur task response
+type MynahICProcessTaskDiagnoseImageBlurMetadata struct {
 }
 
-// MynahICProcessTaskDiagnoseLightingConditionsReport records diagnosis
-//report info for lighting conditions
-type MynahICProcessTaskDiagnoseLightingConditionsReport struct {
+// MynahICProcessTaskCorrectImageBlurMetadata is metadata for
+//correcting image blur task response
+type MynahICProcessTaskCorrectImageBlurMetadata struct {
 }
 
-// MynahICProcessTaskCorrectLightingConditionsReport records correction
-//report info for lighting conditions
-type MynahICProcessTaskCorrectLightingConditionsReport struct {
-}
-
-// MynahICProcessTaskDiagnoseImageBlurReport records diagnosis
-//report info for blur
-type MynahICProcessTaskDiagnoseImageBlurReport struct {
-}
-
-// MynahICProcessTaskCorrectImageBlurReport records correction
-//report info for blur
-type MynahICProcessTaskCorrectImageBlurReport struct {
-}
-
-// MynahICProcessTaskReport defines info about report task section
-type MynahICProcessTaskReport struct {
+// MynahICProcessTaskData defines the result of running a task on an ic dataset
+type MynahICProcessTaskData struct {
 	//the type of the task
 	Type MynahICProcessTaskType `json:"type"`
-	//the task metadata for the report
-	Metadata MynahICProcessTaskReportMetadata `json:"metadata"`
-}
-
-// MynahICDatasetReport a mynah image classification report
-type MynahICDatasetReport struct {
-	//all of the images, in the order to display
-	ImageIds []MynahUuid `json:"image_ids"`
-	//the images included in this report, map fileid to metadata
-	ImageData map[MynahUuid]*MynahICDatasetReportImageMetadata `json:"image_data"`
-	//the class breakdown table info, map class to buckets
-	Breakdown map[string]*MynahICDatasetReportBucket `json:"breakdown"`
-	//data about tasks that were run
-	Tasks []MynahICProcessTaskReport `json:"tasks"`
+	//the metadata associated with the task
+	Metadata MynahICProcessTaskMetadata `json:"metadata"`
 }
 
 // MynahICDatasetFile file data
@@ -138,8 +107,8 @@ type MynahICDatasetVersion struct {
 	Mean []float64 `json:"mean"`
 	//the stddev of the channels of images in the dataset
 	StdDev []float64 `json:"std_dev"`
-	//the unified report
-	Report *MynahICDatasetReport `json:"report"`
+	// task metadata generated by ic process (may be used by subsequent ic process runs)
+	TaskData []*MynahICProcessTaskData `json:"task_data,omitempty"`
 }
 
 // MynahICDataset Defines a dataset specifically for image classification
@@ -148,13 +117,29 @@ type MynahICDataset struct {
 	MynahDataset `xorm:"extends"`
 	//versions of the dataset
 	Versions map[MynahDatasetVersionId]*MynahICDatasetVersion `json:"versions" xorm:"TEXT 'versions'"`
+	//reports for this dataset by version (references a binobject)
+	Reports map[MynahDatasetVersionId]MynahUuid `json:"-" xorm:"TEXT 'reports'"`
+	//the latest version
+	LatestVersion MynahDatasetVersionId `json:"latest_version"`
 }
 
 // NewICDataset creates a new dataset
 func NewICDataset(creator *MynahUser) *MynahICDataset {
 	return &MynahICDataset{
-		MynahDataset: *NewDataset(creator),
-		Versions:     make(map[MynahDatasetVersionId]*MynahICDatasetVersion),
+		MynahDataset:  *NewDataset(creator),
+		Versions:      make(map[MynahDatasetVersionId]*MynahICDatasetVersion),
+		Reports:       make(map[MynahDatasetVersionId]MynahUuid),
+		LatestVersion: "0",
+	}
+}
+
+// NewICDatasetVersion creates a new dataset version
+func NewICDatasetVersion() *MynahICDatasetVersion {
+	return &MynahICDatasetVersion{
+		Files:    make(map[MynahUuid]*MynahICDatasetFile),
+		Mean:     make([]float64, 0),
+		StdDev:   make([]float64, 0),
+		TaskData: make([]*MynahICProcessTaskData, 0),
 	}
 }
 
@@ -171,17 +156,8 @@ func NewICDatasetFile() *MynahICDatasetFile {
 	}
 }
 
-// NewMynahICDatasetReport creates a new report
-func NewMynahICDatasetReport() *MynahICDatasetReport {
-	return &MynahICDatasetReport{
-		ImageIds:  make([]MynahUuid, 0),
-		ImageData: make(map[MynahUuid]*MynahICDatasetReportImageMetadata),
-		Breakdown: make(map[string]*MynahICDatasetReportBucket),
-		Tasks:     make([]MynahICProcessTaskReport, 0),
-	}
-}
-
 // CopyICDatasetFile creates a new dataset file record by copying another
+// Note: updates to 'latest' tag
 func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 	var confidenceVectors ConfidenceVectors
 	copy(confidenceVectors, other.ConfidenceVectors)
@@ -205,71 +181,5 @@ func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 		Projections:       projections,
 		Mean:              mean,
 		StdDev:            stdDev,
-	}
-}
-
-// map from task type to report structure
-var mynahICProcessTaskReportConstructor = map[MynahICProcessTaskType]func() MynahICProcessTaskReportMetadata{
-	ICProcessDiagnoseMislabeledImagesTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseMislabeledImagesReport{}
-	},
-	ICProcessCorrectMislabeledImagesTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectMislabeledImagesReport{}
-	},
-	ICProcessDiagnoseClassSplittingTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseClassSplittingReport{}
-	},
-	ICProcessCorrectClassSplittingTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectClassSplittingReport{}
-	},
-	ICProcessDiagnoseLightingConditionsTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseLightingConditionsReport{}
-	},
-	ICProcessCorrectLightingConditionsTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectLightingConditionsReport{}
-	},
-	ICProcessDiagnoseImageBlurTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseImageBlurReport{}
-	},
-	ICProcessCorrectImageBlurTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectImageBlurReport{}
-	},
-}
-
-// UnmarshalJSON deserializes the report metadata
-func (t *MynahICProcessTaskReport) UnmarshalJSON(bytes []byte) error {
-	//check the task type
-	var objMap map[string]*json.RawMessage
-
-	if err := json.Unmarshal(bytes, &objMap); err != nil {
-		return err
-	}
-
-	_, hasTypeField := objMap["type"]
-	_, hasMetadataField := objMap["metadata"]
-
-	if hasTypeField && hasMetadataField {
-		//deserialize the task id
-		if err := json.Unmarshal(*objMap["type"], &t.Type); err != nil {
-			return fmt.Errorf("error deserializing ic process report task: %s", err)
-		}
-
-		//create the task struct
-		if taskStructFn, ok := mynahICProcessTaskReportConstructor[t.Type]; ok {
-			taskStruct := taskStructFn()
-			//unmarshal the actual task contents
-			if err := json.Unmarshal(*objMap["metadata"], taskStruct); err != nil {
-				return fmt.Errorf("error deserializing ic process task report (type: %s): %s", t.Type, err)
-			}
-
-			//set the task
-			t.Metadata = taskStruct
-			return nil
-		} else {
-			return fmt.Errorf("unknown ic process task type: %s", t.Type)
-		}
-
-	} else {
-		return errors.New("ic process task report missing 'type' or 'metadata'")
 	}
 }

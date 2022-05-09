@@ -185,76 +185,6 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 			//create a file
 			return c.WithCreateICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
-
-				errChan := make(chan error)
-				readyChan := make(chan struct{})
-
-				//listen for websocket response
-				go c.WebsocketListener(jwt, 1, readyChan, errChan, func(res []byte) error {
-					var report model.MynahICDatasetReport
-					//parse as a report
-					if err := json.Unmarshal(res, &report); err == nil {
-
-						reportFileIds := tools.NewUniqueSet()
-						reportFileIds.UuidsUnion(report.ImageIds...)
-
-						if !expectedFileIds.Equals(reportFileIds) {
-							return fmt.Errorf("unexpected fileids set: %#v vs %#v", expectedFileIds.Vals(), reportFileIds.Vals())
-						}
-
-						expectedBreakdown := make(map[string]*model.MynahICDatasetReportBucket)
-						expectedBreakdown["class1"] = &model.MynahICDatasetReportBucket{
-							Bad:        1,
-							Acceptable: 0,
-						}
-						expectedBreakdown["class2"] = &model.MynahICDatasetReportBucket{
-							Bad:        1,
-							Acceptable: 2,
-						}
-
-						//TODO compare report task list
-
-						if !reflect.DeepEqual(report.Breakdown, expectedBreakdown) {
-							return fmt.Errorf("unexpected breakdown map: %#v vs %#v", report.Breakdown, expectedBreakdown)
-						}
-
-						expectedFileData1 := &model.MynahICDatasetReportImageMetadata{
-							ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-							Class:          "class1",
-							Point: model.MynahICDatasetReportPoint{
-								X: 0,
-								Y: 0,
-							},
-							OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
-						}
-
-						if !reflect.DeepEqual(report.ImageData["fileuuid1"], expectedFileData1) {
-							return fmt.Errorf("unexpected fileid1 data: %#v vs %#v", report.ImageData["fileuuid1"], expectedFileData1)
-						}
-
-						expectedFileData3 := &model.MynahICDatasetReportImageMetadata{
-							ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-							Class:          "class2",
-							Point: model.MynahICDatasetReportPoint{
-								X: 0,
-								Y: 0,
-							},
-							OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
-						}
-
-						if !reflect.DeepEqual(report.ImageData["fileuuid3"], expectedFileData3) {
-							return fmt.Errorf("unexpected fileid3 data: %#v vs %#v", report.ImageData["fileuuid3"], expectedFileData3)
-						}
-
-						return nil
-					} else {
-						return err
-					}
-				})
-
-				//wait for the websocket server to be up
-				<-readyChan
-
 				//create the request body
 				reqBody := ICProcessJobRequest{
 					Tasks:       []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
@@ -276,6 +206,9 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				//handle user creation endpoint
 				c.Router.HandleHTTPRequest("POST", "dataset/ic/process/start",
 					icProcessJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
+				c.Router.HandleHTTPRequest("GET",
+					fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
+					icProcessReportView(c.DBProvider))
 
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
@@ -284,8 +217,81 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						return fmt.Errorf("dataset/ic/process/start returned non-200: %v want %v", code, http.StatusOK)
 					}
 
-					//wait for the websocket response
-					return <-errChan
+					//get the response
+					var res ICProcessJobResponse
+					//check the body
+					if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+						return fmt.Errorf("failed to decode response %s", err)
+					}
+
+					//wait for task completion
+					return c.AsyncTaskWaiter(user, res.TaskUuid, func() error {
+						//get the report
+						requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report?version=1", string(dataset.Uuid)))
+						req, reqErr := http.NewRequest("GET", requestPath, nil)
+						if reqErr != nil {
+							return reqErr
+						}
+
+						return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+							var res model.MynahICDatasetReport
+							if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
+								return err
+							}
+							reportFileIds := tools.NewUniqueSet()
+							reportFileIds.UuidsUnion(res.ImageIds...)
+
+							if !expectedFileIds.Equals(reportFileIds) {
+								return fmt.Errorf("unexpected fileids set: %#v vs %#v", expectedFileIds.Vals(), reportFileIds.Vals())
+							}
+
+							expectedBreakdown := make(map[string]*model.MynahICDatasetReportBucket)
+							expectedBreakdown["class1"] = &model.MynahICDatasetReportBucket{
+								Bad:        1,
+								Acceptable: 0,
+							}
+							expectedBreakdown["class2"] = &model.MynahICDatasetReportBucket{
+								Bad:        1,
+								Acceptable: 2,
+							}
+
+							//TODO compare report task list
+
+							if !reflect.DeepEqual(res.Breakdown, expectedBreakdown) {
+								return fmt.Errorf("unexpected breakdown map: %#v vs %#v", res.Breakdown, expectedBreakdown)
+							}
+
+							expectedFileData1 := &model.MynahICDatasetReportImageMetadata{
+								ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+								Class:          "class1",
+								Point: model.MynahICDatasetReportPoint{
+									X: 0,
+									Y: 0,
+								},
+								OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
+							}
+
+							if !reflect.DeepEqual(res.ImageData["fileuuid1"], expectedFileData1) {
+								return fmt.Errorf("unexpected fileid1 data: %#v vs %#v", res.ImageData["fileuuid1"], expectedFileData1)
+							}
+
+							expectedFileData3 := &model.MynahICDatasetReportImageMetadata{
+								ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+								Class:          "class2",
+								Point: model.MynahICDatasetReportPoint{
+									X: 0,
+									Y: 0,
+								},
+								OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
+							}
+
+							if !reflect.DeepEqual(res.ImageData["fileuuid3"], expectedFileData3) {
+								return fmt.Errorf("unexpected fileid3 data: %#v vs %#v", res.ImageData["fileuuid3"], expectedFileData3)
+							}
+
+							return nil
+						})
+					})
 				})
 			})
 		})
@@ -395,29 +401,7 @@ func TestAPIReportFilter(t *testing.T) {
 					return reqErr
 				}
 
-				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					var res model.MynahICDatasetReport
-					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
-						if len(res.ImageData) != 0 || len(res.ImageIds) != 0 || len(res.Breakdown) != 0 {
-							return errors.New("unexpected data in report")
-						}
-						return nil
-					} else {
-						return err
-					}
-
-				}); err != nil {
-					return err
-				}
-
-				//add class filter
-				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid))), "?class=class1")
-				req, reqErr = http.NewRequest("GET", requestPath, nil)
-				if reqErr != nil {
-					return reqErr
-				}
-
-				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
+				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					var res model.MynahICDatasetReport
 					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
 						if len(res.ImageData) != 4 || len(res.ImageIds) != 4 || len(res.Breakdown) != 1 {
@@ -427,34 +411,7 @@ func TestAPIReportFilter(t *testing.T) {
 					} else {
 						return err
 					}
-
-				}); err != nil {
-					return err
-				}
-
-				//add bad images filter
-				requestPath = fmt.Sprintf("%s%s", path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid))), "?class=class1&class=class2&bad_images=true")
-				req, reqErr = http.NewRequest("GET", requestPath, nil)
-				if reqErr != nil {
-					return reqErr
-				}
-
-				if err := c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-					var res model.MynahICDatasetReport
-					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
-						if len(res.ImageData) != 4 || len(res.ImageIds) != 4 || len(res.Breakdown) != 1 {
-							return errors.New("unexpected data in report")
-						}
-						return nil
-					} else {
-						return err
-					}
-
-				}); err != nil {
-					return err
-				}
-
-				return nil
+				})
 			})
 		})
 	})

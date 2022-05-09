@@ -6,18 +6,12 @@ import (
 	"reiform.com/mynah/model"
 )
 
-// ICDatasetTransformer modifies a dataset based on some ic process result
-type ICDatasetTransformer interface {
-	// Apply makes changes to the dataset
-	apply(*model.MynahICDatasetVersion, model.MynahICProcessTaskType) error
-}
-
 // PyImplProvider provider interface
 type PyImplProvider interface {
 	// GetMynahImplVersion get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
 	// ICProcessJob start ic diagnosis on some dataset
-	ICProcessJob(*model.MynahUser, model.MynahUuid, *model.MynahICDatasetVersion, []model.MynahICProcessTaskType) error
+	ICProcessJob(*model.MynahUser, *model.MynahICDataset, []model.MynahICProcessTaskType) error
 	// ImageMetadata get image metadata
 	ImageMetadata(*model.MynahUser, string, *model.MynahFile, *model.MynahFileVersion) error
 }
@@ -70,6 +64,8 @@ type ICProcessJobRequest struct {
 	} `json:"dataset"`
 	//tasks to perform
 	Tasks []ICProcessJobRequestTask `json:"tasks"`
+	//tasks performed previously
+	PreviousResults []*model.MynahICProcessTaskData `json:"previous_results"`
 }
 
 // ICProcessJobResponseFile file data returned in response
@@ -88,60 +84,6 @@ type ICProcessJobResponseFile struct {
 	StdDev []float64 `json:"std_dev"`
 }
 
-// ICProcessJobResponseTaskDiagnoseMislabeledImagesMetadata is metadata for
-//diagnosing mislabeled images task response
-type ICProcessJobResponseTaskDiagnoseMislabeledImagesMetadata struct {
-	//ids of outlier images
-	Outliers []model.MynahUuid `json:"outliers"`
-}
-
-// ICProcessJobResponseTaskCorrectMislabeledImagesMetadata is metadata for
-//correcting mislabeled images task response
-type ICProcessJobResponseTaskCorrectMislabeledImagesMetadata struct {
-}
-
-// ICProcessJobResponseTaskDiagnoseClassSplittingMetadata is metadata for
-//diagnosing class splitting task response
-type ICProcessJobResponseTaskDiagnoseClassSplittingMetadata struct {
-}
-
-// ICProcessJobResponseTaskCorrectClassSplittingMetadata is metadata for
-//correcting class splitting task response
-type ICProcessJobResponseTaskCorrectClassSplittingMetadata struct {
-}
-
-// ICProcessJobResponseTaskDiagnoseLightingConditionsMetadata is metadata for
-//diagnosing lighting conditions task response
-type ICProcessJobResponseTaskDiagnoseLightingConditionsMetadata struct {
-}
-
-// ICProcessJobResponseTaskCorrectLightingConditionsMetadata is metadata for
-//correcting lighting conditions task response
-type ICProcessJobResponseTaskCorrectLightingConditionsMetadata struct {
-	//the uuids of removed images
-	Removed []model.MynahUuid `json:"removed"`
-	//the uuids of corrected images
-	Corrected []model.MynahUuid `json:"corrected"`
-}
-
-// ICProcessJobResponseTaskDiagnoseImageBlurMetadata is metadata for
-//diagnosing image blur task response
-type ICProcessJobResponseTaskDiagnoseImageBlurMetadata struct {
-}
-
-// ICProcessJobResponseTaskCorrectImageBlurMetadata is metadata for
-//correcting image blur task response
-type ICProcessJobResponseTaskCorrectImageBlurMetadata struct {
-}
-
-// ICProcessJobResponseTask defines the result of running a task on an ic dataset
-type ICProcessJobResponseTask struct {
-	//the type of the task
-	Type model.MynahICProcessTaskType `json:"type"`
-	//the metadata associated with the task
-	Metadata ICDatasetTransformer `json:"metadata"`
-}
-
 // ICProcessJobResponse response format for a diagnosis job
 type ICProcessJobResponse struct {
 	//the dataset response
@@ -158,7 +100,7 @@ type ICProcessJobResponse struct {
 		ClassFiles map[string]map[string]ICProcessJobResponseFile `json:"class_files"`
 	} `json:"dataset"`
 	//the tasks in the dataset
-	Tasks []ICProcessJobResponseTask `json:"tasks"`
+	Tasks []model.MynahICProcessTaskData `json:"tasks"`
 }
 
 // ImageMetadataRequest request type for image metadata

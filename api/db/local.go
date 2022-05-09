@@ -90,7 +90,8 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
-			&model.MynahICDatasetReport{})
+			&model.MynahICDatasetReport{},
+			&model.MynahBinObject{})
 
 		if tableErr != nil {
 			return nil, tableErr
@@ -100,7 +101,8 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
-			&model.MynahICDatasetReport{})
+			&model.MynahICDatasetReport{},
+			&model.MynahBinObject{})
 
 		if syncErr != nil {
 			return nil, syncErr
@@ -195,14 +197,14 @@ func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) 
 }
 
 // GetICDataset get a dataset from the database
-func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahICDataset, error) {
+func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser, omitCols ...string) (*model.MynahICDataset, error) {
 	dataset := model.MynahICDataset{
 		MynahDataset: model.MynahDataset{
 			Uuid: uuid,
 		},
 	}
 
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
+	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Omit(omitCols...).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +242,23 @@ func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser)
 	}
 
 	return &dataset, nil
+}
+
+// GetBinObject gets a cached object by uuid
+func (d *localDB) GetBinObject(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahBinObject, error) {
+	obj := model.MynahBinObject{
+		Uuid: uuid,
+	}
+
+	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&obj)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, fmt.Errorf("bin object %s not found", uuid)
+	}
+
+	return &obj, nil
 }
 
 // GetICDatasets get multiple ic datasets from the database
@@ -403,6 +422,24 @@ func (d *localDB) CreateODDataset(creator *model.MynahUser, precommit func(*mode
 	return dataset, nil
 }
 
+// CreateBinObject stores some binary data in the database
+func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*model.MynahBinObject) error) (*model.MynahBinObject, error) {
+	obj := model.NewBinObject(creator)
+
+	if err := precommit(obj); err != nil {
+		return nil, err
+	}
+
+	affected, err := d.engine.Insert(obj)
+	if err != nil {
+		return nil, err
+	}
+	if affected == 0 {
+		return nil, fmt.Errorf("bin data %s not created (no records affected)", obj.Uuid)
+	}
+	return obj, nil
+}
+
 // UpdateUser update a user in the database
 func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys ...string) error {
 	if commonErr := commonUpdateUser(user, requestor, &keys); commonErr != nil {
@@ -508,6 +545,19 @@ func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUs
 	//get the dataset to check permissions
 	if commonErr := commonDeleteDataset(dataset, requestor); commonErr != nil {
 		return commonErr
+	}
+
+	//delete referenced reports
+	for _, reportId := range dataset.Reports {
+		affected, err := d.engine.Delete(&model.MynahBinObject{
+			Uuid: reportId,
+		})
+		if err != nil {
+			log.Warnf("when deleting ic dataset %s, report %s was not deleted: %s", uuid, reportId, err)
+		}
+		if affected == 0 {
+			log.Warnf("when deleting ic dataset %s, report %s was not deleted, no records affected", uuid, reportId)
+		}
 	}
 
 	affected, err := d.engine.Delete(dataset)

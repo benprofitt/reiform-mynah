@@ -3,11 +3,15 @@
 package pyimpl
 
 import (
+	"encoding/json"
+	"fmt"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
+	"reiform.com/mynah/tools"
 )
 
 //local python impl provider
@@ -45,17 +49,31 @@ func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 }
 
 // ICProcessJob start a ic process job
-func (p *localImplProvider) ICProcessJob(user *model.MynahUser, datasetId model.MynahUuid, dataset *model.MynahICDatasetVersion, tasks []model.MynahICProcessTaskType) error {
+func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
+	dataset *model.MynahICDataset,
+	tasks []model.MynahICProcessTaskType) error {
 	//initialize the function
 	fn, err := p.pythonProvider.InitFunction(p.mynahSettings.PythonSettings.ModuleName, "start_ic_processing_job")
 	if err != nil {
 		return err
 	}
 
-	//create the request
-	req, err := p.NewICProcessJobRequest(user, datasetId, dataset, tasks)
+	//create a new version of the dataset to operate on
+	newVersion, err := tools.MakeICDatasetVersion(dataset)
 	if err != nil {
-		return err
+		return fmt.Errorf("ic process task for dataset %s failed when creating new version: %s", dataset.Uuid, err)
+	}
+
+	//get the previous version of the dataset (if applicable) to send task metadata
+	prevVersion, err := tools.GetICDatasetPrevious(dataset)
+	if err != nil {
+		log.Warnf("dataset %s does not have previous version to send to ic process", dataset.Uuid)
+	}
+
+	//create the request
+	req, err := p.NewICProcessJobRequest(user, dataset.Uuid, newVersion, prevVersion, tasks)
+	if err != nil {
+		return fmt.Errorf("ic process job failed when creating request: %s", err)
 	}
 
 	//call the function
@@ -64,13 +82,32 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser, datasetId model.
 	var jobResponse ICProcessJobResponse
 
 	//parse the response
-	resErr := res.GetResponse(&jobResponse)
-	if resErr != nil {
-		return resErr
+	if err = res.GetResponse(&jobResponse); err != nil {
+		return fmt.Errorf("ic process job failed: %s", err)
 	}
 
-	//apply the changes
-	return jobResponse.apply(dataset)
+	//create a new report based on this run
+	binObj, err := p.dbProvider.CreateBinObject(user, func(binObj *model.MynahBinObject) error {
+		report := model.NewICDatasetReport()
+
+		//apply changes to dataset and report
+		if err = jobResponse.applyChanges(newVersion, report, user, p.storageProvider, p.dbProvider); err != nil {
+			return fmt.Errorf("ic process job failed when applying process changes to dataset and report: %s", err)
+		}
+
+		//store the report
+		data, err := json.Marshal(report)
+		if err != nil {
+			return fmt.Errorf("ic process job failed when serializing report: %s", err)
+		}
+		//set the binary data to store
+		binObj.Data = data
+		return nil
+	})
+
+	//record the report by id
+	dataset.Reports[dataset.LatestVersion] = binObj.Uuid
+	return err
 }
 
 // ImageMetadata get image metadata

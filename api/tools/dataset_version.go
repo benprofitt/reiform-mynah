@@ -5,7 +5,6 @@ package tools
 import (
 	"fmt"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/storage"
 	"strconv"
@@ -13,14 +12,14 @@ import (
 
 // GetICDatasetLatest returns the latest version of a dataset
 func GetICDatasetLatest(dataset *model.MynahICDataset) (*model.MynahICDatasetVersion, error) {
-	latestVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(dataset.Versions) - 1))
-	if version, ok := dataset.Versions[latestVersionId]; ok {
+	if version, ok := dataset.Versions[dataset.LatestVersion]; ok {
 		return version, nil
 	}
 	return nil, fmt.Errorf("dataset %s does not have a latest version", dataset.Uuid)
 }
 
 // GetICDatasetPrevious returns the previous version of a dataset
+// NOTE: versions must be present (not omitted)
 func GetICDatasetPrevious(dataset *model.MynahICDataset) (*model.MynahICDatasetVersion, error) {
 	previousVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(dataset.Versions) - 2))
 	if version, ok := dataset.Versions[previousVersionId]; ok {
@@ -79,29 +78,11 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 		}
 	}
 
-	//update the report image tags to be SHA1 tags, not "latest"
-	if version.Report != nil {
-		for imageId, imageMetadata := range version.Report.ImageData {
-			//set the specific image version
-			if imageVersion, ok := newImageSHAVersions[imageId]; ok {
-				imageMetadata.ImageVersionId = imageVersion
-			} else {
-				log.Errorf("(likely bug) dataset has image %s in report but not in dataset files, skipping version tag update", imageId)
-			}
-		}
-	}
-
 	return nil
 }
 
 // MakeICDatasetVersion creates a new ic dataset version.
-// If a latest version exists, the files it references are versioned so that they won't be modified.
-// Note: updates files in db, but does not update dataset
-func MakeICDatasetVersion(dataset *model.MynahICDataset,
-	user *model.MynahUser,
-	storageProvider storage.StorageProvider,
-	dbProvider db.DBProvider) (newVersion *model.MynahICDatasetVersion, err error) {
-
+func MakeICDatasetVersion(dataset *model.MynahICDataset) (newVersion *model.MynahICDatasetVersion, err error) {
 	newVersionId := model.MynahDatasetVersionId(strconv.Itoa(len(dataset.Versions)))
 
 	//verify that the version id doesn't already exist
@@ -110,12 +91,7 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 	}
 
 	//create a new version
-	newVersion = &model.MynahICDatasetVersion{
-		Files:  make(map[model.MynahUuid]*model.MynahICDatasetFile),
-		Mean:   make([]float64, 0),
-		StdDev: make([]float64, 0),
-		//report is nil for new versions
-	}
+	newVersion = model.NewICDatasetVersion()
 
 	//add the new version to the mapping as well
 	dataset.Versions[newVersionId] = newVersion
@@ -127,16 +103,11 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset,
 		copy(newVersion.StdDev, latestVersion.StdDev)
 
 		for fileId, fileData := range latestVersion.Files {
-			//copy file data to the new version
+			//copy file data to the new version (applies 'latest' tag)
 			newVersion.Files[fileId] = model.CopyICDatasetFile(fileData)
 		}
-
-		//freeze the existing fileids (if not frozen already -- this is idempotent)
-		if err = FreezeICDatasetFileVersions(latestVersion, user, storageProvider, dbProvider); err != nil {
-			return nil, fmt.Errorf("failed to freeze file versions for dataset %s: %s", dataset.Uuid, err)
-		}
 	}
-
+	dataset.LatestVersion = newVersionId
 	//return ptr to new version
 	return dataset.Versions[newVersionId], nil
 }
@@ -166,11 +137,7 @@ func MakeODDatasetVersion(dataset *model.MynahODDataset,
 	//}
 
 	//create a new version
-	dataset.Versions[newVersionId] = &model.MynahODDatasetVersion{
-		Entities:     make(map[model.MynahUuid]*model.MynahODDatasetEntity),
-		Files:        make(map[model.MynahUuid]*model.MynahODDatasetFile),
-		FileEntities: make(map[string][]model.MynahUuid),
-	}
+	dataset.Versions[newVersionId] = model.NewODDatasetVersion()
 
 	//return ptr to new version
 	return dataset.Versions[newVersionId], previousVersion, nil

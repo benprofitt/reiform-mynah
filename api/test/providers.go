@@ -3,6 +3,7 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/posener/wstest"
@@ -279,8 +280,9 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 
 		//create a dataset
 		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
-			if initialVersion, err := tools.MakeICDatasetVersion(d, owner, t.StorageProvider, t.DBProvider); err == nil {
-				initialVersion.Report = model.NewMynahICDatasetReport()
+			if initialVersion, err := tools.MakeICDatasetVersion(d); err == nil {
+
+				report := model.NewICDatasetReport()
 
 				for _, f := range files {
 					initialVersion.Files[f.Uuid] = &model.MynahICDatasetFile{
@@ -290,7 +292,8 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						ConfidenceVectors: make(model.ConfidenceVectors, 0),
 						Projections:       make(map[string][]int),
 					}
-					initialVersion.Report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{
+					report.ImageIds = append(report.ImageIds, f.Uuid)
+					report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{
 						Class: "class1",
 						Point: model.MynahICDatasetReportPoint{
 							X: 0,
@@ -299,7 +302,23 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessCorrectLightingConditionsTask},
 					}
 				}
-				initialVersion.Report.Breakdown["class1"] = &model.MynahICDatasetReportBucket{}
+				report.Breakdown["class1"] = &model.MynahICDatasetReportBucket{}
+
+				//save the report
+				binObj, err := t.DBProvider.CreateBinObject(owner, func(binObj *model.MynahBinObject) error {
+					//store the report
+					data, err := json.Marshal(report)
+					if err != nil {
+						return fmt.Errorf("failed to serialize report: %s", err)
+					}
+					binObj.Data = data
+					return nil
+				})
+
+				if err != nil {
+					return err
+				}
+				d.Reports["0"] = binObj.Uuid
 
 			} else {
 				return err
@@ -374,6 +393,22 @@ func (t *TestContext) WebsocketListener(jwt string, expect int, readyChan chan s
 	}
 
 	close(errChan)
+}
+
+// AsyncTaskWaiter waits for an async task to complete
+func (t *TestContext) AsyncTaskWaiter(user *model.MynahUser, taskId model.MynahUuid, handler func() error) error {
+	for {
+		stat, err := t.AsyncProvider.GetAsyncTaskStatus(user, taskId)
+		if err != nil {
+			return err
+		}
+
+		if stat == async.StatusCompleted {
+			return handler()
+		} else if stat == async.StatusFailed {
+			return fmt.Errorf("async task %s failed", taskId)
+		}
+	}
 }
 
 // WithCreateFileFromPath loads a file from a path

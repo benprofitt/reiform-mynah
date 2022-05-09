@@ -38,7 +38,6 @@
         },
         "mean": [0,0,0],
         "std_dev": [0,0,0],
-        "report": type MynahICDatasetReport
       },
       ...
     }
@@ -463,16 +462,15 @@
     - `task_uuid`: Identifier for the async task started (used to query task status, see "Async task endpoints")
 
 ### Getting an image classification diagnosis report
-- `GET /api/v1/dataset/ic/report/{reportid}`
+- `GET /api/v1/dataset/ic/report`
 - Params
-  - `bad_images=true`
-  - `class=class1&class=class2 ...`
-  - Example: `GET /api/v1/icdataset/report/1?bad_images=true&class=class1&class=class2`
+  - `version` - The dataset version
+  - Example: `GET /api/v1/ic/{datasetid}/report?version=0`
 - Response:
   ```json
   type: MynahICDatasetReport
   ```
-  - Note: when requesting images, use the tag: `report["image_data"]["image_id"]["image_version_id"]`
+  - Note: when requesting images, use the tag: `report["image_data"]["{image_id}"]["image_version_id"]`
 
 ## Async task endpoints
 

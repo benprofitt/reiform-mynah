@@ -19,6 +19,16 @@ const datasetIdKey = "datasetid"
 const datasetVersionStartKey = "from_version"
 const datasetVersionEndKey = "to_version"
 
+// sanitizeICDataset removes fields that are not consumed by the api
+func sanitizeICDataset(dataset *model.MynahICDataset) {
+	for _, versionData := range dataset.Versions {
+		//task data isn't sensitive but the data is contained by the report
+		//Note: we CANNOT omit this from json altogether since XORM uses the
+		//default json serialization as well for DB storage
+		versionData.TaskData = nil
+	}
+}
+
 // icDatasetCreate creates a new dataset in the database
 func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -52,8 +62,7 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
 			//create an initial version of the dataset
-			if initialVersion, err := tools.MakeICDatasetVersion(dataset, user, storageProvider, dbProvider); err == nil {
-
+			if initialVersion, err := tools.MakeICDatasetVersion(dataset); err == nil {
 				//add the file id -> class name mappings, use the latest version of the file
 				for fileId, className := range req.Files {
 					initialVersion.Files[fileId] = model.NewICDatasetFile()
@@ -79,6 +88,8 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		sanitizeICDataset(dataset)
 
 		//write the response
 		if err := responseWriteJson(writer, dataset); err != nil {
@@ -226,6 +237,8 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
+		sanitizeICDataset(dataset)
+
 		//write the response
 		if err := responseWriteJson(writer, dataset); err != nil {
 			log.Errorf("failed to write response as json: %s", err)
@@ -297,6 +310,8 @@ func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 				writer.WriteHeader(http.StatusBadRequest)
 				return
 			}
+
+			sanitizeICDataset(dataset)
 		}
 
 		//write the response
@@ -371,6 +386,9 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 				writer.WriteHeader(http.StatusBadRequest)
 				return
 			}
+
+			sanitizeICDataset(dataset)
+
 			//add to the full collection
 			allDatasets = append(allDatasets, dataset)
 		}

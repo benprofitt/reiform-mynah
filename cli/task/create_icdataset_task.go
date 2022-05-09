@@ -13,9 +13,6 @@ import (
 	"reiform.com/mynah/model"
 )
 
-// CreatedICDatasetKey is the key for the create dataset result context
-const CreatedICDatasetKey contextKey = "CreatedICDataset"
-
 // MynahCreateICDatasetTask defines the task of creating an image classification dataset
 type MynahCreateICDatasetTask struct {
 	//reference files by id already in mynah (map fileid to class name)
@@ -95,5 +92,5 @@ func (t MynahCreateICDatasetTask) ExecuteTask(mynahServer *server.MynahClient,
 	}
 
 	//add the id to the context
-	return context.WithValue(context.Background(), CreatedICDatasetKey, icDatasetResponse.Uuid), nil
+	return context.WithValue(context.Background(), ICDatasetKey, icDatasetResponse.Uuid), nil
 }

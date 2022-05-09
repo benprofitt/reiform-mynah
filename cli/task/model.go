@@ -10,13 +10,11 @@ import (
 // MynahTaskType defines the type of a given task
 type MynahTaskType string
 
-//defines a key in context
-type contextKey string
-
 const (
 	UploadTask          MynahTaskType = "mynah::upload"
 	CreateICDatasetTask MynahTaskType = "mynah::ic::dataset::create"
 	ICProcessTask       MynahTaskType = "mynah::ic::process"
+	ICReportTask        MynahTaskType = "mynah::ic::report"
 )
 
 // create new task data structs by type identifier
@@ -24,13 +22,26 @@ var taskConstructor = map[MynahTaskType]func() MynahTaskData{
 	UploadTask:          func() MynahTaskData { return &MynahUploadTask{} },
 	CreateICDatasetTask: func() MynahTaskData { return &MynahCreateICDatasetTask{} },
 	ICProcessTask:       func() MynahTaskData { return &MynahICProcessTask{} },
+	ICReportTask:        func() MynahTaskData { return MynahICReportTask{} },
 }
 
 // MynahTaskId is the unique id for a task
 type MynahTaskId string
 
+type MynahTaskContextData struct {
+	//the task type
+	TaskType MynahTaskType
+	//context storage
+	TaskCtx context.Context
+}
+
+// Value gets the context value for a key
+func (d MynahTaskContextData) Value(key contextKey) interface{} {
+	return d.TaskCtx.Value(key)
+}
+
 // MynahTaskContext defines context added by each task
-type MynahTaskContext map[MynahTaskId]context.Context
+type MynahTaskContext map[MynahTaskId]*MynahTaskContextData
 
 // MynahTaskData executes a task
 type MynahTaskData interface {

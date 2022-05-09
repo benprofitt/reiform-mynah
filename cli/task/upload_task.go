@@ -14,11 +14,8 @@ import (
 	"reiform.com/mynah/model"
 )
 
-// UploadedFilesSet maps from fileid to the original
+// UploadedFilesSet maps from fileid to the local file path
 type UploadedFilesSet map[model.MynahUuid]string
-
-// UploadedFilesSetKey is the key for the upload result context
-const UploadedFilesSetKey contextKey = "UploadedFilesSet"
 
 // MynahUploadTask defines the task of uploading files to the server from some source
 type MynahUploadTask struct {

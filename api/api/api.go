@@ -32,29 +32,22 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey), handleViewFile(dbProvider, storageProvider))
 	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider, pyImplProvider))
 
-	router.HandleHTTPRequest("GET",
-		fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
-		icProcessReportView(dbProvider))
-
 	//register the ic process job endpoint
-	router.HandleHTTPRequest("POST", "dataset/ic/process/start",
-		icProcessJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/process/start", icProcessJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
 
 	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 
 	router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(dbProvider, storageProvider))
 	router.HandleHTTPRequest("GET", "dataset/ic/list", icDatasetList(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", datasetIdKey), icDatasetGet(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey), icProcessReportView(dbProvider))
 
 	//router.HandleHTTPRequest("POST", "dataset/od/create", ocDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("GET", "dataset/od/list", odDatasetList(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/od/{%s}", datasetIdKey), odDatasetGet(dbProvider))
 
-	//register admin endpoints
 	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
 
-	router.HandleHTTPRequest("GET",
-		fmt.Sprintf("task/status/{%s}", taskIdKey),
-		getAsyncTaskStatus(asyncProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("task/status/{%s}", taskIdKey), getAsyncTaskStatus(asyncProvider))
 	return nil
 }

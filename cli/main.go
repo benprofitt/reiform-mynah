@@ -10,7 +10,6 @@ import (
 	"reiform.com/mynah-cli/server"
 	"reiform.com/mynah-cli/task"
 	"reiform.com/mynah/log"
-	//"reiform.com/mynah/model"
 )
 
 func main() {
@@ -49,7 +48,10 @@ func main() {
 		//execute the task which updates the context
 		if ctx, err := mynahTask.TaskData.ExecuteTask(serverClient, tctx); err == nil {
 			//set the updated context
-			tctx[mynahTask.TaskId] = ctx
+			tctx[mynahTask.TaskId] = &task.MynahTaskContextData{
+				TaskType: mynahTask.TaskType,
+				TaskCtx:  ctx,
+			}
 
 			log.Infof("completed task (%d/%d)", i+1, len(taskSet.Tasks))
 		} else {

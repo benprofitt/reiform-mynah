@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reiform.com/mynah-cli/server"
+	"reiform.com/mynah-cli/utils"
 	"reiform.com/mynah/api"
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/log"
@@ -70,33 +71,33 @@ func icProcess(mynahServer *server.MynahClient, datasetId model.MynahUuid, tasks
 func (t MynahICProcessTask) ExecuteTask(mynahServer *server.MynahClient,
 	tctx MynahTaskContext) (context.Context, error) {
 
-	if (len(t.FromExisting) > 0) && (len(t.FromTask) > 0) {
-		return nil, errors.New("failed to start ic process job, 'from_existing' and 'from_task' both set")
+	if err := utils.OneOf(string(t.FromExisting), string(t.FromTask)); err != nil {
+		return nil, fmt.Errorf("failed to start image classification process job, 'from_existing' and 'from_task' both: %s", err)
 	}
 
 	if len(t.FromExisting) > 0 {
 		if err := icProcess(mynahServer, t.FromExisting, t.Tasks, t.PollFrequency); err != nil {
 			return nil, err
 		}
-
-	} else if len(t.FromTask) > 0 {
+		//write the dataset id as output
+		return context.WithValue(context.Background(), ICDatasetKey, t.FromExisting), nil
+	} else {
 		if datasetTaskData, ok := tctx[t.FromTask]; ok {
-			if datasetId, ok := datasetTaskData.Value(CreatedICDatasetKey).(model.MynahUuid); ok {
+			if err := utils.IsAllowedTaskType(datasetTaskData.TaskType, CreateICDatasetTask); err != nil {
+				return nil, fmt.Errorf("image classification process references incompatible previous task: %s", err)
+			}
+
+			if datasetId, ok := datasetTaskData.Value(ICDatasetKey).(model.MynahUuid); ok {
 				if err := icProcess(mynahServer, datasetId, t.Tasks, t.PollFrequency); err != nil {
 					return nil, err
 				}
+				//write the dataset id as output
+				return context.WithValue(context.Background(), ICDatasetKey, datasetId), nil
 			} else {
 				return nil, fmt.Errorf("task %s does not have a dataset result", t.FromTask)
 			}
 		} else {
 			return nil, fmt.Errorf("no such task: %s", t.FromTask)
 		}
-
-	} else {
-		return nil, errors.New("failed to start ic process job, at least one of 'from_existing' or 'from_task' must be set")
 	}
-
-	//TODO report as output?
-
-	return context.Background(), nil
 }

@@ -23,6 +23,8 @@
             "width": 32,
             "height": 32,
             "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
@@ -31,6 +33,8 @@
             "width": 32,
             "height": 32,
             "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           }
@@ -41,6 +45,8 @@
             "width": 32,
             "height": 32,
             "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           },
@@ -49,6 +55,8 @@
             "width": 32,
             "height": 32,
             "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
             "mean": [0.3, 0.4, 0.1],
             "std_dev": [0.1, 0.12, 0.03]
           }
@@ -57,6 +65,11 @@
     },
     "tasks": [ 
       {"type" : MynahICProcessTaskType}
+    ],
+    "previous_results" : [ {
+        "type" : MynahICProcessTaskType,
+        "metadata" : Metadata
+      }
     ]
   }
   ```
@@ -143,25 +156,33 @@
 - `"ic::correct::mislabeled_images"`
   ```json
   {
-  
+    "removed": ["fileid", ...],
+    "corrected": ["fileid", ...]
   }
   ```  
 - `"ic::diagnose::class_splitting"`
   ```json
   {
-  
+    "predicted_class_splits" : {
+      "class1" : [["fileid1", ...], ["fileid4", ...], ["fileid420", ...], ...],
+      "class2" : [["fileid42", ...], ["fileid421", ...], ...]
+    }
   }
   ```  
 - `"ic::correct::class_splitting"`
   ```json
   {
-  
+    "actual_class_splits" : {
+      "class1" : {"class1" : ["fileid1", ...], "class1_split_1" : ["fileid4", ...], "class1_split_2" : ["fileid420", ...], ...},
+      "class2" : {"class2" : ["fileid42", ...], "class2_split_1" : ["fileid421", ...], ...}
+    }
   }
-  ```  
+  ```
 - `"ic::diagnose::lighting_conditions"`
   ```json
   {
-  
+    "bright" : ["fileid1", ...],
+    "dark" : ["fileid420", ...]
   }
   ```  
 - `"ic::correct::lighting_conditions"`
@@ -174,11 +195,15 @@
 - `"ic::diagnose::image_blur"`
   ```json
   {
-  
+    "TODO" : "TODO"
   }
   ```  
 - `"ic::correct::image_blur"`
-  
+  ```json
+  {
+    "TODO" : "TODO"
+  }
+  ```  
 
 ### Get Image Metadata
 - Name: `get_image_metadata(uuid: str, request: str, sock_addr: str)`

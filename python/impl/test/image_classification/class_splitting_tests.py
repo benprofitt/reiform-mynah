@@ -65,9 +65,7 @@ def test_splitting_correction(dataset : ReiformICDataSet,
 
     # Run splitting prediction
     main_classes = [g[0] for g in groups_to_combine]
-    fixed_dataset, split_count, split_predictions = split_dataset(dataset, main_classes)
-
-    check_split_counts(dataset, groups_to_combine, split_count, split_predictions)
+    fixed_dataset, split_predictions = split_dataset(dataset, main_classes)
     
     train_ds, test_ds = fixed_dataset.split(0.9)
     split_scores = dataset_evaluation(train_ds, test_ds)

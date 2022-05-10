@@ -2,8 +2,8 @@ from impl.services.modules.lighting_correction.lighting_datasets import *
 from impl.services.modules.lighting_correction.lighting_models import *
 from impl.services.modules.lighting_correction.lighting_utils import *
 from impl.services.modules.lighting_correction.correction_models import *
-from impl.services.modules.lighting_correction.correction import run_correction_model
-from impl.services.modules.lighting_correction.detection import run_detection_models
+from impl.services.modules.lighting_correction.correction import run_lighting_correction_model
+from impl.services.modules.lighting_correction.detection import run_lighting_detection_models
 from impl.services.modules.lighting_correction.pretraining import get_pretrained_path_lighting
 from impl.services.modules.utils.data_formatting import load_dataset
 from .test_utils import dataset_evaluation, train_model_for_eval
@@ -41,7 +41,7 @@ def test_correction_model(detection_models_path, corr_models_path, dataset : Rei
     train_ds, test_ds = dataset.split(0.9)
 
     train_ds_to_correct = train_ds.copy()
-    _, affected = run_detection_models(train_ds_to_correct, detection_models_path)
+    _, affected = run_lighting_detection_models(train_ds_to_correct, detection_models_path)
 
     sizes = dataset.find_max_image_dims()
     edge_size = max(64, min(1024, closest_power_of_2(max(sizes[:2]))*2))
@@ -52,7 +52,7 @@ def test_correction_model(detection_models_path, corr_models_path, dataset : Rei
             file = train_ds_to_correct.get_file_by_uuid(filename)
             file.move_image(correction_save_path)
     
-    run_correction_model(corr_models_path, train_ds_to_correct)
+    run_lighting_correction_model(corr_models_path, train_ds_to_correct, [f.name for f in train_ds_to_correct.all_files()])
 
     corrected_train_ds = train_ds_to_correct
 

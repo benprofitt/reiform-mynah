@@ -4,8 +4,7 @@ import sys
 from typing import *
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 import impl.services.modules.utils.image_utils as image_utils # type: ignore
-import impl.services.image_classification.diagnosis_job as diagnosis # type: ignore
-import impl.services.image_classification.cleaning_job as cleaning # type: ignore
+import impl.services.image_classification.job_processing as processing # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -25,15 +24,15 @@ def get_impl_version(uuid: str, request_str: str, sock_addr: str) -> str:
 
 
 def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
-    '''Start a diagnosis job. See docs/python_api.md'''
+    '''Start a processing job. See docs/python_api.md'''
     request = json.loads(request_str)
     with ProgressLogger(uuid, sock_addr) as plogger:
-        logging.info("INFO  called start_diagnosis_job()")
+        logging.info("INFO  called start_processing_job()")
         # call impl
-        diagnosis_job : diagnosis.Diagnosis_Job = diagnosis.Diagnosis_Job(request)
+        processing_job : processing.Processing_Job = processing.Processing_Job(request)
 
         # Pass in logger to relay progress
-        task_results : List[Dict[str, Any]] = diagnosis_job.run_diagnosis(plogger)
+        task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
 
     # response
     return json.dumps({

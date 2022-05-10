@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+from impl.services.modules.utils.image_utils import get_image_metadata
 from .resources import *
 
 class Projections():
@@ -110,6 +112,11 @@ class ReiformImageFile():
 
     def clear_projections(self) -> None:
         self.projections = Projections()
+
+    def recalc_mean_and_stddev(self) -> None:
+        d = get_image_metadata(self.name, len(self.mean) == 3)
+        self.mean = d["mean"]
+        self.std_dev = d["std_dev"]
 
     def save_image(self, image : Image.Image) -> None:
         ReiformWarning("Overwriting file at {}".format(self.name))

@@ -12,8 +12,8 @@ class AdjustedLighting(nn.Module):
         return original - delta
 
 
-def run_correction_model(local_model_path : str, dataset : ReiformICDataSet):
-    model, dataloader = load_correction_model(local_model_path, dataset)
+def run_lighting_correction_model(local_model_path : str, dataset : ReiformICDataSet, file_uuids_to_correct : List[str]):
+    model, dataloader = load_correction_model(local_model_path, dataset, file_uuids_to_correct)
 
     model.to(device)
     model.eval()
@@ -48,7 +48,7 @@ def run_correction_model(local_model_path : str, dataset : ReiformICDataSet):
             file.save_image(transforms.ToPILImage()(adjusted_image))
 
 
-def load_correction_model(local_model_path : str, dataset : ReiformICDataSet):
+def load_correction_model(local_model_path : str, dataset : ReiformICDataSet, file_uuids_to_correct : List[str]):
 
     sizes = dataset.find_max_image_dims()
     edge_size = max(64, min(1024, closest_power_of_2(max(sizes[:2]))*2))
@@ -60,6 +60,8 @@ def load_correction_model(local_model_path : str, dataset : ReiformICDataSet):
     model_file = glob(path_to_models + '/**/*.pt', recursive=True)[0]
     json_file = glob(path_to_models + '/**/*.json', recursive=True)[0]
 
+    dataset_to_correct = dataset.dataset_from_uuids(file_uuids_to_correct)
+
     with open(json_file, "r") as fh:
         json_body = json.load(fh)
         model = load_pretrained_model(model_file, json_body, LightingCorrectionNet)
@@ -69,6 +71,6 @@ def load_correction_model(local_model_path : str, dataset : ReiformICDataSet):
             transforms.ToTensor()
         ])
 
-        dataloader = dataset.get_dataloader_with_names(transformation)
+        dataloader = dataset_to_correct.get_dataloader_with_names(transformation)
 
         return model, dataloader

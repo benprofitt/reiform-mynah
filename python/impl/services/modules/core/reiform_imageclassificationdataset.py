@@ -12,8 +12,6 @@ class ReiformICFile(ReiformImageFile):
 
         self.confidence_vectors : List[NDArray] = []
 
-        self.was_outlier : bool = False
-
     def from_json(self, body: Dict[str, Any]):
         for attrib in ["uuid", "width", "height", "channels", "current_class", "original_class", "mean", "std_dev"]:
             if attrib in body:
@@ -36,11 +34,15 @@ class ReiformICFile(ReiformImageFile):
 
         return results
 
-    def set_was_outlier(self, value : bool = True):
-        self.was_outlier = value
+    def serialize(self) -> Dict[str, Any]:
+        results = self.to_json()
 
-    def get_was_outlier(self, value: bool):
-        return self.was_outlier
+        del results["original_class"]
+        del results["width"]
+        del results["height"]
+        del results["channels"]
+
+        return results
 
     def set_class(self, label : str) -> None:
         self.current_class = label
@@ -344,11 +346,27 @@ class ReiformICDataSet(ReiformImageDataset):
             if k != "files":
                 results[k] = val
 
+        self._serialize_files(attr_dict, results)
+        
+        return results
+
+    def _serialize_files(self, attr_dict, results):
         for c in self.class_list:
             results["files"][c] = {}
             for name, file in attr_dict["files"][c].items():
                 results["files"][c][name] = file.to_json()
+
+    def serialize(self) -> Dict[str, Any]:
         
+        attr_dict : Dict[str, Any] = self.__dict__
+        results : Dict[str, Any] = {}
+
+        for k, val in attr_dict.items():
+            if k not in ["files", "max_width", "max_height", "max_channels"]:
+                results[k] = val
+            
+        self._serialize_files(attr_dict, results)
+
         return results
 
     def copy(self):
@@ -363,7 +381,6 @@ class ReiformICDataSet(ReiformImageDataset):
     def combine_projections(self, label : str, labels : List[str]):
         for file in self.all_files():
             file.combine_projections(label, labels)
-
 
     def _files_and_labels(self) -> List[Tuple[str, int]]:
         files_and_labels : List[Tuple[str, int]] = []
@@ -422,6 +439,12 @@ class ReiformICDataSet(ReiformImageDataset):
             return Image.open(file.name).convert("RGB")
         else:
             return Image.open(file.name)
+
+    def dataset_from_uuids(self, uuids : List[str]):
+        
+        new_dataset = ReiformICDataSet(self.class_list)
+        for id in uuids:
+            new_dataset.add_file(self.get_file_by_uuid(id))
 
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None) -> torch.utils.data.DataLoader:
         

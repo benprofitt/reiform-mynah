@@ -1,7 +1,7 @@
 from .pretraining import *
 
 
-def run_detection_models(dataset : ReiformICDataSet, 
+def run_lighting_detection_models(dataset : ReiformICDataSet, 
                         local_model_path : str) :
     sizes = dataset.find_max_image_dims()
     max_ = max(sizes)

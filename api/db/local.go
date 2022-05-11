@@ -156,7 +156,7 @@ func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*mo
 		Uuid: uuid,
 	}
 
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&file)
+	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&file)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) 
 	res := make(map[model.MynahUuid]*model.MynahFile)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&files); err != nil {
+	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&files); err != nil {
 		return nil, err
 	}
 
@@ -197,14 +197,20 @@ func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) 
 }
 
 // GetICDataset get a dataset from the database
-func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser, omitCols ...string) (*model.MynahICDataset, error) {
+func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser, omitCols MynahDBColumns) (*model.MynahICDataset, error) {
 	dataset := model.MynahICDataset{
 		MynahDataset: model.MynahDataset{
 			Uuid: uuid,
 		},
 	}
 
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Omit(omitCols...).Get(&dataset)
+	//get the columns to omit
+	cols, err := omitCols.cols()
+	if err != nil {
+		return nil, err
+	}
+
+	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Omit(cols...).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -228,7 +234,7 @@ func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser)
 		},
 	}
 
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&dataset)
+	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -250,7 +256,7 @@ func (d *localDB) GetBinObject(uuid model.MynahUuid, requestor *model.MynahUser)
 		Uuid: uuid,
 	}
 
-	found, err := d.engine.Where("org_id = ?", requestor.OrgId).Get(&obj)
+	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&obj)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +274,7 @@ func (d *localDB) GetICDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	res := make(map[model.MynahUuid]*model.MynahICDataset)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
+	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
 		return nil, err
 	}
 
@@ -292,7 +298,7 @@ func (d *localDB) GetODDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	res := make(map[model.MynahUuid]*model.MynahODDataset)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where("org_id = ?", requestor.OrgId).In("uuid", uuids).Find(&datasets); err != nil {
+	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
 		return nil, err
 	}
 
@@ -316,14 +322,14 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 	}
 
 	//list users
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&users)
+	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&users)
 	return users, err
 }
 
 // ListFiles list all files, arg is requestor
 func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
 	//list files
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&files)
+	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&files)
 	//filter for the files that this user can view
 	return commonListFiles(files, requestor), err
 }
@@ -331,7 +337,7 @@ func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFil
 // ListICDatasets list all datasets, arg is requestor
 func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.MynahICDataset, err error) {
 	//list datasets
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&datasets)
+	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&datasets)
 	//filter for the datasets that this user can view
 	return commonListICDatasets(datasets, requestor), err
 }
@@ -339,7 +345,7 @@ func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.
 // ListODDatasets list all datasets, arg is requestor
 func (d *localDB) ListODDatasets(requestor *model.MynahUser) (datasets []*model.MynahODDataset, err error) {
 	//list datasets
-	err = d.engine.Where("org_id = ?", requestor.OrgId).Find(&datasets)
+	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&datasets)
 	//filter for the datasets that this user can view
 	return commonListODDatasets(datasets, requestor), err
 }
@@ -441,11 +447,18 @@ func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*mode
 }
 
 // UpdateUser update a user in the database
-func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateUser(user, requestor, &keys); commonErr != nil {
+func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys MynahDBColumns) error {
+	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(user)
+
+	//get the columns to update
+	cols, err := keys.cols()
+	if err != nil {
+		return fmt.Errorf("user %s not updated: %s", user.Uuid, err)
+	}
+
+	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(user)
 	if err != nil {
 		return err
 	}
@@ -456,11 +469,18 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 }
 
 // UpdateICDataset update a dataset
-func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateDataset(dataset, requestor, &keys); commonErr != nil {
+func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
+	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(dataset)
+
+	//get the columns to update
+	cols, err := keys.cols()
+	if err != nil {
+		return fmt.Errorf("icdataset %s not updated: %s", dataset.Uuid, err)
+	}
+
+	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -471,11 +491,18 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 }
 
 // UpdateODDataset update a dataset
-func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateDataset(dataset, requestor, &keys); commonErr != nil {
+func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
+	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(dataset)
+
+	//get the columns to update
+	cols, err := keys.cols()
+	if err != nil {
+		return fmt.Errorf("oddataset %s not updated: %s", dataset.Uuid, err)
+	}
+
+	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -486,11 +513,18 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 }
 
 // UpdateFile updates a file
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys ...string) error {
-	if commonErr := commonUpdateFile(file, requestor, &keys); commonErr != nil {
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys MynahDBColumns) error {
+	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Where("org_id = ?", requestor.OrgId).Cols(keys...).Update(file)
+
+	//get the columns to update
+	cols, err := keys.cols()
+	if err != nil {
+		return fmt.Errorf("file %s not updated: %s", file.Uuid, err)
+	}
+
+	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(file)
 	if err != nil {
 		return err
 	}
@@ -538,7 +572,7 @@ func (d *localDB) DeleteFile(uuid model.MynahUuid, requestor *model.MynahUser) e
 
 // DeleteICDataset delete a dataset
 func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUser) error {
-	dataset, getErr := d.GetICDataset(uuid, requestor)
+	dataset, getErr := d.GetICDataset(uuid, requestor, NewMynahDBColumns())
 	if getErr != nil {
 		return getErr
 	}

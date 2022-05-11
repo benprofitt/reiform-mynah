@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/python"
@@ -289,6 +290,20 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								return fmt.Errorf("unexpected fileid3 data: %#v vs %#v", res.ImageData["fileuuid3"], expectedFileData3)
 							}
 
+							//check that the dataset was updated correctly
+							dbDataset, err := c.DBProvider.GetICDataset(dataset.Uuid, user, db.NewMynahDBColumns())
+							if err != nil {
+								return fmt.Errorf("dataset not found in database %s", err)
+							}
+
+							if dbDataset.LatestVersion != "1" {
+								return fmt.Errorf("dataset does not have latest version 1: found %s", dbDataset.LatestVersion)
+							}
+
+							if len(dbDataset.Versions) != 2 {
+								return fmt.Errorf("dataset does not have 2 versions: found %d", len(dbDataset.Versions))
+							}
+
 							return nil
 						})
 					})
@@ -349,7 +364,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 					}
 
 					//check for dataset in database (as a known admin)
-					dbDataset, dbErr := c.DBProvider.GetICDataset(res.Uuid, user)
+					dbDataset, dbErr := c.DBProvider.GetICDataset(res.Uuid, user, db.NewMynahDBColumns())
 					if dbErr != nil {
 						return fmt.Errorf("new dataset not found in database %s", dbErr)
 					}

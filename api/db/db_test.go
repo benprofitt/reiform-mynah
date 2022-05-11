@@ -120,7 +120,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	localUser.NameLast = "new_name_last"
 
 	//update the user
-	if updateErr := dbProvider.UpdateUser(localUser, &admin, "name_first", "name_last"); updateErr == nil {
+	if updateErr := dbProvider.UpdateUser(localUser, &admin, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)); updateErr == nil {
 		//get the user and verify same
 		if dbUser, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
 			//look through list
@@ -180,7 +180,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		t.Fatalf("dataset did not inherit user org id")
 	}
 
-	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, "versions")
+	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumnsNoDeps(model.VersionsColName))
 	if err != nil {
 		t.Fatalf("failed to request dataset: %s", err)
 	}
@@ -202,7 +202,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		t.Fatalf("failed to list ic datasets %s", listErr)
 	}
 
-	if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
+	if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
 		//compare
 		if !reflect.DeepEqual(*dbDataset, *icDataset) {
 			t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
@@ -214,9 +214,9 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	//update some fields
 	icDataset.DatasetName = "new_icdataset_name"
 
-	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, "dataset_name"); updateErr == nil {
+	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns(model.DatasetNameCol)); updateErr == nil {
 		//get the dataset and verify same
-		if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
+		if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
 			//compare
 			if !reflect.DeepEqual(*dbDataset, *icDataset) {
 				t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
@@ -228,9 +228,14 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		t.Fatalf("failed to update ic dataset %s", updateErr)
 	}
 
+	//update should fail with restricted key
+	if err := dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns("uuid")); err == nil {
+		t.Fatal("update dataset with restricted key did not fail")
+	}
+
 	if deleteErr := dbProvider.DeleteICDataset(icDataset.Uuid, &user); deleteErr == nil {
 		//verify deleted
-		if _, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user); getErr == nil {
+		if _, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
 			t.Fatalf("failed to delete dataset from db")
 		}
 	} else {

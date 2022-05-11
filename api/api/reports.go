@@ -27,8 +27,8 @@ func icProcessReportView(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		//get the report from the database
-		if dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, "versions"); err == nil {
+		//get the report from the database (omit the versions column)
+		if dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, db.NewMynahDBColumnsNoDeps(model.VersionsColName)); err == nil {
 			//the dataset version to get report for
 			version := dataset.LatestVersion
 

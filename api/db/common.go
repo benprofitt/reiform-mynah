@@ -3,7 +3,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
@@ -11,17 +10,18 @@ import (
 )
 
 //check if any of the update keys are restricted
-func restrictedKeys(keys *[]string) bool {
-	if len(*keys) == 0 {
+func restrictedKeys(keys MynahDBColumns) error {
+	if keys.empty() {
 		log.Warn("warning, database update has empty col key list")
 	}
-	for _, s := range *keys {
-		if (s == "org_id") || (s == "uuid") {
-			return true
-		}
+
+	if ok, restrictedCol := keys.containsRestricted(); ok {
+		return fmt.Errorf("update contains restricted column: %s", restrictedCol)
 	}
-	return false
+	return nil
 }
+
+var orgIdCondition = fmt.Sprintf("%s = ?", model.OrgIdColName)
 
 //verify that the requestor is an admin
 func commonGetUser(user *model.MynahUser, requestor *model.MynahUser) error {
@@ -101,10 +101,10 @@ func commonCreateUser(creator *model.MynahUser) (*model.MynahUser, error) {
 }
 
 //update a user in the database
-func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys *[]string) error {
+func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys MynahDBColumns) error {
 	//check that keys are not restricted
-	if restrictedKeys(keys) {
-		return errors.New("user update contained restricted keys")
+	if err := restrictedKeys(keys); err != nil {
+		return fmt.Errorf("user update failed: %s", err)
 	}
 
 	if requestor.IsAdmin || requestor.Uuid == user.Uuid {
@@ -114,14 +114,13 @@ func commonUpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys *[
 }
 
 //update a dataset in the database
-func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser, keys *[]string) error {
+func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
 	//check that keys are not restricted
-	if restrictedKeys(keys) {
-		return errors.New("dataset update contained restricted keys")
+	if err := restrictedKeys(keys); err != nil {
+		return fmt.Errorf("dataset update failed: %s", err)
 	}
-
 	dataset.GetBaseDataset().DateModified = time.Now().Unix()
-	*keys = append(*keys, "date_modified")
+	keys.add(model.DateModifiedCol)
 
 	if requestor.IsAdmin || dataset.GetBaseDataset().GetPermissions(requestor) >= model.Edit {
 		return nil
@@ -130,12 +129,11 @@ func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.My
 }
 
 //update a file metadata
-func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys *[]string) error {
+func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys MynahDBColumns) error {
 	//check that keys are not restricted
-	if restrictedKeys(keys) {
-		return errors.New("file update contained restricted keys")
+	if err := restrictedKeys(keys); err != nil {
+		return fmt.Errorf("file update failed: %s", err)
 	}
-
 	if requestor.IsAdmin || file.GetPermissions(requestor) >= model.Edit {
 		return nil
 	}

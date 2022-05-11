@@ -32,7 +32,7 @@ func icProcessJob(dbProvider db.DBProvider,
 		}
 
 		//get the dataset
-		dataset, err := dbProvider.GetICDataset(req.DatasetUuid, user)
+		dataset, err := dbProvider.GetICDataset(req.DatasetUuid, user, db.NewMynahDBColumns())
 		if err != nil {
 			log.Warnf("failed to get dataset for ic process job: %s", err)
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -48,7 +48,7 @@ func icProcessJob(dbProvider db.DBProvider,
 			}
 
 			//update the results in the database (will overwrite any changes made to versions col since task started)
-			if err := dbProvider.UpdateICDataset(dataset, user, "versions", "reports"); err != nil {
+			if err := dbProvider.UpdateICDataset(dataset, user, db.NewMynahDBColumns(model.VersionsColName, model.ReportsColName)); err != nil {
 				return nil, fmt.Errorf("ic process task for dataset %s failed when updating in database: %s", req.DatasetUuid, err)
 			}
 

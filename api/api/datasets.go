@@ -219,7 +219,7 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 
 		//get the requested ic dataset
-		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user)
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, db.NewMynahDBColumns())
 
 		if err != nil {
 			log.Errorf("failed to get ic dataset %s from database %s", datasetId, err)

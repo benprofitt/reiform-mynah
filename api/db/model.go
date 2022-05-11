@@ -17,7 +17,7 @@ type DBProvider interface {
 	// GetFiles get multiple files by id
 	GetFiles([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error)
 	// GetICDataset get a dataset from the database, optionally omit certain columns
-	GetICDataset(model.MynahUuid, *model.MynahUser, ...string) (*model.MynahICDataset, error)
+	GetICDataset(model.MynahUuid, *model.MynahUser, MynahDBColumns) (*model.MynahICDataset, error)
 	// GetODDataset get a dataset from the database
 	GetODDataset(model.MynahUuid, *model.MynahUser) (*model.MynahODDataset, error)
 	// GetBinObject gets a cached object by uuid
@@ -46,13 +46,13 @@ type DBProvider interface {
 	CreateBinObject(*model.MynahUser, func(*model.MynahBinObject) error) (*model.MynahBinObject, error)
 	// UpdateUser update a user in the database. First arg is user to update, second is requestor, remaining
 	//are keys to update.
-	UpdateUser(*model.MynahUser, *model.MynahUser, ...string) error
+	UpdateUser(*model.MynahUser, *model.MynahUser, MynahDBColumns) error
 	// UpdateICDataset update a dataset
-	UpdateICDataset(*model.MynahICDataset, *model.MynahUser, ...string) error
+	UpdateICDataset(*model.MynahICDataset, *model.MynahUser, MynahDBColumns) error
 	// UpdateODDataset update a dataset
-	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, ...string) error
+	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, MynahDBColumns) error
 	// UpdateFile updates a file
-	UpdateFile(*model.MynahFile, *model.MynahUser, ...string) error
+	UpdateFile(*model.MynahFile, *model.MynahUser, MynahDBColumns) error
 	// DeleteUser delete a user in the database, second arg is requestor
 	DeleteUser(model.MynahUuid, *model.MynahUser) error
 	// DeleteFile delete a file in the database, second arg is requestor

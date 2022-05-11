@@ -120,7 +120,7 @@ type MynahICDataset struct {
 	//reports for this dataset by version (references a binobject)
 	Reports map[MynahDatasetVersionId]MynahUuid `json:"-" xorm:"TEXT 'reports'"`
 	//the latest version
-	LatestVersion MynahDatasetVersionId `json:"latest_version"`
+	LatestVersion MynahDatasetVersionId `json:"latest_version" xorm:"TEXT 'latest_version'"`
 }
 
 // NewICDataset creates a new dataset

@@ -46,6 +46,10 @@ def ipc_test(uuid: str, payload: str, sockaddr: str) -> str:
 def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
     # TODO check that the request body is correct
     contents = json.loads(request_str)
+
+    if len(contents['previous_results']) != 1:
+        raise ValueError("previous_results should not be empty")
+
     dataset_uuid = contents['dataset']['uuid']
     t = Template('''{
     "dataset": {

@@ -36,6 +36,20 @@ var mynahICProcessTaskConstructor = map[MynahICProcessTaskType]func() MynahICPro
 	},
 }
 
+// create new task data structs by type identifier
+var mynahICProcessDiagnosisTasks = map[MynahICProcessTaskType]interface{}{
+	ICProcessDiagnoseMislabeledImagesTask:   nil,
+	ICProcessDiagnoseClassSplittingTask:     nil,
+	ICProcessDiagnoseLightingConditionsTask: nil,
+	ICProcessDiagnoseImageBlurTask:          nil,
+}
+
+// IsMynahICDiagnosisTask returns true if the task type corresponds to a diagnosis process
+func IsMynahICDiagnosisTask(taskType MynahICProcessTaskType) bool {
+	_, ok := mynahICProcessDiagnosisTasks[taskType]
+	return ok
+}
+
 // map from task type to report structure
 var mynahICProcessTaskReportConstructor = map[MynahICProcessTaskType]func() MynahICProcessTaskReportMetadata{
 	ICProcessDiagnoseMislabeledImagesTask: func() MynahICProcessTaskReportMetadata {

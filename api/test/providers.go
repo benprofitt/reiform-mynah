@@ -282,6 +282,13 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 		dataset, err := t.DBProvider.CreateICDataset(owner, func(d *model.MynahICDataset) error {
 			if initialVersion, err := tools.MakeICDatasetVersion(d); err == nil {
 
+				initialVersion.TaskData = append(initialVersion.TaskData, &model.MynahICProcessTaskData{
+					Type: model.ICProcessDiagnoseMislabeledImagesTask,
+					Metadata: &model.MynahICProcessTaskDiagnoseMislabeledImagesMetadata{
+						Outliers: make([]model.MynahUuid, 0),
+					},
+				})
+
 				report := model.NewICDatasetReport()
 
 				for _, f := range files {

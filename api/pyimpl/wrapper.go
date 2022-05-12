@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
@@ -64,14 +63,8 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		return fmt.Errorf("ic process task for dataset %s failed when creating new version: %s", dataset.Uuid, err)
 	}
 
-	//get the previous version of the dataset (if applicable) to send task metadata
-	prevVersion, err := tools.GetICDatasetPrevious(dataset)
-	if err != nil {
-		log.Warnf("dataset %s does not have previous version to send to ic process", dataset.Uuid)
-	}
-
 	//create the request
-	req, err := p.NewICProcessJobRequest(user, dataset.Uuid, newVersion, prevVersion, tasks)
+	req, err := p.NewICProcessJobRequest(user, newVersion, dataset, tasks)
 	if err != nil {
 		return fmt.Errorf("ic process job failed when creating request: %s", err)
 	}

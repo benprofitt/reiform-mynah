@@ -10,11 +10,47 @@ import (
 	"reiform.com/mynah/tools"
 )
 
+// get diagnosis results from previous dataset versions
+func getPreviousDiagnosisTaskResults(dataset *model.MynahICDataset) ([]*model.MynahICProcessTaskData, error) {
+	allDiagnosisTasks := make(map[model.MynahICProcessTaskType]*model.MynahICProcessTaskData)
+
+	err := tools.ICDatasetVersionIterateNewToOld(dataset, func(version *model.MynahICDatasetVersion) (bool, error) {
+		currentTasks := make([]*model.MynahICProcessTaskData, 0)
+
+		for _, task := range version.TaskData {
+			if model.IsMynahICDiagnosisTask(task.Type) {
+				currentTasks = append(currentTasks, task)
+			} else {
+				//correction task: ignore, stop searching, and ignore diagnosis tasks in this version
+				return false, nil
+			}
+		}
+
+		// include these diagnosis task results if not yet included by type
+		for _, task := range currentTasks {
+			if _, ok := allDiagnosisTasks[task.Type]; !ok {
+				allDiagnosisTasks[task.Type] = task
+			}
+		}
+
+		return true, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	diagnosisTaskSet := make([]*model.MynahICProcessTaskData, 0)
+	for _, task := range allDiagnosisTasks {
+		diagnosisTaskSet = append(diagnosisTaskSet, task)
+	}
+	return diagnosisTaskSet, nil
+}
+
 // NewICProcessJobRequest creates a new ic process job request
 func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
-	datasetId model.MynahUuid,
-	currentVersion,
-	prevVersion *model.MynahICDatasetVersion,
+	newDatasetVersion *model.MynahICDatasetVersion,
+	dataset *model.MynahICDataset,
 	tasks []model.MynahICProcessTaskType) (*ICProcessJobRequest, error) {
 
 	var req ICProcessJobRequest
@@ -26,12 +62,13 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 		}
 	}
 
-	if prevVersion != nil {
-		//add any previous task results (if exist)
-		req.PreviousResults = prevVersion.TaskData
-	} else {
-		req.PreviousResults = make([]*model.MynahICProcessTaskData, 0)
+	//get previous task results
+	prevResults, err := getPreviousDiagnosisTaskResults(dataset)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to identify previous diagnosis tasks for dataset %s: %s", dataset.Uuid, err)
 	}
+	req.PreviousResults = prevResults
 
 	//add tasks requested by user
 	req.Tasks = make([]ICProcessJobRequestTask, len(tasks))
@@ -41,14 +78,14 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	}
 
 	req.ConfigParams.ModelsPath = p.mynahSettings.StorageSettings.ModelsPath
-	req.Dataset.DatasetUuid = datasetId
-	req.Dataset.Mean = currentVersion.Mean
-	req.Dataset.StdDev = currentVersion.StdDev
+	req.Dataset.DatasetUuid = dataset.Uuid
+	req.Dataset.Mean = newDatasetVersion.Mean
+	req.Dataset.StdDev = newDatasetVersion.StdDev
 	req.Dataset.ClassFiles = make(map[string]map[string]ICProcessJobRequestFile)
 
 	//accumulate the file uuids in this dataset
 	fileUuidSet := tools.NewUniqueSet()
-	for fileId := range currentVersion.Files {
+	for fileId := range newDatasetVersion.Files {
 		//add to set
 		fileUuidSet.UuidsUnion(fileId)
 	}
@@ -56,13 +93,13 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	//request the files in this dataset as a group
 	files, err := p.dbProvider.GetFiles(fileUuidSet.UuidVals(), user)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load dataset %s files for ic process job: %s", datasetId, err)
+		return nil, fmt.Errorf("failed to load dataset %s files for ic process job: %s", dataset.Uuid, err)
 	}
 
 	//record unique class names
 	classNameSet := tools.NewUniqueSet()
 
-	for fileId, classInfo := range currentVersion.Files {
+	for fileId, classInfo := range newDatasetVersion.Files {
 		//include the class
 		classNameSet.Union(classInfo.CurrentClass)
 
@@ -96,7 +133,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 			}
 		} else {
 			// (File may have been requested but this user may not have permission)
-			return nil, fmt.Errorf("dataset file %s not found in files set for dataset (does user have permission?): %s", fileId, datasetId)
+			return nil, fmt.Errorf("dataset file %s not found in files set for dataset (does user have permission?): %s", fileId, dataset.Uuid)
 		}
 
 		//create a mapping for this class if one doesn't exist

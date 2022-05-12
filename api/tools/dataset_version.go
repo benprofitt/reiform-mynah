@@ -28,6 +28,28 @@ func GetICDatasetPrevious(dataset *model.MynahICDataset) (*model.MynahICDatasetV
 	return nil, fmt.Errorf("dataset %s does not have a previous version", dataset.Uuid)
 }
 
+// ICDatasetVersionIterateNewToOld call function on dataset versions in order from latest to oldest
+func ICDatasetVersionIterateNewToOld(dataset *model.MynahICDataset, handler func(version *model.MynahICDatasetVersion) (bool, error)) error {
+	for i := len(dataset.Versions) - 1; i >= 0; i-- {
+		versionId := model.MynahDatasetVersionId(strconv.Itoa(i))
+		if version, ok := dataset.Versions[versionId]; ok {
+			continueIteration, err := handler(version)
+			if err != nil {
+				return err
+			}
+
+			if !continueIteration {
+				return nil
+			}
+
+		} else {
+			return fmt.Errorf("malformed dataset version history with length %d, version %s does not exist",
+				len(dataset.Versions), versionId)
+		}
+	}
+	return nil
+}
+
 // FreezeICDatasetFileVersions freezes the ids of images in a dataset and report
 func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 	user *model.MynahUser,

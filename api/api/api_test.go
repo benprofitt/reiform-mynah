@@ -182,10 +182,10 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
 		//create a user
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
-			expectedFileIds := tools.NewUniqueSet()
-			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
+			startingFileids := tools.NewUniqueSet()
+			startingFileids.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
 			//create a file
-			return c.WithCreateICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
+			return c.WithCreateICDataset(user, startingFileids.UuidVals(), func(dataset *model.MynahICDataset) error {
 				//create the request body
 				reqBody := ICProcessJobRequest{
 					Tasks:       []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
@@ -242,8 +242,8 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 							reportFileIds := tools.NewUniqueSet()
 							reportFileIds.UuidsUnion(res.ImageIds...)
 
-							if !expectedFileIds.Equals(reportFileIds) {
-								return fmt.Errorf("unexpected fileids set: %#v vs %#v", expectedFileIds.Vals(), reportFileIds.Vals())
+							if !startingFileids.Equals(reportFileIds) {
+								return fmt.Errorf("unexpected fileids set: %#v vs %#v", startingFileids.Vals(), reportFileIds.Vals())
 							}
 
 							expectedBreakdown := make(map[model.MynahClassName]*model.MynahICDatasetReportBucket)
@@ -269,6 +269,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 									X: 0,
 									Y: 0,
 								},
+								Removed:      true,
 								OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
 							}
 

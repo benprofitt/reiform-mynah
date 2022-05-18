@@ -169,6 +169,7 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	dataset.Mean = d.Dataset.Mean
 	dataset.StdDev = d.Dataset.StdDev
 
+	//copy dataset info from the ic process result
 	for _, classFiles := range d.Dataset.ClassFiles {
 		for _, fileData := range classFiles {
 			//copy the new data into the dataset
@@ -185,19 +186,14 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 		}
 	}
 
-	//apply task metadata to the dataset (may remove, modify files)
-	for _, task := range d.Tasks {
-		if err := task.Metadata.ApplyToDataset(dataset, task.Type); err != nil {
-			return fmt.Errorf("failed to apply task of type %s result to dataset: %s", task.Type, err)
-		}
-	}
-
 	//freeze the fileids so that the "latest" versions aren't modified by a different dataset
+	//NOTE: we also version removed files because they are tracked by the report
 	if err := tools.FreezeICDatasetFileVersions(dataset, user, storageProvider, dbProvider); err != nil {
 		return fmt.Errorf("failed to freeze file versions: %s", err)
 	}
 
-	//add remaining dataset files to the report (will have strict file versions)
+	//add all dataset files to the report (will have strict file versions)
+	//NOTE: this will add removed files to the report before they are deleted from the dataset
 	for fileId, fileData := range dataset.Files {
 		//record this image for the report
 		report.ImageIds = append(report.ImageIds, fileId)
@@ -210,11 +206,19 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 				X: 0,
 				Y: 0,
 			},
+			Removed:      false, //updated by ApplyToReport on a per-task basis
 			OutlierTasks: []model.MynahICProcessTaskType{},
 		}
 	}
 
-	//apply task metadata to the report
+	//apply task metadata to the dataset (may remove, modify files)
+	for _, task := range d.Tasks {
+		if err := task.Metadata.ApplyToDataset(dataset, task.Type); err != nil {
+			return fmt.Errorf("failed to apply task of type %s result to dataset: %s", task.Type, err)
+		}
+	}
+
+	//apply task metadata to the report (adds task specific section, marks files as removed, etc)
 	for _, task := range d.Tasks {
 		if err := task.Metadata.ApplyToReport(report, task.Type); err != nil {
 			return fmt.Errorf("failed to apply task of type %s result to report: %s", task.Type, err)

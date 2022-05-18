@@ -173,6 +173,7 @@
           "x": 0,
           "y": 0
         },
+        "removed": false,
         "outlier_tasks": [
           MynahICProcessTaskType,
           ...
@@ -185,6 +186,7 @@
           "x": 20,
           "y": 55
         },
+        "removed": true,
         "outlier_tasks": [
           MynahICProcessTaskType,
           ...

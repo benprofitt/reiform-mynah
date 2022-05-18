@@ -81,18 +81,17 @@ type MynahICProcessTaskData struct {
 	Metadata MynahICProcessTaskMetadata `json:"metadata"`
 }
 
-// MynahICDatasetFile file data
 type MynahICDatasetFile struct {
 	//the version id for the file
 	ImageVersionId MynahFileVersionId `json:"image_version_id"`
 	//the current clas
-	CurrentClass string `json:"current_class"`
+	CurrentClass MynahClassName `json:"current_class"`
 	//the original class
-	OriginalClass string `json:"original_class"`
+	OriginalClass MynahClassName `json:"original_class"`
 	//the confidence vectors
 	ConfidenceVectors ConfidenceVectors `json:"confidence_vectors"`
 	//projections
-	Projections map[string][]int `json:"projections"`
+	Projections map[MynahClassName][]int `json:"projections"`
 	//the mean of the this file's channels
 	Mean []float64 `json:"mean"`
 	//the stddev of this file's channels
@@ -150,7 +149,7 @@ func NewICDatasetFile() *MynahICDatasetFile {
 		CurrentClass:      "",
 		OriginalClass:     "",
 		ConfidenceVectors: make(ConfidenceVectors, 0),
-		Projections:       make(map[string][]int),
+		Projections:       make(map[MynahClassName][]int),
 		Mean:              make([]float64, 0),
 		StdDev:            make([]float64, 0),
 	}
@@ -162,7 +161,7 @@ func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 	var confidenceVectors ConfidenceVectors
 	copy(confidenceVectors, other.ConfidenceVectors)
 
-	projections := make(map[string][]int)
+	projections := make(map[MynahClassName][]int)
 	for key, value := range other.Projections {
 		projections[key] = value
 	}

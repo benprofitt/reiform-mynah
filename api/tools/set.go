@@ -64,6 +64,19 @@ func (s *UniqueSet) UuidVals() []model.MynahUuid {
 	return keys
 }
 
+// ClassNameVals returns the vals as class names
+func (s *UniqueSet) ClassNameVals() []model.MynahClassName {
+	keys := make([]model.MynahClassName, len(s.s))
+
+	i := 0
+	for k := range s.s {
+		keys[i] = model.MynahClassName(k)
+		i++
+	}
+
+	return keys
+}
+
 // Contains checks if the set contains a particular value
 func (s *UniqueSet) Contains(key string) bool {
 	_, ok := s.s[key]

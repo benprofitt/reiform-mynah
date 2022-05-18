@@ -246,7 +246,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								return fmt.Errorf("unexpected fileids set: %#v vs %#v", expectedFileIds.Vals(), reportFileIds.Vals())
 							}
 
-							expectedBreakdown := make(map[string]*model.MynahICDatasetReportBucket)
+							expectedBreakdown := make(map[model.MynahClassName]*model.MynahICDatasetReportBucket)
 							expectedBreakdown["class1"] = &model.MynahICDatasetReportBucket{
 								Bad:        1,
 								Acceptable: 0,
@@ -332,7 +332,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 				//create the request
 				reqContents := CreateICDatasetRequest{
 					Name:  "test_dataset",
-					Files: make(map[model.MynahUuid]string),
+					Files: make(map[model.MynahUuid]model.MynahClassName),
 				}
 
 				//set the class for the file

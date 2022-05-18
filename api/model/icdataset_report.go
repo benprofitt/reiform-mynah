@@ -65,6 +65,8 @@ type MynahICDatasetReportImageMetadata struct {
 	Class MynahClassName `json:"class"`
 	//point for display in graph
 	Point MynahICDatasetReportPoint `json:"point"`
+	//whether this file was removed
+	Removed bool `json:"removed"`
 	//the tasks for which this image is an outlier
 	OutlierTasks []MynahICProcessTaskType `json:"outlier_tasks"`
 }

@@ -98,6 +98,10 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		return nil
 	})
 
+	if err != nil {
+		return fmt.Errorf("ic process job failed when creating report: %s", err)
+	}
+
 	//record the report by id
 	dataset.Reports[dataset.LatestVersion] = binObj.Uuid
 	return err

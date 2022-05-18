@@ -37,21 +37,33 @@ type MynahICProcessTaskDiagnoseMislabeledImagesMetadata struct {
 // MynahICProcessTaskCorrectMislabeledImagesMetadata is metadata for
 //correcting mislabeled images task response
 type MynahICProcessTaskCorrectMislabeledImagesMetadata struct {
+	//removed images by id
+	Removed []MynahUuid `json:"removed"`
+	//corrected images by id
+	Corrected []MynahUuid `json:"corrected"`
 }
 
 // MynahICProcessTaskDiagnoseClassSplittingMetadata is metadata for
 //diagnosing class splitting task response
 type MynahICProcessTaskDiagnoseClassSplittingMetadata struct {
+	//map class to list of fileid lists
+	PredictedClassSplits map[MynahClassName][][]MynahUuid `json:"predicted_class_splits"`
 }
 
 // MynahICProcessTaskCorrectClassSplittingMetadata is metadata for
 //correcting class splitting task response
 type MynahICProcessTaskCorrectClassSplittingMetadata struct {
+	//map from class name to map from class split name to list of fileids
+	ActualClassSplits map[MynahClassName]map[string][]MynahUuid `json:"actual_class_splits"`
 }
 
 // MynahICProcessTaskDiagnoseLightingConditionsMetadata is metadata for
 //diagnosing lighting conditions task response
 type MynahICProcessTaskDiagnoseLightingConditionsMetadata struct {
+	//bright images by id
+	Bright []MynahUuid `json:"bright"`
+	//dark images by id
+	Dark []MynahUuid `json:"dark"`
 }
 
 // MynahICProcessTaskCorrectLightingConditionsMetadata is metadata for

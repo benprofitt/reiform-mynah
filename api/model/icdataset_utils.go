@@ -4,12 +4,11 @@ package model
 
 import (
 	"errors"
-	"fmt"
 )
 
 // ApplyToDataset task changes for mislabeled images diagnosis
 func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
+	//mislabeled image diagnosis does not modify dataset
 	return nil
 }
 
@@ -20,9 +19,8 @@ func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToReport(report
 		if fileData, ok := report.ImageData[fileId]; ok {
 			//reference this task
 			fileData.OutlierTasks = append(fileData.OutlierTasks, taskType)
-		} else {
-			return fmt.Errorf("%s task referenced outlier fileid which is not in dataset: %s", taskType, fileId)
 		}
+		//NOTE: if doesn't exist: may have been removed by correction
 	}
 
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
@@ -34,12 +32,24 @@ func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToReport(report
 
 // ApplyToDataset task changes for mislabeled images correction
 func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
-	return errors.New("MynahICProcessTaskCorrectMislabeledImagesMetadata dataset task changes undefined")
+	//make sure the images are removed from this version
+	for _, fileId := range m.Removed {
+		if _, ok := version.Files[fileId]; ok {
+			delete(version.Files, fileId)
+		}
+	}
+	return nil
 }
 
 // ApplyToReport generates report for mislabeled images correction
 func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	//mark removed files (if not already removed by another task)
+	for _, fileId := range m.Removed {
+		if reportFile, ok := report.ImageData[fileId]; ok {
+			reportFile.Removed = true
+		}
+	}
+
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
 		Type:     taskType,
 		Metadata: &MynahICProcessTaskCorrectMislabeledImagesReport{},
@@ -49,8 +59,8 @@ func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToReport(report 
 
 // ApplyToDataset task changes for class splitting diagnosis
 func (m MynahICProcessTaskDiagnoseClassSplittingMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
-	return errors.New("MynahICProcessTaskDiagnoseClassSplittingMetadata dataset task changes undefined")
+	//class splitting diagnosis does not modify dataset
+	return nil
 }
 
 // ApplyToReport generates report for class splitting diagnosis
@@ -93,20 +103,25 @@ func (m MynahICProcessTaskDiagnoseLightingConditionsMetadata) ApplyToReport(repo
 }
 
 // ApplyToDataset task changes for lighting conditions correction
-func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToDataset(version *MynahICDatasetVersion,
-	taskType MynahICProcessTaskType) error {
-	//for fileId := range m.Removed {
-	//
-	//}
-	//
-	//for fileId := range m.Corrected {
-	//
-	//}
+func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
+	//make sure the images are removed from this version
+	for _, fileId := range m.Removed {
+		if _, ok := version.Files[fileId]; ok {
+			delete(version.Files, fileId)
+		}
+	}
 	return nil
 }
 
 // ApplyToReport generates report for lighting conditions correction
 func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	//mark removed files (if not already removed by another task)
+	for _, fileId := range m.Removed {
+		if reportFile, ok := report.ImageData[fileId]; ok {
+			reportFile.Removed = true
+		}
+	}
+
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
 		Type:     taskType,
 		Metadata: &MynahICProcessTaskCorrectLightingConditionsReport{},

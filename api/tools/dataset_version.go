@@ -129,6 +129,7 @@ func MakeICDatasetVersion(dataset *model.MynahICDataset) (newVersion *model.Myna
 			newVersion.Files[fileId] = model.CopyICDatasetFile(fileData)
 		}
 	}
+
 	dataset.LatestVersion = newVersionId
 	//return ptr to new version
 	return dataset.Versions[newVersionId], nil

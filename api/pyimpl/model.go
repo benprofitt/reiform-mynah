@@ -54,13 +54,13 @@ type ICProcessJobRequest struct {
 		//the uuid of the dataset
 		DatasetUuid model.MynahUuid `json:"uuid"`
 		//all classes in the dataset
-		Classes []string `json:"classes"`
+		Classes []model.MynahClassName `json:"classes"`
 		//the mean of the channels of images in the dataset
 		Mean []float64 `json:"mean"`
 		//the stddev of the channels of images in the dataset
 		StdDev []float64 `json:"std_dev"`
 		//map by class to map by temp path
-		ClassFiles map[string]map[string]ICProcessJobRequestFile `json:"class_files"`
+		ClassFiles map[model.MynahClassName]map[string]ICProcessJobRequestFile `json:"class_files"`
 	} `json:"dataset"`
 	//tasks to perform
 	Tasks []ICProcessJobRequestTask `json:"tasks"`
@@ -73,9 +73,9 @@ type ICProcessJobResponseFile struct {
 	//the uuid of the file
 	Uuid model.MynahUuid `json:"uuid"`
 	//the current class for this file
-	CurrentClass string `json:"current_class"`
+	CurrentClass model.MynahClassName `json:"current_class"`
 	//projections
-	Projections map[string][]int `json:"projections"`
+	Projections map[model.MynahClassName][]int `json:"projections"`
 	//confidence vectors
 	ConfidenceVectors model.ConfidenceVectors `json:"confidence_vectors"`
 	//the mean of the channels of this image
@@ -91,13 +91,13 @@ type ICProcessJobResponse struct {
 		//the uuid of the dataset
 		DatasetUuid model.MynahUuid `json:"uuid"`
 		//all classes in the dataset
-		Classes []string `json:"classes"`
+		Classes []model.MynahClassName `json:"classes"`
 		//the mean of the channels of images in the dataset
 		Mean []float64 `json:"mean"`
 		//the stddev of the channels of images in the dataset
 		StdDev []float64 `json:"std_dev"`
 		//map by class to map by temp path
-		ClassFiles map[string]map[string]ICProcessJobResponseFile `json:"class_files"`
+		ClassFiles map[model.MynahClassName]map[string]ICProcessJobResponseFile `json:"class_files"`
 	} `json:"dataset"`
 	//the tasks in the dataset
 	Tasks []model.MynahICProcessTaskData `json:"tasks"`

@@ -24,6 +24,9 @@ const (
 // MynahDatasetVersionId a version id for a dataset
 type MynahDatasetVersionId string
 
+// MynahClassName is used for class names
+type MynahClassName string
+
 // MynahDataset Defines a mynah dataset
 type MynahDataset struct {
 	//the id of the dataset

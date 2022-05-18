@@ -81,7 +81,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	req.Dataset.DatasetUuid = dataset.Uuid
 	req.Dataset.Mean = newDatasetVersion.Mean
 	req.Dataset.StdDev = newDatasetVersion.StdDev
-	req.Dataset.ClassFiles = make(map[string]map[string]ICProcessJobRequestFile)
+	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]ICProcessJobRequestFile)
 
 	//accumulate the file uuids in this dataset
 	fileUuidSet := tools.NewUniqueSet()
@@ -101,7 +101,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 
 	for fileId, classInfo := range newDatasetVersion.Files {
 		//include the class
-		classNameSet.Union(classInfo.CurrentClass)
+		classNameSet.Union(string(classInfo.CurrentClass))
 
 		var tmpPath string
 
@@ -153,7 +153,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	}
 
 	//set the classes
-	req.Dataset.Classes = classNameSet.Vals()
+	req.Dataset.Classes = classNameSet.ClassNameVals()
 
 	return &req, nil
 }

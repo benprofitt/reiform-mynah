@@ -16,7 +16,7 @@ import (
 // MynahCreateICDatasetTask defines the task of creating an image classification dataset
 type MynahCreateICDatasetTask struct {
 	//reference files by id already in mynah (map fileid to class name)
-	FromExisting map[model.MynahUuid]string `json:"from_existing"`
+	FromExisting map[model.MynahUuid]model.MynahClassName `json:"from_existing"`
 	//reference files uploaded by previous tasks
 	FromTasks []MynahTaskId `json:"from_tasks"`
 	//regex to assign a file a class name based on path
@@ -26,16 +26,16 @@ type MynahCreateICDatasetTask struct {
 }
 
 //assign a class name for this file
-func assignClassName(regex *regexp.Regexp, localPath string) (string, error) {
+func assignClassName(regex *regexp.Regexp, localPath string) (model.MynahClassName, error) {
 	if regex != nil {
 		//attempt to match
 		if res := regex.FindStringSubmatch(localPath); len(res) > 0 {
-			return res[len(res)-1], nil
+			return model.MynahClassName(res[len(res)-1]), nil
 		} else {
 			return "", fmt.Errorf("class name regex found no matches for %s", localPath)
 		}
 	} else {
-		return filepath.Base(filepath.Dir(localPath)), nil
+		return model.MynahClassName(filepath.Base(filepath.Dir(localPath))), nil
 	}
 }
 
@@ -44,7 +44,7 @@ func (t MynahCreateICDatasetTask) ExecuteTask(mynahServer *server.MynahClient,
 	tctx MynahTaskContext) (context.Context, error) {
 
 	if t.FromExisting == nil {
-		t.FromExisting = make(map[model.MynahUuid]string)
+		t.FromExisting = make(map[model.MynahUuid]model.MynahClassName)
 	}
 
 	var classRegex *regexp.Regexp

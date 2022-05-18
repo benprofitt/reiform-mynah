@@ -27,7 +27,7 @@ type CreateICDatasetRequest struct {
 	//the name of the dataset
 	Name string `json:"name"`
 	//the files to include (map from fileid to class name)
-	Files map[model.MynahUuid]string `json:"files"`
+	Files map[model.MynahUuid]model.MynahClassName `json:"files"`
 }
 
 // ICProcessJobRequest request type for starting a process job

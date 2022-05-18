@@ -297,7 +297,7 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						CurrentClass:      "class1",
 						OriginalClass:     "class1",
 						ConfidenceVectors: make(model.ConfidenceVectors, 0),
-						Projections:       make(map[string][]int),
+						Projections:       make(map[model.MynahClassName][]int),
 					}
 					report.ImageIds = append(report.ImageIds, f.Uuid)
 					report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{

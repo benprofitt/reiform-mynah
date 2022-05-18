@@ -62,7 +62,7 @@ type MynahICDatasetReportImageMetadata struct {
 	//the version id for the file
 	ImageVersionId MynahFileVersionId `json:"image_version_id"`
 	//the class
-	Class string `json:"class"`
+	Class MynahClassName `json:"class"`
 	//point for display in graph
 	Point MynahICDatasetReportPoint `json:"point"`
 	//the tasks for which this image is an outlier
@@ -84,7 +84,7 @@ type MynahICDatasetReport struct {
 	//the images included in this report, map fileid to metadata
 	ImageData map[MynahUuid]*MynahICDatasetReportImageMetadata `json:"image_data"`
 	//the class breakdown table info, map class to buckets
-	Breakdown map[string]*MynahICDatasetReportBucket `json:"breakdown"`
+	Breakdown map[MynahClassName]*MynahICDatasetReportBucket `json:"breakdown"`
 	//report data about tasks that were run
 	Tasks []*MynahICProcessTaskReportData `json:"tasks"`
 }
@@ -94,7 +94,7 @@ func NewICDatasetReport() *MynahICDatasetReport {
 	return &MynahICDatasetReport{
 		ImageIds:  make([]MynahUuid, 0),
 		ImageData: make(map[MynahUuid]*MynahICDatasetReportImageMetadata),
-		Breakdown: make(map[string]*MynahICDatasetReportBucket),
+		Breakdown: make(map[MynahClassName]*MynahICDatasetReportBucket),
 		Tasks:     make([]*MynahICProcessTaskReportData, 0),
 	}
 }

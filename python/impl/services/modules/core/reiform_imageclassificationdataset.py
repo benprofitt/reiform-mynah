@@ -87,8 +87,14 @@ class ReiformICFile(ReiformImageFile):
         
         copied : ReiformICFile = ReiformICFile(self.name, self.current_class)
         copied.original_class = self.original_class
+        copied.width = self.width
+        copied.height = self.height
+        copied.channels = self.channels
+        copied.mean = copy.copy(self.mean)
+        copied.std_dev = copy.copy(self.std_dev)
 
         copied.projections = copy.deepcopy(self.projections)
+        copied.confidence_vectors = copy.deepcopy(self.confidence_vectors)
 
         return copied
 
@@ -250,7 +256,7 @@ class ReiformICDataSet(ReiformImageDataset):
 
     def find_max_image_dims(self, recalc : bool=False):
 
-        if self.max_channels == 0 or recalc:
+        if self.max_channels == 0 or self.max_height == 0 or self.max_width == 0 or recalc:
 
             def find_max(file1 : ReiformICFile, file2 : ReiformICFile):
                 new_file : ReiformICFile = ReiformICFile(file1.name, file1.current_class)
@@ -273,8 +279,9 @@ class ReiformICDataSet(ReiformImageDataset):
         return max(self.find_max_image_dims(recalc))
 
     def reduce_files(self, condition: Callable) -> ReiformICFile:
-
         files = self.all_files()
+        if len(files) == 0:
+            raise ReiformDataSetException("No files in dataset", "reduce_files", "IC")
 
         file = files[0]
 
@@ -283,6 +290,11 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return file
 
+    def contains(self, filename : str):
+        for c in self.class_list:
+            if filename in self.files[c]:
+                return True
+        return False
 
     def merge(self, other : ReiformICDataSet) -> ReiformICDataSet:
         new_ds : ReiformICDataSet = self.copy()
@@ -319,7 +331,19 @@ class ReiformICDataSet(ReiformImageDataset):
         return new_ds
 
     def merge_in(self, other : ReiformICDataSet) -> None:
-        self = self.merge(other)
+        if other.classes() != self.class_list:
+            raise ReiformICDataSetException("Cannot merge with different classes. \n self:{} \n other:{}".format(self.class_list, other.classes()), "merge")
+
+        for c in other.classes():
+            for filename, file in other.get_items(c):
+
+                if self.contains(filename):
+                    my_file = self.get_file_by_uuid(filename)
+                    merged_file = my_file.merge(file)
+                    self.remove_file(my_file.current_class, filename)
+                    self.add_file(merged_file)
+                else:
+                    self.add_file(file)
 
     def from_json(self, body: Dict[str, Any]):
 
@@ -375,6 +399,12 @@ class ReiformICDataSet(ReiformImageDataset):
     def __deepcopy__(self, memo) -> ReiformICDataSet:
         new_ds : ReiformICDataSet = ReiformICDataSet(self.class_list)
         new_ds.files = copy.deepcopy(self.files)
+
+        new_ds.max_width = self.max_width
+        new_ds.max_height = self.max_height
+        new_ds.max_channels = self.max_channels
+        new_ds.mean = copy.copy(self.mean)
+        new_ds.std_dev = copy.copy(self.std_dev)
 
         return new_ds
 
@@ -539,7 +569,7 @@ class ProjectionDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         return len(self.files_projection_labels)
 
-    def __getitem__(self, idx: int) -> Tuple[str, int, NDArray]:
+    def __getitem__(self, idx: int) -> Tuple[NDArray, int, str]:
         item : Tuple[str, int, NDArray] = self.files_projection_labels[idx]
         norm_proj : NDArray = item[2]
         norm_proj -= np.min(norm_proj)

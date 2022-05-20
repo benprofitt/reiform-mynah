@@ -89,7 +89,7 @@ class linear_VAE(nn.Module):
         else:
           return mu
 
-def linear_vae_loss(recon_x, x, mu, logvar, clss: NDArray):
+def linear_vae_loss(recon_x, x, mu, logvar, clss: Any):
     # recon_x is the probability of a multivariate Bernoulli distribution p.
     # -log(p(x)) is then the pixel-wise binary cross-entropy.
     # Averaging or not averaging the binary cross-entropy over all pixels here

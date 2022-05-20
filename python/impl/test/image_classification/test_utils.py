@@ -1,7 +1,7 @@
 from sklearn.metrics import precision_recall_fscore_support # type: ignore
 from impl.services.modules.utils.image_utils import closest_power_of_2
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-from impl.services.modules.core.reiform_models import AutoNet, train_conv_net
+from impl.services.modules.core.reiform_models import DeepAutoNet, train_conv_net
 
 
 def get_predictions(dataloader, model):
@@ -48,16 +48,16 @@ def dataset_evaluation(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
 
     sizes = train_ds.find_max_image_dims()
     max_ = max(sizes)
-    edge_size = closest_power_of_2(max_)
-    batch_size = 256
-    epochs = 25
+    edge_size = min(1024, closest_power_of_2(max_)*2)
+    batch_size = 512
+    epochs = 50
     classes = len(train_ds.classes())
 
     transformation = transforms.Compose([
         transforms.Resize((edge_size, edge_size)),
         transforms.RandomCrop(edge_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=train_ds.get_mean(), std=test_ds.get_std_dev())
+        transforms.Normalize(mean=train_ds.get_mean(), std=train_ds.get_std_dev())
     ])
 
     train_dl_pt = train_ds.get_dataloader(sizes[2], edge_size, batch_size, transformation)
@@ -70,10 +70,11 @@ def train_model_for_eval(train_dl_pt, test_dl_pt, sizes, edge_size, epochs, clas
     learning_rate = 0.001
     momentum = 0.95
 
-    model = AutoNet(sizes[2], edge_size, classes)
+    model = DeepAutoNet(sizes[2], edge_size, classes)
 
     loss = F.cross_entropy
-    optim = torch.optim.SGD(params=model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=1e-2)
+    # optim = torch.optim.SGD(params=model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=1e-2)
+    optim = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-2)
 
     model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs)
 

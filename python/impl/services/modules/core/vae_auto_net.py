@@ -183,7 +183,7 @@ def train_loss_from_svm(mu, labels, proj_dataloader, enc):
 
 def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.data.DataLoader, 
                                     proj_dataloader : torch.utils.data.DataLoader, 
-                                    epochs: int, optimizer_ : torch.optim.Optimizer, epsilon : float = 0.0007):
+                                    epochs: int, optimizer_ : torch.optim.Optimizer, epsilon : float = 0.000005):
 
   learning_rate = 0.00005
 
@@ -201,7 +201,7 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
 
   train_loss_avg : List[float] = []
 
-  start_enc_loss_percent : int = 0
+  start_enc_loss_percent : int = 10
 
   ReiformInfo('Training Projection VAE...')
   for epoch in range(epochs):
@@ -248,9 +248,10 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
       ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
 
       # Stop condition (helps with wild training times on huge datasets)
-      if len(train_loss_avg) > 2:
-          delta = train_loss_avg[-2] - train_loss_avg[-1]
-          if delta < epsilon and delta > 0:
+      if len(train_loss_avg) > 4:
+          delta_2 = train_loss_avg[-2] - train_loss_avg[-1]
+          delta_1 = train_loss_avg[-3] - train_loss_avg[-2]
+          if delta_1 < epsilon and delta_2 < epsilon and delta_2 > 0 and delta_1 > 0:
               break
 
   return vae, train_loss_avg

@@ -24,7 +24,9 @@ def create_conv_dilation_block(insize: int, outsize: int):
         create_conv_block(midsize, outsize, 3, 1, 2, d=2),
     )
 
-def create_all_conv_blocks(insize: int, edgesize: int, linearsize: int) -> nn.Sequential:
+def create_all_conv_blocks(insize: int, edgesize: int, linearsize: int, 
+                           conv_block: Callable=create_conv_dilation_block, 
+                           pool_block: Callable=create_conv_maxpool_block) -> nn.Sequential:
 
     max_size : int = 64**3
 
@@ -37,19 +39,19 @@ def create_all_conv_blocks(insize: int, edgesize: int, linearsize: int) -> nn.Se
 
     while curr_edge * curr_edge * next_width > linearsize and curr_edge > 2:
         conv_blocks.append(
-            create_conv_dilation_block(curr_width, next_width)
+            conv_block(curr_width, next_width)
         )
         curr_width = next_width
         next_width //=2
         conv_blocks.append(
-            create_conv_maxpool_block(curr_width, next_width)
+            pool_block(curr_width, next_width)
         )
         curr_width = next_width
         conv_blocks.append(
-            create_conv_dilation_block(curr_width, curr_width)
+            conv_block(curr_width, curr_width)
         )
         conv_blocks.append(
-            create_conv_maxpool_block(curr_width, curr_width)
+            pool_block(curr_width, curr_width)
         )
 
         curr_edge //=4
@@ -98,6 +100,51 @@ class AutoNet(nn.Module):
         x = torch.sigmoid(x)
         return x
 
+def create_deep_conv_maxpool_block(insize: int, outsize: int):
+    midsize: int = (insize + outsize)//2
+    return nn.Sequential(
+        create_conv_block(insize, midsize//2, 3, 1, 1),
+        create_conv_block(midsize//2, midsize//2, 5, 1, 2),
+        create_conv_block(midsize//2, midsize, 3, 1, 1),
+        create_conv_block(midsize, midsize, 5, 1, 2),
+        create_conv_block(midsize, outsize, 3, 1, 1),
+        nn.MaxPool2d(2, stride=2)
+    )
+
+
+def create_deep_conv_dilation_block(insize: int, outsize: int):
+    midsize: int = (insize + outsize)//2
+    return nn.Sequential(
+        create_conv_block(insize, midsize, 3, 1, 1),
+        create_conv_block(midsize, outsize, 3, 1, 2, d=2),
+    )
+
+class DeepAutoNet(nn.Module):
+
+    def __init__(self, insize: int, edgesize: int, classes: int) -> None:
+        super().__init__()
+
+        linear_size : int = min(4096, 400*classes)
+        self.conv : nn.Sequential = create_all_conv_blocks(insize, edgesize, linear_size, 
+                                            create_deep_conv_dilation_block, create_deep_conv_maxpool_block)
+
+        self.fc : nn.Sequential = create_all_linear_blocks(linear_size, classes)
+
+
+    def forward(self, x):
+
+        if VERBOSE:
+            ReiformInfo(x.size())
+
+            for layer in self.conv:
+                x = layer(x)
+                ReiformInfo(x.size())
+        else:
+            x = self.conv(x)
+
+        x = self.fc(x)
+        x = torch.sigmoid(x)
+        return x
 
 def create_small_linear_blocks(insize : int, classes : int):
 

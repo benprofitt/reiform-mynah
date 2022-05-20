@@ -29,8 +29,17 @@ from typing import List, Tuple, Dict, Any, Callable, Optional
 from nptyping import NDArray # type: ignore
 
 from impl.services.modules.utils.reiform_exceptions import *
+import fiftyone as fo # type: ignore
+import fiftyone.zoo as foz # type: ignore
+
+import umap # type: ignore
+
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
+logging.getLogger("numba").setLevel(logging.WARNING)
+
+# for name in logging.root.manager.loggerDict:
+#     logging.getLogger(name).setLevel(logging.WARNING)
 
 random.seed(7343432676)
 
@@ -48,7 +57,7 @@ LOCAL_PRETRAINED_PATH_LIGHT_CORRECTION : str = "models/lighting/correction"
 PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION = "PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION "
 PROJECTION_LABEL_REDUCED_EMBEDDING = "PROJECTION_LABEL_REDUCED_EMBEDDING"
 PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS = "PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS"
-PROJECTION_LABEL_3D_PER_CLASS = "PROJECTION_LABEL_3D_PER_CLASS"
+PROJECTION_LABEL_2D_PER_CLASS = "PROJECTION_LABEL_3D_PER_CLASS"
 
 LIGHTING_PREDICTION = "lighting_prediciton"
 
@@ -61,12 +70,12 @@ STD = "std"
 LATENT_SIZE = "latent_size"
 NAME = "dataset_name"
 
-EMBEDDING_DIM_SIZE = 4
+EMBEDDING_DIM_SIZE = 32
 
 VARIATIONAL_BETA = 0.0000001
-VAE_PROJECTION_TRAINING_EPOCHS = 50
+VAE_PROJECTION_TRAINING_EPOCHS = 200
 
-CORRECTION_MODEL_BATCH_SIZE = 1024
+CORRECTION_MODEL_BATCH_SIZE = 512
 MAX_CORRECTION_MODEL_BATCH_SIZE = 1024
 
 BASE_EMBEDDING_MODEL_BATCH_SIZE = 22
@@ -74,11 +83,10 @@ MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3
-edgesizes = [16, 32, 64]
-monte_carlo_simulations = 85
-monte_carlo_simulations = 5
-epochs = 14
-epochs = 5
+MONTE_CARLO_SIMULATIONS = 25
+epochs = 25
+MONTE_CARLO_SIMULATIONS = 10
+epochs = 10
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 # device = ("cpu") # Use this if you get obfuscated CUDA errors

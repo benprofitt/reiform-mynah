@@ -5,6 +5,7 @@ from impl.services.modules.core.reiform_imageclassificationdataset import *
 
 from .pretrained_embedding import *
 
+
 def pretrained_projection(data : ReiformICDataSet, model : torch.nn.Module, 
                           preprocess : transforms.Compose, label : str) -> ReiformICDataSet:
     
@@ -50,47 +51,55 @@ def vae_projection(data : ReiformICDataSet, latent_size : int,
     # return results
     return results
 
+from torchvision.models.feature_extraction import create_feature_extractor # type: ignore
 
 def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
-    sizes = dataset.find_max_image_dims()
-    max_ = max(sizes)
-    channels = sizes[2]
-    closest_size = closest_power_of_2(max_)
-
-    path_to_models = get_embedding_path(path_to_embeddings, channels, closest_size)
-
+    
     # Get all model files under this ^ path, 
     # process dataset, and add the projections to 
     # the dataset. Then combine all of the projections, 
-    # and use PCA to reduce to fewer dimensions. (for outliers)
+    # and use umap_red to reduce to fewer dimensions. (for outliers)
     # Finally, reduce again to 2D (for reporting)
 
-    model_files = glob(path_to_models + '/**/*.pt', recursive=True)
-    json_files = glob(path_to_models + '/**/*.json', recursive=True)
+    start = time.time()
 
-    for model_path, json_path in zip(model_files, json_files):
+    # Load a resnet from the model zoo
+    model_ = foz.load_zoo_model("mobilenet-v2-imagenet-torch")
+    model_ = model_._model
 
-        with open(json_path, 'r') as fh:
-            json_body = json.load(fh)
-
-            edge_size : int = json_body[SIZE]
-            resize : str = json_body[RESIZE]
-            resize_str = "transforms.Resize" + ("({})".format(edge_size) if resize == "min_size" else "(({}, {}))".format(edge_size, edge_size))
-
-            transformation = transforms.Compose([
-                eval(resize_str),
-                transforms.RandomCrop(edge_size),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=json_body[MEAN], std=json_body[STD])
-            ])
-
-        encoder = load_embedding_model(model_path, json_body)
-
-        dataset = pretrained_projection(dataset, encoder, transformation, json_path)
-
-    dataset.combine_projections(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION, json_files)
+    return_nodes = {
+        "features": "embedding"
+    }
+    model_ = create_feature_extractor(model_, return_nodes=return_nodes)
+    model_.to(device)
+    model_.eval()
+    pt_dl = dataset.get_dataloader(3, batch_size=96, edge_size=224)
 
     embeddings : List[NDArray] = []
+    file_names : List[str] = []
+
+    for images, labels, name_batch in pt_dl:
+        images = images.to(device)
+
+        pred = model_(images)["embedding"]
+        x = nn.functional.adaptive_avg_pool2d(pred, (1, 1))
+        x = torch.flatten(x, 1)
+
+        file_names += name_batch
+        for v in x.to("cpu").detach().numpy():
+            embeddings.append(v)
+
+    ReiformInfo("Time: {}".format(time.time() - start))
+    start = time.time()
+
+    for i, name in enumerate(file_names):
+        file = dataset.get_file_by_uuid(name)
+        file.add_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION, embeddings[i])
+
+    ReiformInfo("Time: {}".format(time.time() - start))
+    start = time.time()
+
+    embeddings = []
     names : List[Tuple[str, str]] = []
 
     embeddings_by_class : Dict[str, List[NDArray]] = {}
@@ -107,29 +116,37 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
             embeddings_by_class[c].append(file.get_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION))
             names_by_class[c].append(name)
     
+    ReiformInfo("Time: {}".format(time.time() - start))
+    start = time.time()
+
     for c in dataset.classes():
         # Per-class embedding reduction -> used for class splitting
-        pca = PCA(n_components="mle")
-        reduced_embeddings = pca.fit_transform(embeddings_by_class[c])
+        umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=8)
+        reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS, reduced_embeddings[i])
 
-        pca = PCA(n_components=3)
-        reduced_embeddings = pca.fit_transform(embeddings_by_class[c])
+        umap_red = umap.UMAP(n_jobs=8)
+        reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
         for i, name in enumerate(names_by_class[c]):
-            dataset.get_file(c, name).add_projection(PROJECTION_LABEL_3D_PER_CLASS, reduced_embeddings[i])
+            dataset.get_file(c, name).add_projection(PROJECTION_LABEL_2D_PER_CLASS, reduced_embeddings[i])
 
+    ReiformInfo("Time: {}".format(time.time() - start))
+    start = time.time()
 
     # Entire dataset embedding reduction -> used for outlier detection
-    pca = PCA(n_components="mle")
-    reduced_embeddings = pca.fit_transform(embeddings)
+    umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=8)
+    reduced_embeddings = umap_red.fit_transform(embeddings)
 
-    for i, (c, name) in enumerate(names):
-        dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING, reduced_embeddings[i])
+    for i, file in enumerate(names):
+        dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING, reduced_embeddings[i])
 
     # 2D projections -> Used to show user what's up with these embeddings
-    pca = PCA(n_components=2)
-    reduced_embeddings = pca.fit_transform(embeddings)
+    umap_red = umap.UMAP(n_jobs=8)
+    reduced_embeddings = umap_red.fit_transform(embeddings)
 
-    for i, (c, name) in enumerate(names):
-        dataset.get_file(c, name).add_projection(PROJECTION_LABEL_2D, reduced_embeddings[i])
+    for i, file in enumerate(names):
+        dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_2D, reduced_embeddings[i])
+
+    ReiformInfo("Time: {}".format(time.time() - start))
+    start = time.time()

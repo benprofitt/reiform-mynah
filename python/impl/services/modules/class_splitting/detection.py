@@ -8,6 +8,6 @@ def detect_split_need(dataset : ReiformICDataSet):
     def create_clf():
         return OPTICS(min_samples=min_points//5)
 
-    label : str = PROJECTION_LABEL_3D_PER_CLASS
+    label : str = PROJECTION_LABEL_2D_PER_CLASS
 
     return perform_split(dataset, label, create_clf, dataset.classes())

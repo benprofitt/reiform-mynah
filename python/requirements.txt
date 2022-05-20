@@ -10,3 +10,5 @@ pyod
 scikit-learn
 scipy
 typing-extensions
+umap-learn
+fiftyone

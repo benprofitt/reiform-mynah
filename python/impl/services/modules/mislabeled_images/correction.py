@@ -11,15 +11,17 @@ def train_correction_model(dataset: ReiformICDataSet, edge_size: int) -> nn.Modu
 
     return model
 
-def train_correction_model_ensemble(dataset : ReiformICDataSet) -> List[nn.Module]:
+def train_correction_model_ensemble(dataset : ReiformICDataSet) -> Tuple[List[nn.Module], List[int]]:
     
     models : List[nn.Module] = []
+    pwr_2 = max(32, closest_power_of_2(dataset.max_size()))
+    edgesizes = [pwr_2//2, pwr_2, pwr_2]
     
     for edge_size in edgesizes:
         model = train_correction_model(dataset, edge_size)
         models.append(model)
 
-    return models
+    return models, edgesizes
 
 def predict_correct_label(dataset : ReiformICDataSet, model: nn.Module, edge_size: int) -> ReiformICDataSet:
     
@@ -37,8 +39,7 @@ def predict_correct_label(dataset : ReiformICDataSet, model: nn.Module, edge_siz
 
     return dataset
 
-
-def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[nn.Module]) -> ReiformICDataSet:
+def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[nn.Module], edgesizes: List[int]) -> ReiformICDataSet:
 
     for edge_size, model in zip(edgesizes, models):
         dataset = predict_correct_label(dataset, model, edge_size)
@@ -94,10 +95,13 @@ def monte_carlo_label_correction(simulations: int,
             to_correct = dinc
 
         # Use incl to train several types of ML/DL models
-        models : List[nn.Module] = train_correction_model_ensemble(incl)
+        models : List[nn.Module] = [] 
+        edgesizes : List[int] = [] 
+
+        models, edgesizes = train_correction_model_ensemble(incl)
 
         # Classify contents of 'to_correct' using new models
-        to_correct = predict_correct_label_ensemble(to_correct, models)
+        to_correct = predict_correct_label_ensemble(to_correct, models, edgesizes)
 
     corrected : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
     dropped : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
@@ -131,10 +135,12 @@ def iterative_reinjection_label_correction(iterations : int,
                                  outliers: ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, ReiformICDataSet]:
     start = time.time()
     all_corrected : ReiformICDataSet = ReiformICDataSet(inliers.classes())
+    ReiformInfo("Inliers / Outliers counts: {} / {} ".format(inliers.file_count(), outliers.file_count()))
     for iter in range(iterations):
         ReiformInfo("Iteration: {} / {}".format(iter+1, iterations))
 
-        corrected, dropped = monte_carlo_label_correction(monte_carlo_simulations, inliers, outliers)
+        corrected, dropped = monte_carlo_label_correction(MONTE_CARLO_SIMULATIONS, inliers, outliers)
+
         all_corrected.merge_in(corrected)
 
         if outliers.file_count() == 0:
@@ -148,6 +154,13 @@ def iterative_reinjection_label_correction(iterations : int,
             break
 
         outliers = dropped
+        if outliers.file_count() == 0:
+            ReiformInfo("Early termination of iterative label correction: |outliers| == 0 (all corrected)")
+            break
+
+        ReiformInfo("Inliers / Outliers / Dropped / Corrected / All_Corr counts: {} / {} / {} / {} / {}".format(
+                            inliers.file_count(), outliers.file_count(), dropped.file_count(), 
+                            corrected.file_count(), all_corrected.file_count()))
 
     ReiformInfo("Full Monte Carlo timing: {} seconds".format(round(time.time() - start) ))
     return inliers, outliers, all_corrected

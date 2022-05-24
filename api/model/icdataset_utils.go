@@ -34,9 +34,7 @@ func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToReport(report
 func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
 	//make sure the images are removed from this version
 	for _, fileId := range m.Removed {
-		if _, ok := version.Files[fileId]; ok {
-			delete(version.Files, fileId)
-		}
+		delete(version.Files, fileId)
 	}
 	return nil
 }
@@ -106,9 +104,7 @@ func (m MynahICProcessTaskDiagnoseLightingConditionsMetadata) ApplyToReport(repo
 func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
 	//make sure the images are removed from this version
 	for _, fileId := range m.Removed {
-		if _, ok := version.Files[fileId]; ok {
-			delete(version.Files, fileId)
-		}
+		delete(version.Files, fileId)
 	}
 	return nil
 }

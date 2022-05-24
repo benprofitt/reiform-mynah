@@ -317,10 +317,30 @@
     - `name`: the name of the file
     - `metadata`: file metadata (Note: even though some values are numeric, the structure is a string to string map)
 
-## File endpoint
+## File endpoints
+
+### Requesting file contents
 - All files tracked by Mynah can be requested using:
 - `GET /api/v1/file/{uuid}/{tag}`
 - Where tag can be `original` or `latest`
+- Returns the file contents
+
+### Requesting file metadata
+- File metadata can be requested for one or more files
+- `GET /api/v1/file/list`
+- Params (required)
+  - `fileid`
+    - Multiple allowed
+  - Example: `GET /api/v1/file/list?fileid=123&fileid=234`
+- Response:
+  ```json
+  {
+    "123": type: MynahFile,
+    "234": type: MynahFile,
+     ...
+  }
+  ```
+- Note, providing no `fileid` will return a 4xx status
 
 ## Admin Management Endpoints
 

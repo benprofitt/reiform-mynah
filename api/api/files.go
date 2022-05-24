@@ -23,6 +23,7 @@ import (
 const fileKey string = "file"
 const fileVersionIdKey string = "version_id"
 const MultipartFormFileKey = "file"
+const fileIdKey string = "fileid"
 
 //check if a file is of a valid type
 func validFiletype(filetype *string) bool {
@@ -196,8 +197,40 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 			}
 
 		} else {
-			log.Errorf("file request path missing %s", fileKey)
+			log.Errorf("file request path missing '%s'", fileKey)
 			writer.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+}
+
+//handler that gets metadata for a list of files
+func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		//get the user from context
+		user := middleware.GetUserFromRequest(request)
+
+		if ids, ok := request.Form[fileIdKey]; ok {
+			fileIds := make([]model.MynahUuid, len(ids))
+			for i := 0; i < len(ids); i++ {
+				fileIds[i] = model.MynahUuid(ids[i])
+			}
+
+			//request the files
+			if fileRes, err := dbProvider.GetFiles(fileIds, user); err == nil {
+				//write the response
+				if err := responseWriteJson(writer, &fileRes); err != nil {
+					log.Errorf("failed to write response as json: %s", err)
+					writer.WriteHeader(http.StatusInternalServerError)
+				}
+
+			} else {
+				log.Errorf("failed to request files %s", err)
+				writer.WriteHeader(http.StatusInternalServerError)
+			}
+
+		} else {
+			log.Errorf("list file metadata missing ids given with key '%s'", fileIdKey)
+			writer.WriteHeader(http.StatusBadRequest)
 		}
 	}
 }

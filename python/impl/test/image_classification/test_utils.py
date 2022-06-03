@@ -73,7 +73,7 @@ def train_model_for_eval(train_dl_pt, test_dl_pt, sizes, edge_size, epochs, clas
     model = DeepAutoNet(sizes[2], edge_size, classes)
 
     loss = F.cross_entropy
-    # optim = torch.optim.SGD(params=model.parameters(), lr=learning_rate, momentum=momentum, weight_decay=1e-2)
+    
     optim = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-2)
 
     model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs)

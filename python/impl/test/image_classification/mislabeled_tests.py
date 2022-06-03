@@ -38,7 +38,7 @@ def run_pretrained_detection(data : ReiformICDataSet):
 
 def run_label_correction(inliers : ReiformICDataSet, 
                           outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, ReiformICDataSet]:
-    inliers, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
+    inliers, outliers, corrected = iterative_reinjection_label_correction(25, inliers, outliers)
 
     return inliers, outliers, corrected
 
@@ -64,9 +64,10 @@ def run_tests(data_path=None, results_path=None):
     # data_path : str = "./python/impl/test/test_data_mnist"
     # results_path : str = "./python/impl/test/test_results"
     if data_path is None:
-        data_path : str = "./impl/test/test_data_cifar"
+        data_path : str = "python/impl/test/test_data_cifar"
+        data_path : str = "python/impl/test/test_data_color"
     if results_path is None:
-        results_path : str = "./impl/test/test_results"
+        results_path : str = "python/impl/test/test_results"
 
     do_dataset_evaluation = False
     do_test_detection = True

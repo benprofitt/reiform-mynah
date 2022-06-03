@@ -29,19 +29,13 @@ from typing import List, Tuple, Dict, Any, Callable, Optional
 from nptyping import NDArray # type: ignore
 
 from impl.services.modules.utils.reiform_exceptions import *
-import fiftyone as fo # type: ignore
-import fiftyone.zoo as foz # type: ignore
 
 import umap # type: ignore
 
-
 logging.getLogger('PIL').setLevel(logging.WARNING)
-logging.getLogger("numba").setLevel(logging.WARNING)
+logging.getLogger('numba').setLevel(logging.WARNING)
 
-# for name in logging.root.manager.loggerDict:
-#     logging.getLogger(name).setLevel(logging.WARNING)
-
-random.seed(7343432676)
+random.seed(73434323)
 
 image_extns : List[str] = ["png", "jpeg", "jpg", "tif", "tiff"]
 WORKERS : int = 3
@@ -51,6 +45,7 @@ PROJECTION_LABEL : str = "inception_projection"
 PROJECTION_LABEL_2D : str = "2D_projection"
 
 LOCAL_EMBEDDING_PATH : str = "models/embedding"
+LOCAL_EMBEDDING_PATH_MOBILENET : str = "models/mobilenet-v2-embeddings.pt"
 LOCAL_PRETRAINED_PATH_LIGHT_DETECTION : str = "models/lighting/detection"
 LOCAL_PRETRAINED_PATH_LIGHT_CORRECTION : str = "models/lighting/correction"
 
@@ -83,10 +78,8 @@ MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3
-MONTE_CARLO_SIMULATIONS = 25
-epochs = 25
-MONTE_CARLO_SIMULATIONS = 10
-epochs = 10
+MONTE_CARLO_SIMULATIONS = 50
+MONTE_CARLO_TRAINING_EPOCHS = 50
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 # device = ("cpu") # Use this if you get obfuscated CUDA errors

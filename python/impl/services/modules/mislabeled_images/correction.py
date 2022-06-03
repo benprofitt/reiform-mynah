@@ -6,8 +6,8 @@ def train_correction_model(dataset: ReiformICDataSet, edge_size: int) -> nn.Modu
 
     model = SmallAutoNet(insize, edge_size, classes)
     dataloader = dataset.get_dataloader(insize, edge_size, CORRECTION_MODEL_BATCH_SIZE)
-    train_conv_net(model, dataloader, multiclass_model_loss, 
-                    get_optimizer(model), epochs)
+    model, _ = train_conv_net(model, dataloader, multiclass_model_loss, 
+                    get_optimizer(model), MONTE_CARLO_TRAINING_EPOCHS, MONTE_CARLO_TRAINING_EPOCHS//2)
 
     return model
 
@@ -15,7 +15,7 @@ def train_correction_model_ensemble(dataset : ReiformICDataSet) -> Tuple[List[nn
     
     models : List[nn.Module] = []
     pwr_2 = max(32, closest_power_of_2(dataset.max_size()))
-    edgesizes = [pwr_2//2, pwr_2, pwr_2]
+    edgesizes = [pwr_2, pwr_2]
     
     for edge_size in edgesizes:
         model = train_correction_model(dataset, edge_size)
@@ -53,30 +53,18 @@ def evaluate_correction_confidence(starting_label: int, predictions: NDArray) ->
 
     # predictions => (P, C) ; P is number of predictions, C is number of classes
 
-    # Compute the averages
-    average = np.mean(predictions, axis=0)
-    max_avg = np.argmax(average)
-
     # Compute the freq that something is the max in the array
+    average = np.mean(predictions, axis=0)
     max_freq = [0] * average.size
     max_indices = np.argmax(predictions, axis=1)
+    total : int = 0
     for val in max_indices:
+        total += 1
         max_freq[int(val)] = max_freq[int(val)] + 1
-    max_max = max_freq.index(max(max_freq))
+    max_max = int(max_freq.index(max(max_freq)))
 
-    # Compute the freq of indices being > 0.5
-    predictions[predictions < 0.5] = 0
-    predictions[predictions > 0] = 1
-    thresholds = np.sum(predictions, axis=0)
-    max_thresh = np.argmax(thresholds)
-
-    # Find consensus
-    if   max_avg == max_max and max_avg == max_thresh:
-        return True, int(max_avg)
-    elif max_max == max_thresh and starting_label == max_max:
-        return True, int(max_max)
-    elif max_thresh == max_avg and starting_label == max_thresh:
-        return True, int(max_thresh)
+    if max_freq[max_max] >= total * (9/10):
+        return True, max_max
 
     return False, -1
     

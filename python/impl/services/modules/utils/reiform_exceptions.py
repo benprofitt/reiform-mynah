@@ -7,6 +7,8 @@ class ReiformLogger(object):
     def __new__(cls: type[ReiformLogger]) -> ReiformLogger:
         if not hasattr(cls, 'instance'):
             log = logging.getLogger()
+            # Clear loggers that are created by other libraries
+            log.handlers = []
             log.setLevel(logging.DEBUG)
             stream = logging.StreamHandler(sys.stderr)
             formatter = logging.Formatter('mynah-python %(asctime)s %(message)s')
@@ -16,10 +18,13 @@ class ReiformLogger(object):
             cls.instance = super(ReiformLogger, cls).__new__(cls)
             cls.logger : ModuleType = logging
 
+
         return cls.instance
 
 class ReiformInfo():
     def __init__(self, message : str="Unimplemented Info Type"):
+
+        super().__init__()
         ReiformLogger().logger.info(message)
 
 class ReiformWarning():

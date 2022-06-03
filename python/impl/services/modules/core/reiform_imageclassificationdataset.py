@@ -498,9 +498,12 @@ class ReiformICDataSet(ReiformImageDataset):
 
         new_dataset : ReiformICDataSet = ReiformICDataSet(self.class_list)
 
+
+        count = 0
         for c in self.class_list:
             for _, file in self.get_items(c):
                 if random.random() < percent/100.0:
+                    count += 1
                     new_c = new_class(c, self.class_list)
                     new_file : ReiformICFile = copy.deepcopy(file)
                     new_file.set_class(new_c)
@@ -508,6 +511,7 @@ class ReiformICDataSet(ReiformImageDataset):
                 else:
                     new_dataset.add_file(copy.deepcopy(file))
         
+        ReiformInfo("Total mislabeled: {}".format(count))
         return new_dataset
 
     def count_differences(self, other: ReiformICDataSet):

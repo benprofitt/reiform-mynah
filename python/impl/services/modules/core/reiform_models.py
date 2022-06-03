@@ -231,7 +231,8 @@ def get_optimizer(model : nn.Module):
     return optimizer
 
 def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader, 
-                   loss_function : Any, optimizer : torch.optim.Optimizer, epochs: int):
+                   loss_function : Any, optimizer : torch.optim.Optimizer, epochs : int,
+                   min_epochs : int = 10, epsilon : float = 0.00005):
 
   # set to training mode
   model.train()
@@ -266,7 +267,15 @@ def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader,
           num_batches += 1
           
       train_loss_avg[-1] /= num_batches
-      ReiformInfo('Epoch [%d / %d] average reconstruction error: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+      ReiformInfo('Epoch [%d / %d] average loss: %f' % (epoch+1, epochs, train_loss_avg[-1]))
+
+      # Stop condition (helps with wild training times on huge datasets)
+      if len(train_loss_avg) > min_epochs:
+          delta_2 = train_loss_avg[-2] - train_loss_avg[-1]
+          delta_1 = train_loss_avg[-3] - train_loss_avg[-2]
+          if delta_1 < epsilon and delta_2 < epsilon and delta_2 > 0 and delta_1 > 0:
+              break
+
   return model, train_loss_avg
 
 def predict_labels(model : nn.Module, dataloader : torch.utils.data.DataLoader):

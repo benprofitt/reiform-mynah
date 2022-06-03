@@ -63,9 +63,9 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
 
     start = time.time()
 
-    # Load a resnet from the model zoo
-    model_ = foz.load_zoo_model("mobilenet-v2-imagenet-torch")
-    model_ = model_._model
+    # Load a model from the saved model 
+    model_ = torchvision.models.mobilenet_v2()
+    model_.load_state_dict(torch.load(LOCAL_EMBEDDING_PATH_MOBILENET))
 
     return_nodes = {
         "features": "embedding"

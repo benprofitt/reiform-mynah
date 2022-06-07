@@ -82,6 +82,8 @@ type MynahSettings struct {
 	StaticPrefix string `json:"static_prefix"`
 	//the folder containing static web resources
 	StaticResourcesPath string `json:"static_resources_path"`
+	//the folder containing the built and bundled js and css
+	BuildAssetsFolder string `json:"build_assets_folder"`
 	//whether read access can be unauthenticated
 	UnauthReadAccess bool `json:"unauth_read_access"`
 	//the port to listen for requests on
@@ -103,6 +105,7 @@ func DefaultSettings() *MynahSettings {
 		ApiPrefix:           "/api/v1",
 		StaticPrefix:        "/mynah/",
 		StaticResourcesPath: "./static/",
+		BuildAssetsFolder:   "/assets/",
 		UnauthReadAccess:    false,
 		Port:                8080,
 		CORSAllowOrigin:     "*",

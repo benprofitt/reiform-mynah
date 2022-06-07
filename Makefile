@@ -9,7 +9,7 @@ cli:
 	cd cli ; $(GO) build $(GO_ARGS) . && mv mynah-cli ../
 frontend:
 	rm -r static || true
-	cd frontend ; npm install && npm run build && mv build ../static
+	cd frontend ; npm install && npm run build && mv dist ../static
 format:
 	cd api ; $(GO) fmt ./...
 test:

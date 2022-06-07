@@ -42,7 +42,8 @@ func (r *MynahRouter) serveStaticSite() {
 		http.FileServer(http.Dir(r.settings.StaticResourcesPath)))
 
 	//static react resources
-	r.PathPrefix(path.Join(r.settings.StaticPrefix, "static/")).Handler(r.staticLogger(func(writer http.ResponseWriter, request *http.Request) {
+	// requests to /mynah/assets return the assets stored in /mynah/static/assets
+	r.PathPrefix(path.Join(r.settings.StaticPrefix, r.settings.BuildAssetsFolder)).Handler(r.staticLogger(func(writer http.ResponseWriter, request *http.Request) {
 		fs.ServeHTTP(writer, request)
 	}))
 

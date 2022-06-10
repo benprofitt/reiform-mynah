@@ -19,6 +19,32 @@ const (
 	ICProcessCorrectImageBlurTask           MynahICProcessTaskType = "ic::correct::image_blur"
 )
 
+// MynahICDatasetFormatType is the dataset format type identifier
+type MynahICDatasetFormatType string
+
+const (
+	ICDatasetFolderFormat MynahICDatasetFormatType = "ic::folder_format"
+)
+
+// MynahICDatasetFormatMetadata defines a dataset format
+type MynahICDatasetFormatMetadata interface {
+	// DatasetFileIterator takes a map from fileid to original filename and takes a function that is called for each file to export
+	// the handler takes a file, the version to export, and the path to write the file to in the zip
+	DatasetFileIterator(*MynahICDatasetVersion, map[MynahUuid]string, func(fileId MynahUuid, fileVersion MynahFileVersionId, filePath string) error) error
+	// GenerateArtifacts takes a handler that is called for each additional artifact the dataset export
+	// generates. THis includes the file contents and the path to write to in the zip archive
+	// Note: filePath includes the filename
+	GenerateArtifacts(*MynahICDatasetVersion, func(fileContents []byte, filePath string) error) error
+}
+
+// MynahICDatasetFormat defines the import/export format for a dataset
+type MynahICDatasetFormat struct {
+	// the format type
+	Type MynahICDatasetFormatType `json:"type"`
+	// the metadata
+	Metadata MynahICDatasetFormatMetadata `json:"metadata"`
+}
+
 // MynahICProcessTaskMetadata defines metadata specific to some task
 type MynahICProcessTaskMetadata interface {
 	// ApplyToDataset makes changes to the dataset based on this metadata
@@ -93,6 +119,7 @@ type MynahICProcessTaskData struct {
 	Metadata MynahICProcessTaskMetadata `json:"metadata"`
 }
 
+// MynahICDatasetFile defines per file metadata for the dataset
 type MynahICDatasetFile struct {
 	//the version id for the file
 	ImageVersionId MynahFileVersionId `json:"image_version_id"`
@@ -132,6 +159,8 @@ type MynahICDataset struct {
 	Reports map[MynahDatasetVersionId]MynahUuid `json:"-" xorm:"TEXT 'reports'"`
 	//the latest version
 	LatestVersion MynahDatasetVersionId `json:"latest_version" xorm:"TEXT 'latest_version'"`
+	//the format
+	Format MynahICDatasetFormat `json:"-" xorm:"TEXT 'format'"`
 }
 
 // NewICDataset creates a new dataset
@@ -141,6 +170,10 @@ func NewICDataset(creator *MynahUser) *MynahICDataset {
 		Versions:      make(map[MynahDatasetVersionId]*MynahICDatasetVersion),
 		Reports:       make(map[MynahDatasetVersionId]MynahUuid),
 		LatestVersion: "0",
+		Format: MynahICDatasetFormat{
+			Type:     ICDatasetFolderFormat,
+			Metadata: &MynahICDatasetFolderFormat{},
+		},
 	}
 }
 

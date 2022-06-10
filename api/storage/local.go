@@ -95,6 +95,16 @@ func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersio
 	return err
 }
 
+// CreateTempFile creates a temp file. Note: must be cleaned up by the caller
+func (s *localStorage) CreateTempFile(name string) (*os.File, error) {
+	return os.Create(filepath.Clean(filepath.Join(s.localPath, name)))
+}
+
+// DeleteTempFile cleans up a temp file
+func (s *localStorage) DeleteTempFile(name string) error {
+	return os.Remove(filepath.Join(s.localPath, name))
+}
+
 // StoreFile Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
 	//insert the default version id if not found

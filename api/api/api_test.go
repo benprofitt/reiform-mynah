@@ -327,7 +327,7 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 
 			//handle user creation endpoint
-			c.Router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(c.DBProvider, c.StorageProvider))
+			c.Router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(c.DBProvider))
 
 			return c.WithCreateFile(user, "test_contents", func(file *model.MynahFile) error {
 				//create the request

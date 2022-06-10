@@ -23,6 +23,7 @@ import (
 const fileKey string = "file"
 const fileVersionIdKey string = "version_id"
 const MultipartFormFileKey = "file"
+const MultipartFormNameKey = "name"
 const fileIdKey string = "fileid"
 
 //check if a file is of a valid type
@@ -105,7 +106,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 		}
 
 		mynahFile, err := dbProvider.CreateFile(user, func(f *model.MynahFile) error {
-			f.Name = "<unknown>" //TODO read this from the multipart form
+			f.Name = fileHeader.Filename
 			//write the contents of the file to storage
 			if err := storageProvider.StoreFile(f, func(osFile *os.File) error {
 				_, err := osFile.Write(fileContents)

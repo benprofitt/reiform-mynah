@@ -1,6 +1,6 @@
 from impl.services.modules.class_splitting.detection import *
 from impl.services.modules.class_splitting.correction import *
-from impl.services.modules.core.embeddings.latent_projection import get_dataset_embedding
+from impl.services.modules.core.embeddings.latent_projection import create_dataset_embedding
 from impl.services.modules.core.reiform_imageclassificationdataset import dataset_from_path
 from impl.test.image_classification.test_utils import dataset_evaluation
 
@@ -13,8 +13,8 @@ def test_splitting_detection(dataset : ReiformICDataSet,
         dataset.combine_classes(g)
 
     # Run embedding code
-    path_to_embeddings = LOCAL_EMBEDDING_PATH
-    get_dataset_embedding(dataset, path_to_embeddings)
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_MOBILENET
+    create_dataset_embedding(dataset, path_to_embeddings)
 
     # Run splitting prediction
     split_count, split_predictions = detect_split_need(dataset)
@@ -60,8 +60,8 @@ def test_splitting_correction(dataset : ReiformICDataSet,
     combined_scores = dataset_evaluation(train_ds, test_ds)
 
     # Run embedding code
-    path_to_embeddings = LOCAL_EMBEDDING_PATH
-    get_dataset_embedding(dataset, path_to_embeddings)
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_MOBILENET
+    create_dataset_embedding(dataset, path_to_embeddings)
 
     # Run splitting prediction
     main_classes = [g[0] for g in groups_to_combine]

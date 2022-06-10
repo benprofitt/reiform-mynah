@@ -512,7 +512,7 @@ class ReiformICDataSet(ReiformImageDataset):
                     new_dataset.add_file(copy.deepcopy(file))
         
         ReiformInfo("Total mislabeled: {}".format(count))
-        return new_dataset
+        return new_dataset, count
 
     def count_differences(self, other: ReiformICDataSet):
         if self.class_list != other.class_list:

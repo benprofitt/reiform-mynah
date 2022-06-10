@@ -22,14 +22,15 @@ def test_vae_projection(data : ReiformICDataSet) -> Tuple[ReiformICDataSet, Reif
 
 def test_pretrained_projection_detection(data : ReiformICDataSet) -> ReiformICDataSet:
 
-    data = data.mislabel(5)
+    data, count = data.mislabel(5)
+    inliers, outliers = run_pretrained_detection(data)
 
-    return run_pretrained_detection(data)
+    return inliers, outliers, count
 
 def run_pretrained_detection(data : ReiformICDataSet):
     # Run embedding code
-    path_to_embeddings = LOCAL_EMBEDDING_PATH
-    get_dataset_embedding(data, path_to_embeddings)
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
+    create_dataset_embedding(data, path_to_embeddings)
 
     inliers, outliers = find_outlier_consensus(data)
 
@@ -38,14 +39,17 @@ def run_pretrained_detection(data : ReiformICDataSet):
 
 def run_label_correction(inliers : ReiformICDataSet, 
                           outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, ReiformICDataSet]:
-    inliers, outliers, corrected = iterative_reinjection_label_correction(25, inliers, outliers)
+    inliers, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
 
     return inliers, outliers, corrected
 
 def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
     # Takes in a dataset and returns the corrected data to write out
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
+    create_dataset_embedding(dataset, path_to_embeddings)
+
     inliers, outliers = dataset.split(0.9)
-    outliers = outliers.mislabel(101)
+    outliers, count = outliers.mislabel(101)
 
     inl, new_out, corrected = run_label_correction(inliers, outliers)
 
@@ -62,18 +66,58 @@ def run_tests(data_path=None, results_path=None):
 
     # These should be the actual dirs in git with the tests files
     # data_path : str = "./python/impl/test/test_data_mnist"
-    # results_path : str = "./python/impl/test/test_results"
     if data_path is None:
         data_path : str = "python/impl/test/test_data_cifar"
-        data_path : str = "python/impl/test/test_data_color"
     if results_path is None:
         results_path : str = "python/impl/test/test_results"
 
+    do_only_detection = False
     do_dataset_evaluation = False
-    do_test_detection = True
-    do_test_correction = False
+    do_test_detection = False
+    do_test_correction = True
 
     dataset : ReiformICDataSet = dataset_from_path(data_path)
+
+    if do_only_detection:
+        # Test a few models (or one model)
+
+        paths = [LOCAL_EMBEDDING_PATH_DENSENET201]
+        
+        for path_to_embeddings in paths:
+            # for percent in [0, 0, 0]:
+            for percent in [0, 0, 1, 5, 10, 20]:
+                ReiformInfo("Model used: {}".format(path_to_embeddings.split("/")[-1]))
+                
+                data, count = dataset.mislabel(percent)
+
+                create_dataset_embedding(data, path_to_embeddings)
+
+                inliers, outliers = find_outlier_consensus(data)
+                
+                ReiformInfo("Total file count : {}".format(len(dataset.all_files())))
+                out_size = len(outliers.all_files())
+                ReiformInfo("Total detected outlier count : {}".format(out_size))
+                true_outliers : int = 0
+                class_predicted_correctly_from_embedding : int = 0
+                class_predicted_correctly_from_embedding_t_o : int = 0
+                file : ReiformICFile
+                classes = inliers.classes()
+                for file in outliers.all_files():
+                    class_pred = file.get_projection(NEW_LABEL_PREDICTION)[0]
+                    if file.get_class() != file.get_original_class():
+                        true_outliers += 1
+                        if classes[class_pred] == file.get_original_class():
+                            class_predicted_correctly_from_embedding_t_o += 1
+                    # ReiformInfo("Original Class and Predicted Class: {} and {}".format())
+                    if classes[class_pred] == file.get_original_class():
+                        class_predicted_correctly_from_embedding += 1
+                ReiformInfo("Correctly predicted original class of 'outliers': {}".format(class_predicted_correctly_from_embedding/out_size))
+                ReiformInfo("Correctly predicted class of true outliers: {}".format(class_predicted_correctly_from_embedding_t_o/(true_outliers+1)))
+                ReiformInfo("Actual detected outlier count : {}".format(true_outliers))
+                ReiformInfo("Found outlier percentage : {}".format(true_outliers/(count + 1)))
+                ReiformInfo("Actual detected outlier percentage : {}\n".format(true_outliers/out_size))
+
+                del data
 
     if do_dataset_evaluation:
 
@@ -100,7 +144,7 @@ def run_tests(data_path=None, results_path=None):
         # inliers, outliers = test_vae_projection(dataset)
 
         # "Real" tests start here
-        inliers, outliers = test_pretrained_projection_detection(dataset)
+        inliers, outliers, mislabeled_count = test_pretrained_projection_detection(dataset)
         
         ReiformInfo("Total file count : {}".format(len(dataset.all_files())))
         ReiformInfo("Total detected outlier count : {}".format(len(outliers.all_files())))

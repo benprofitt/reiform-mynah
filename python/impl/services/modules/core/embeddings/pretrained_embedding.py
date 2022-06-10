@@ -22,7 +22,7 @@ def save_embedding_model(model : torch.nn.Module, channels : int,
         NAME: dataset_name
     }
 
-    local_path = get_embedding_path(LOCAL_EMBEDDING_PATH, channels, size, resize, mean, std, dataset_name)
+    local_path = get_embedding_path(LOCAL_EMBEDDING_PATH_MOBILENET, channels, size, resize, mean, std, dataset_name)
     Path("/".join(local_path.split("/")[0:-1])).mkdir(exist_ok=True, parents=True)
 
     model_path = "{}{}".format(local_path, "_model.pt")
@@ -75,8 +75,6 @@ def load_embedding_model(model_path : str, json_body : Dict[str, Any]) -> Encode
 def train_embedding(dataset : ReiformICDataSet, transformation : transforms.Compose, 
                     edge_size : int, channels : int, latent_size : int):
 
-    
-
     # Training a single embedding for a dataset and size
     batch_size=min(int(BASE_EMBEDDING_MODEL_BATCH_SIZE * 1024**2/edge_size**2), MAX_EMBEDDING_MODEL_BATCH_SIZE)
     dataloader = dataset.get_dataloader(channels, edge_size=edge_size, batch_size=batch_size, transformation=transformation)
@@ -93,7 +91,7 @@ def train_embedding_sizes(dataset : ReiformICDataSet, channels : int,
     # Here we will train embeddings for various sizes
     # TODO : Move these sizes to some config file/resources file
     for edge_size in [1024, 32, 64, 128, 256, 512]:
-        local_path = get_embedding_path(LOCAL_EMBEDDING_PATH, channels, edge_size, resize, mean, std, dataset_name)
+        local_path = get_embedding_path(LOCAL_EMBEDDING_PATH_MOBILENET, channels, edge_size, resize, mean, std, dataset_name)
 
         if os.path.isfile(local_path):
             ReiformWarning("You are trying to train a model that already exists: {}, {}, {}, {}. Skipping.".format(channels, edge_size, resize, dataset_name))

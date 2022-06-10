@@ -5,14 +5,13 @@ package api
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
@@ -104,23 +103,17 @@ func TestAPIAdminEndpoints(t *testing.T) {
 		err := c.WithCreateUser(true, func(user *model.MynahUser, jwt string) error {
 			return makeCreateUserReq(user, jwt, c)
 		})
-		if err != nil {
-			return err
-		}
+		require.NoError(t, err)
 
 		//create as non-admin
 		err = c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 			return makeCreateUserReq(user, jwt, c)
 		})
-		if err == nil {
-			return errors.New("create user as non admin did not produce error as expected")
-		}
+
+		require.NotNil(t, err, "create user as non admin did not produce error as expected")
 		return nil
 	})
-
-	if err != nil {
-		t.Fatalf("TestAPIAdminEndpoints error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 func TestFileGetEndpoint(t *testing.T) {
@@ -142,36 +135,20 @@ func TestFileGetEndpoint(t *testing.T) {
 			return c.WithCreateFile(user, testContents, func(file *model.MynahFile) error {
 				//make a request for the file
 				req, reqErr := http.NewRequest("GET", path.Join(mynahSettings.ApiPrefix, "file", string(file.Uuid), "latest"), nil)
-				if reqErr != nil {
-					return reqErr
-				}
+				require.NoError(t, reqErr)
 
 				//make a request for the file
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
-					if code != http.StatusOK {
-						return fmt.Errorf("get file returned non-200: %v want %v", code, http.StatusOK)
-					}
-
-					if rr.Result().ContentLength != int64(len(testContents)) {
-						t.Fatalf("file contents length served (%d) not the same as saved (%d)\n",
-							rr.Result().ContentLength,
-							len(testContents))
-					}
-
-					if rr.Result().Header.Get("Content-Type") != expectedType {
-						t.Fatalf("file contents served (%s) not the same as saved (%s)\n",
-							rr.Result().Header.Get("Content-Type"),
-							expectedType)
-					}
+					require.Equal(t, http.StatusOK, code, "Get file should return 200 status")
+					require.Equal(t, int64(len(testContents)), rr.Result().ContentLength, "File contents length not expected")
+					require.Equal(t, expectedType, rr.Result().Header.Get("Content-Type"), "Content type not expected")
 					return nil
 				})
 			})
 		})
 	})
-	if err != nil {
-		t.Fatalf("TestFileGetEndpoint error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
@@ -193,15 +170,12 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				}
 
 				jsonBody, err := json.Marshal(reqBody)
-				if err != nil {
-					return err
-				}
+				require.NoError(t, err)
 
 				//make a request to start a diagnosis job
 				req, reqErr := http.NewRequest("POST", path.Join(mynahSettings.ApiPrefix, "dataset/ic/process/start"), bytes.NewBuffer(jsonBody))
-				if reqErr != nil {
-					return reqErr
-				}
+				require.NoError(t, reqErr)
+
 				req.Header.Add("Content-Type", "application/json")
 
 				//handle user creation endpoint
@@ -214,9 +188,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
-					if code != http.StatusOK {
-						return fmt.Errorf("dataset/ic/process/start returned non-200: %v want %v", code, http.StatusOK)
-					}
+					require.Equal(t, http.StatusOK, code, "Request should return 200 status")
 
 					//get the response
 					var res ICProcessJobResponse
@@ -230,9 +202,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 						//get the report
 						requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report?version=1", string(dataset.Uuid)))
 						req, reqErr := http.NewRequest("GET", requestPath, nil)
-						if reqErr != nil {
-							return reqErr
-						}
+						require.NoError(t, reqErr)
 
 						return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 							var res model.MynahICDatasetReport
@@ -258,9 +228,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 							//TODO compare report task list
 
-							if !reflect.DeepEqual(res.Breakdown, expectedBreakdown) {
-								return fmt.Errorf("unexpected breakdown map: %#v vs %#v", res.Breakdown, expectedBreakdown)
-							}
+							require.Equal(t, expectedBreakdown, res.Breakdown, "Unexpected breakdown map")
 
 							expectedFileData1 := &model.MynahICDatasetReportImageMetadata{
 								ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
@@ -273,9 +241,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
 							}
 
-							if !reflect.DeepEqual(res.ImageData["fileuuid1"], expectedFileData1) {
-								return fmt.Errorf("unexpected fileid1 data: %#v vs %#v", res.ImageData["fileuuid1"], expectedFileData1)
-							}
+							require.Equal(t, expectedFileData1, res.ImageData["fileuuid1"], "Unexpected file data")
 
 							expectedFileData3 := &model.MynahICDatasetReportImageMetadata{
 								ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
@@ -287,24 +253,14 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessDiagnoseMislabeledImagesTask},
 							}
 
-							if !reflect.DeepEqual(res.ImageData["fileuuid3"], expectedFileData3) {
-								return fmt.Errorf("unexpected fileid3 data: %#v vs %#v", res.ImageData["fileuuid3"], expectedFileData3)
-							}
+							require.Equal(t, expectedFileData3, res.ImageData["fileuuid3"], "Unexpected file data")
 
 							//check that the dataset was updated correctly
 							dbDataset, err := c.DBProvider.GetICDataset(dataset.Uuid, user, db.NewMynahDBColumns())
-							if err != nil {
-								return fmt.Errorf("dataset not found in database %s", err)
-							}
+							require.NoError(t, err)
 
-							if dbDataset.LatestVersion != "1" {
-								return fmt.Errorf("dataset does not have latest version 1: found %s", dbDataset.LatestVersion)
-							}
-
-							if len(dbDataset.Versions) != 2 {
-								return fmt.Errorf("dataset does not have 2 versions: found %d", len(dbDataset.Versions))
-							}
-
+							require.Equal(t, model.MynahDatasetVersionId("1"), dbDataset.LatestVersion, "Unexpected dataset version")
+							require.Equal(t, 2, len(dbDataset.Versions), "Unexpected dataset version count")
 							return nil
 						})
 					})
@@ -312,10 +268,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 			})
 		})
 	})
-
-	if err != nil {
-		t.Fatalf("TestAPIStartDiagnosisJobEndpoint error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 //test the creation of an ic dataset
@@ -340,59 +293,41 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 				reqContents.Files[file.Uuid] = "class1"
 
 				jsonBody, jsonErr := json.Marshal(reqContents)
-				if jsonErr != nil {
-					return jsonErr
-				}
+				require.NoError(t, jsonErr)
 
 				req, reqErr := http.NewRequest("POST", filepath.Join(mynahSettings.ApiPrefix, "dataset/ic/create"), bytes.NewBuffer(jsonBody))
-				if reqErr != nil {
-					return reqErr
-				}
+				require.NoError(t, reqErr)
+
 				req.Header.Add("Content-Type", "application/json")
 
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					//check the result
-					if code != http.StatusOK {
-						return fmt.Errorf("dataset/ic/diagnosis/start returned non-200: %v want %v", code, http.StatusOK)
-					}
+					require.Equal(t, http.StatusOK, code, "Request should return 200 status")
 
 					//check that the user was inserted into the database
 					var res model.MynahICDataset
 					//check the body
-					if err := json.NewDecoder(rr.Body).Decode(&res); err != nil {
-						return fmt.Errorf("failed to decode response %s", err)
-					}
+					require.NoError(t, json.NewDecoder(rr.Body).Decode(&res))
 
 					//check for dataset in database (as a known admin)
 					dbDataset, dbErr := c.DBProvider.GetICDataset(res.Uuid, user, db.NewMynahDBColumns())
-					if dbErr != nil {
-						return fmt.Errorf("new dataset not found in database %s", dbErr)
-					}
+					require.NoError(t, dbErr)
 
 					//verify same
-					if dbDataset.OrgId != user.OrgId {
-						return fmt.Errorf("dataset from db (%v) not assigned same org id (%v)", dbDataset.OrgId, user.OrgId)
-					}
+					require.Equal(t, user.OrgId, dbDataset.OrgId, "Org ids should be the same")
 
 					//check the files contents
-					if fileData, found := dbDataset.Versions["0"].Files[file.Uuid]; found {
-						if fileData.CurrentClass != "class1" {
-							return fmt.Errorf("file did not have expected class")
-						}
-					} else {
-						return fmt.Errorf("file not included in new dataset")
-					}
-
+					fileData, found := dbDataset.Versions["0"].Files[file.Uuid]
+					require.True(t, found)
+					require.Equal(t, model.MynahClassName("class1"), fileData.CurrentClass)
 					return nil
 				})
 			})
 		})
 	})
 
-	if err != nil {
-		t.Fatalf("TestDatasetCreationEndpoint error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 func TestAPIReportFilter(t *testing.T) {
@@ -413,28 +348,20 @@ func TestAPIReportFilter(t *testing.T) {
 				//make a standard request
 				requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid)))
 				req, reqErr := http.NewRequest("GET", requestPath, nil)
-				if reqErr != nil {
-					return reqErr
-				}
+				require.NoError(t, reqErr)
 
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
 					var res model.MynahICDatasetReport
-					if err := json.NewDecoder(rr.Body).Decode(&res); err == nil {
-						if len(res.ImageData) != 4 || len(res.ImageIds) != 4 || len(res.Breakdown) != 1 {
-							return errors.New("unexpected data in report")
-						}
-						return nil
-					} else {
-						return err
-					}
+					require.NoError(t, json.NewDecoder(rr.Body).Decode(&res))
+					require.Equal(t, 4, len(res.ImageData))
+					require.Equal(t, 4, len(res.ImageIds))
+					require.Equal(t, 1, len(res.Breakdown))
+					return nil
 				})
 			})
 		})
 	})
-
-	if err != nil {
-		t.Fatalf("TestAPIReportFilter error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 //test dataset list
@@ -450,14 +377,10 @@ func TestListDatasetsEndpoint(t *testing.T) {
 						allDatasetList(c.DBProvider))
 
 					req, reqErr := http.NewRequest("GET", path.Join(mynahSettings.ApiPrefix, "dataset/list"), nil)
-					if reqErr != nil {
-						return reqErr
-					}
+					require.NoError(t, reqErr)
 
 					return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
-						if code != http.StatusOK {
-							return fmt.Errorf("dataset/list returned non 200 status: %d", code)
-						}
+						require.Equal(t, http.StatusOK, code, "Request should return 200 status")
 
 						//TODO decode result, check dataset types
 
@@ -467,10 +390,7 @@ func TestListDatasetsEndpoint(t *testing.T) {
 			})
 		})
 	})
-
-	if err != nil {
-		t.Fatalf("TestListDatasetsEndpoint error: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }
 
 //test upload and download endpoints
@@ -516,45 +436,35 @@ func TestImageSizeDetection(t *testing.T) {
 
 		err := c.WithCreateFileFromPath(&user, jpegPath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
-				if err := c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]); err != nil {
-					return err
-				}
+				require.NoError(t, c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
 
-				if width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0); width != 4032 {
-					return fmt.Errorf("unexpected jpeg width: %d, expected 4032", width)
-				}
+				width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0)
+				height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0)
 
-				if height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0); height != 3024 {
-					return fmt.Errorf("unexpected jpeg height: %d, expected 4032", height)
-				}
+				require.Equal(t, int64(4032), width, "Unexpected width")
+				require.Equal(t, int64(3024), height, "Unexpected height")
+
 				return nil
 			})
 		})
 
-		if err != nil {
-			return err
-		}
+		require.NoError(t, err)
 
 		err = c.WithCreateFileFromPath(&user, pngPath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
-				if err := c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]); err != nil {
-					return err
-				}
+				require.NoError(t, c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
 
-				if width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0); width != 3429 {
-					return fmt.Errorf("unexpected png width: %d, expected 3429", width)
-				}
+				width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0)
+				height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0)
 
-				if height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0); height != 2316 {
-					return fmt.Errorf("unexpected png height: %d, expected 2316", height)
-				}
+				require.Equal(t, int64(3429), width, "Unexpected width")
+				require.Equal(t, int64(2316), height, "Unexpected height")
+
 				return nil
 			})
 		})
 
-		if err != nil {
-			return err
-		}
+		require.NoError(t, err)
 
 		err = c.WithCreateFileFromPath(&user, notImagePath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
@@ -562,14 +472,8 @@ func TestImageSizeDetection(t *testing.T) {
 			})
 		})
 
-		if err == nil {
-			return fmt.Errorf("expected metadata error with non image: %s", notImagePath)
-		}
-
+		require.Errorf(t, err, "Non image should cause error")
 		return nil
 	})
-
-	if err != nil {
-		t.Fatalf("TestImageSizeDetection failed: %s", err)
-	}
+	require.NoErrorf(t, err, "Should not cause error")
 }

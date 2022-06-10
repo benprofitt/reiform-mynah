@@ -5,6 +5,7 @@ package websockets
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/url"
 	"os"
@@ -124,24 +125,16 @@ func TestWSServerE2E(t *testing.T) {
 
 	//init the db provider and the auth provider for authenticating the request
 	authProvider, authPErr := auth.NewAuthProvider(mynahSettings)
-	if authPErr != nil {
-		t.Errorf("failed to create auth provider for test %s", authPErr)
-		return
-	}
+	require.NoError(t, authPErr)
 	defer authProvider.Close()
+
 	dbProvider, dbPErr := db.NewDBProvider(mynahSettings, authProvider)
-	if dbPErr != nil {
-		t.Errorf("failed to create database provider for test %s", dbPErr)
-		return
-	}
+	require.NoError(t, dbPErr)
 	defer dbProvider.Close()
 
 	//initialize storage
 	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
-	if storageErr != nil {
-		t.Errorf("failed to initialize storage %s", storageErr)
-		return
-	}
+	require.NoError(t, storageErr)
 	defer storageProvider.Close()
 
 	admin := model.MynahUser{
@@ -150,17 +143,11 @@ func TestWSServerE2E(t *testing.T) {
 	}
 
 	user, err := dbProvider.CreateUser(&admin, func(user *model.MynahUser) error { return nil })
-
-	if err != nil {
-		t.Errorf("error creating user: %s", err)
-	}
+	require.NoError(t, err)
 
 	//create a user
 	jwt, err := authProvider.GetUserAuth(user)
-	if err != nil {
-		t.Errorf("error generating jwt: %s", err)
-		return
-	}
+	require.NoError(t, err)
 
 	//create the websocket provider
 	wsProvider := NewWebSocketProvider(mynahSettings)
@@ -181,9 +168,7 @@ func TestWSServerE2E(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	//execute the tests on the server
-	if err := testHarnessE2E("/api/v1/test", jwt, user.Uuid, mynahSettings, wsProvider); err != nil {
-		t.Errorf("ws server test harness failed %s", err)
-	}
+	require.NoError(t, testHarnessE2E("/api/v1/test", jwt, user.Uuid, mynahSettings, wsProvider))
 
 	//shut the test server down
 	router.Close()

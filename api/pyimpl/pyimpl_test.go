@@ -4,6 +4,7 @@ package pyimpl
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"os"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
@@ -67,19 +68,11 @@ func TestMynahPythonVersion(t *testing.T) {
 	s.PythonSettings.ModulePath = "../../python"
 
 	err := withPyImplProvider(s, func(provider PyImplProvider) error {
-		if res, err := provider.GetMynahImplVersion(); err == nil {
-			if res.Version != settings.MynahApplicationVersion {
-				return fmt.Errorf("expected python impl version %s but got %s",
-					settings.MynahApplicationVersion, res.Version)
-			}
-		} else {
-			return fmt.Errorf("error calling python: %s", err)
-		}
-
+		res, err := provider.GetMynahImplVersion()
+		require.NoError(t, err)
+		require.Equal(t, settings.MynahApplicationVersion, res.Version)
 		return nil
 	})
 
-	if err != nil {
-		t.Fatalf("TestMynahPythonVersion failed: %s", err)
-	}
+	require.NoError(t, err)
 }

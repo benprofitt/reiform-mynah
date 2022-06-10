@@ -4,6 +4,7 @@ package ipc
 
 import (
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 	"os"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
@@ -58,10 +59,7 @@ func TestIPC(t *testing.T) {
 
 	//create the ipc provider
 	ipcProvider, ipcErr := NewIPCProvider(mynahSettings)
-	if ipcErr != nil {
-		t.Fatalf("failed to init ipc provider: %s", ipcErr)
-	}
-
+	require.NoError(t, ipcErr)
 	defer ipcProvider.Close()
 
 	//create a python provider
@@ -69,10 +67,7 @@ func TestIPC(t *testing.T) {
 	defer p.Close()
 
 	pyFunction, err := p.InitFunction("mynah_test", "ipc_test")
-
-	if err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	require.NoError(t, err)
 
 	messagesToSend := 50
 
@@ -113,34 +108,17 @@ func TestIPC(t *testing.T) {
 			res := pyFunction.Call(&user, &req)
 
 			var pythonResponse PyRes
-			if err := res.GetResponse(&pythonResponse); err != nil {
-				t.Errorf("error calling function: %s", err)
 
-				if _, err := os.Stat(mynahSettings.IPCSettings.SocketAddr); err != nil {
-					t.Errorf("(socket file doesn't exist: %s)", err)
-				}
-			} else {
-
-				if pythonResponse.Msg != targetContents {
-					t.Errorf("response msg (%s) did not match target contents (%s)",
-						pythonResponse.Msg,
-						targetContents)
-				}
-			}
+			require.NoError(t, res.GetResponse(&pythonResponse))
+			require.Equal(t, targetContents, pythonResponse.Msg)
 		}()
 	}
 
 	for i := 0; i < messagesToSend; i++ {
 		res := <-resChan
 
-		if targetPayload, ok := sentMessages[res.uuid]; ok {
-			//check the message as a string
-			if string(res.msg) != targetPayload {
-				t.Fatalf("ipc message contents does not match (%s != %s)", string(res.msg), targetPayload)
-			}
-
-		} else {
-			t.Fatalf("got unexpected uuid: %s", res.uuid)
-		}
+		targetPayload, ok := sentMessages[res.uuid]
+		require.True(t, ok)
+		require.Equal(t, targetPayload, string(res.msg))
 	}
 }

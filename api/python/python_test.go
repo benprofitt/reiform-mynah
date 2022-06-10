@@ -4,6 +4,7 @@ package python
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"os"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/settings"
@@ -37,82 +38,49 @@ func TestPythonArgs(t *testing.T) {
 	p := newLocalPythonProvider(mynahSettings)
 	defer p.Close()
 
-	if _, err := p.InitFunction("mynah_test", "test0"); err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	_, err := p.InitFunction("mynah_test", "test0")
+	require.NoError(t, err)
 
-	if _, err := p.InitFunction("mynah_test", "test1"); err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	_, err = p.InitFunction("mynah_test", "test1")
+	require.NoError(t, err)
 
-	if _, err := p.InitFunction("mynah_test", "test2"); err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	_, err = p.InitFunction("mynah_test", "test2")
+	require.NoError(t, err)
 
-	if _, err := p.InitFunction("mynah_test", "test3"); err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	_, err = p.InitFunction("mynah_test", "test3")
+	require.NoError(t, err)
 
-	if _, err := p.InitFunction("mynah_test", "test4"); err != nil {
-		t.Fatalf("failed to init function: %s", err)
-	}
+	_, err = p.InitFunction("mynah_test", "test4")
+	require.NoError(t, err)
 
 	arg1_0 := 3
 	arg2_0 := 1.2
 
-	if res, err := p.localCallFunction("mynah_test", "test0", arg1_0, arg2_0); err != nil {
-		t.Fatalf("failed to call function: %s", err)
-	} else {
-		//check the result
-		if res == nil {
-			t.Fatal("result was nil")
-			return
-		}
-		if s := fmt.Sprintf("%v", res); s != "ab" {
-			t.Fatalf("%s != ab", s)
-		}
-	}
+	res, err := p.localCallFunction("mynah_test", "test0", arg1_0, arg2_0)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, "ab", fmt.Sprintf("%v", res))
 
 	arg1_1 := "c"
 	arg2_1 := "d"
 
-	if res, err := p.localCallFunction("mynah_test", "test1", arg1_1, arg2_1); err != nil {
-		t.Fatalf("failed to call function: %s", err)
-	} else {
-		//check the result
-		if res == nil {
-			t.Fatal("result was nil")
-		}
-		if s := fmt.Sprintf("%v", res); s != "cd" {
-			t.Fatalf("%s != cd", s)
-		}
-	}
+	res, err = p.localCallFunction("mynah_test", "test1", arg1_1, arg2_1)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, "cd", fmt.Sprintf("%v", res))
 
-	if res, err := p.localCallFunction("mynah_test", "test2"); err != nil {
-		t.Fatalf("failed to call function: %s", err)
-	} else {
-		//check the result
-		if res != nil {
-			t.Fatal("result was not nil")
-		}
-	}
+	res, err = p.localCallFunction("mynah_test", "test2")
+	require.NoError(t, err)
+	require.Nil(t, res)
 
 	arg1_3 := "abc"
 	arg2_3 := 5
 
-	if res, err := p.localCallFunction("mynah_test", "test3", arg1_3, arg2_3); err != nil {
-		t.Fatalf("failed to call function: %s", err)
-	} else {
-		//check the result
-		if res == nil {
-			t.Fatal("result was nil")
-		}
-		if s := fmt.Sprintf("%v", res); s != "8" {
-			t.Fatalf("%s != 8", s)
-		}
-	}
+	res, err = p.localCallFunction("mynah_test", "test3", arg1_3, arg2_3)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, "8", fmt.Sprintf("%v", res))
 
-	if _, err := p.localCallFunction("mynah_test", "test4"); err == nil {
-		t.Fatal("python exception test did not produce error")
-	}
+	_, err = p.localCallFunction("mynah_test", "test4")
+	require.Error(t, err)
 }

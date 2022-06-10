@@ -3,8 +3,8 @@
 package db
 
 import (
+	"github.com/stretchr/testify/require"
 	"os"
-	"reflect"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
@@ -38,16 +38,11 @@ func TestMain(m *testing.M) {
 func TestBasicDBActionsUser(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
-	if authPErr != nil {
-		t.Fatalf("failed to create auth provider for test %s", authPErr)
-		return
-	}
+	require.NoError(t, authPErr)
 	defer authProvider.Close()
+
 	dbProvider, dbPErr := NewDBProvider(s, authProvider)
-	if dbPErr != nil {
-		t.Fatalf("failed to create database provider for test %s", dbPErr)
-		return
-	}
+	require.NoError(t, dbPErr)
 	defer dbProvider.Close()
 
 	admin := model.MynahUser{
@@ -63,13 +58,9 @@ func TestBasicDBActionsUser(t *testing.T) {
 	})
 
 	//create the user in the database
-	if err != nil {
-		t.Fatalf("failed to create test user %s", err)
-	}
+	require.NoError(t, err)
 
-	if localUser.OrgId != admin.OrgId {
-		t.Fatalf("user did not inherit admin org id")
-	}
+	require.Equal(t, admin.OrgId, localUser.OrgId)
 
 	//try to create a user with the same uuid
 	_, err = dbProvider.CreateUser(&admin, func(user *model.MynahUser) error {
@@ -78,84 +69,46 @@ func TestBasicDBActionsUser(t *testing.T) {
 	})
 
 	//create a second user (should error)
-	if err == nil {
-		t.Fatalf("double user creation did not return error")
-	}
+	require.Errorf(t, err, "Double user creation should return error")
 
 	//get user for auth by uuid
-	if dbUser, getErr := dbProvider.GetUserForAuth(localUser.Uuid); getErr == nil {
-		//compare
-		if *dbUser != *localUser {
-			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
-		}
-	} else {
-		t.Fatalf("failed to get user by uuid %s", getErr)
-	}
+	dbUser, getErr := dbProvider.GetUserForAuth(localUser.Uuid)
+	require.NoError(t, getErr)
+	require.Equal(t, *localUser, *dbUser)
 
-	//list users and verify same
-	if userList, listErr := dbProvider.ListUsers(&admin); listErr == nil {
-		//should only be one user
-		if *userList[0] != *localUser {
-			t.Fatalf("user in list (%v) not identical to local (%v)", *userList[0], localUser)
-		}
-		if len(userList) > 1 {
-			t.Fatalf("more than one user in list (%d)", len(userList))
-		}
-	} else {
-		t.Fatalf("failed to list users %s", listErr)
-	}
+	userList, listErr := dbProvider.ListUsers(&admin)
+	require.NoError(t, listErr)
+	require.Equal(t, *localUser, *userList[0])
+	require.Equal(t, len(userList), 1)
 
-	//get the user and verify same
-	if dbUser, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
-		//compare
-		if *dbUser != *localUser {
-			t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
-		}
-	} else {
-		t.Fatalf("failed to get user %s", getErr)
-	}
+	dbUser, getErr = dbProvider.GetUser(localUser.Uuid, &admin)
+	require.NoError(t, getErr)
+	require.Equal(t, *localUser, *dbUser)
 
 	//update some fields
 	localUser.NameFirst = "new_name_first"
 	localUser.NameLast = "new_name_last"
 
-	//update the user
-	if updateErr := dbProvider.UpdateUser(localUser, &admin, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)); updateErr == nil {
-		//get the user and verify same
-		if dbUser, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
-			//look through list
-			if *dbUser != *localUser {
-				t.Fatalf("user from db (%v) not identical to local (%v)", *dbUser, localUser)
-			}
-		} else {
-			t.Fatalf("failed to get user (after update) %s", getErr)
-		}
-	} else {
-		t.Fatalf("failed to update user %s", updateErr)
-	}
+	require.NoError(t, dbProvider.UpdateUser(localUser, &admin, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)))
 
-	//delete the user
-	if deleteErr := dbProvider.DeleteUser(localUser.Uuid, &admin); deleteErr == nil {
-		//verify deleted
-		if _, getErr := dbProvider.GetUser(localUser.Uuid, &admin); getErr == nil {
-			t.Fatalf("failed to delete user from db")
-		}
-	} else {
-		t.Fatalf("failed to delete user %s", deleteErr)
-	}
+	dbUser, getErr = dbProvider.GetUser(localUser.Uuid, &admin)
+	require.NoError(t, getErr)
+	require.Equal(t, *localUser, *dbUser)
+
+	require.NoError(t, dbProvider.DeleteUser(localUser.Uuid, &admin))
+
+	_, getErr = dbProvider.GetUser(localUser.Uuid, &admin)
+	require.Error(t, getErr)
 }
 
 func TestBasicDBActionsICDataset(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
-	if authPErr != nil {
-		t.Fatalf("failed to create auth provider for test %s", authPErr)
-	}
+	require.NoError(t, authPErr)
 	defer authProvider.Close()
+
 	dbProvider, dbPErr := NewDBProvider(s, authProvider)
-	if dbPErr != nil {
-		t.Fatalf("failed to create database provider for test %s", dbPErr)
-	}
+	require.NoError(t, dbPErr)
 	defer dbProvider.Close()
 
 	//create a user
@@ -171,89 +124,46 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		return nil
 	})
 
-	//create the dataset in the database
-	if err != nil {
-		t.Fatalf("failed to create test dataset %s", err)
-	}
-
-	if icDataset.OrgId != user.OrgId {
-		t.Fatalf("dataset did not inherit user org id")
-	}
+	require.NoError(t, err)
+	require.Equal(t, user.OrgId, icDataset.OrgId)
 
 	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumnsNoDeps(model.VersionsColName))
-	if err != nil {
-		t.Fatalf("failed to request dataset: %s", err)
-	}
+	require.NoError(t, err)
+	require.Nil(t, omitDataset.Versions)
 
-	if omitDataset.Versions != nil {
-		t.Fatalf("got dataset column that was explicitly omitted")
-	}
+	datasetList, listErr := dbProvider.ListICDatasets(&user)
+	require.NoError(t, listErr)
+	require.Equal(t, *datasetList[0], *icDataset)
+	require.Equal(t, len(datasetList), 1)
 
-	//list datasets and verify same
-	if datasetList, listErr := dbProvider.ListICDatasets(&user); listErr == nil {
-		//should only be one dataset
-		if !reflect.DeepEqual(*datasetList[0], *icDataset) {
-			t.Fatalf("dataset in list (%#v) not identical to local (%#v)", *datasetList[0], *icDataset)
-		}
-		if len(datasetList) > 1 {
-			t.Fatalf("more than one ic dataset in list (%d)", len(datasetList))
-		}
-	} else {
-		t.Fatalf("failed to list ic datasets %s", listErr)
-	}
-
-	if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
-		//compare
-		if !reflect.DeepEqual(*dbDataset, *icDataset) {
-			t.Fatalf("ic dataset from db (%#v) not identical to local (%#v)", *dbDataset, icDataset)
-		}
-	} else {
-		t.Fatalf("failed to get ic dataset %s", getErr)
-	}
+	dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	require.NoError(t, getErr)
+	require.Equal(t, *dbDataset, *icDataset)
 
 	//update some fields
 	icDataset.DatasetName = "new_icdataset_name"
 
-	if updateErr := dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns(model.DatasetNameCol)); updateErr == nil {
-		//get the dataset and verify same
-		if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
-			//compare
-			if !reflect.DeepEqual(*dbDataset, *icDataset) {
-				t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
-			}
-		} else {
-			t.Fatalf("failed to get ic dataset (after update) %s", getErr)
-		}
-	} else {
-		t.Fatalf("failed to update ic dataset %s", updateErr)
-	}
+	require.NoError(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns(model.DatasetNameCol)))
+	dbDataset, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	require.NoError(t, getErr)
+	require.Equal(t, *dbDataset, *icDataset)
 
-	//update should fail with restricted key
-	if err := dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns("uuid")); err == nil {
-		t.Fatal("update dataset with restricted key did not fail")
-	}
+	require.Error(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns("uuid")))
 
-	if deleteErr := dbProvider.DeleteICDataset(icDataset.Uuid, &user); deleteErr == nil {
-		//verify deleted
-		if _, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
-			t.Fatalf("failed to delete dataset from db")
-		}
-	} else {
-		t.Fatalf("failed to delete dataset %s", deleteErr)
-	}
+	require.NoError(t, dbProvider.DeleteICDataset(icDataset.Uuid, &user))
+
+	_, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	require.Error(t, getErr)
 }
 
 func TestBasicDBActionsFile(t *testing.T) {
 	s := settings.DefaultSettings()
 	authProvider, authPErr := auth.NewAuthProvider(s)
-	if authPErr != nil {
-		t.Fatalf("failed to create auth provider for test %s", authPErr)
-	}
+	require.NoError(t, authPErr)
 	defer authProvider.Close()
+
 	dbProvider, dbPErr := NewDBProvider(s, authProvider)
-	if dbPErr != nil {
-		t.Fatalf("failed to create database provider for test %s", dbPErr)
-	}
+	require.NoError(t, dbPErr)
 	defer dbProvider.Close()
 
 	//create a user
@@ -275,38 +185,21 @@ func TestBasicDBActionsFile(t *testing.T) {
 			return nil
 		})
 
-		if err != nil {
-			t.Fatalf("failed to create test file %s", err)
-		}
+		require.NoError(t, err)
 	}
 
 	//make a range request
 	dbFiles, rangeErr := dbProvider.GetFiles(uuids, &user)
-	if rangeErr != nil {
-		t.Fatalf("failed to request multiple files %s", rangeErr)
-	}
-
-	if len(dbFiles) != rangeRequest {
-		t.Fatalf("expected %d files but got %d", rangeRequest, len(dbFiles))
-	}
+	require.NoError(t, rangeErr)
+	require.Equal(t, len(dbFiles), rangeRequest)
 
 	//make a request for one with the range operator
 	dbFile, rangeErr := dbProvider.GetFiles([]model.MynahUuid{uuids[0]}, &user)
-	if rangeErr != nil {
-		t.Fatalf("failed to request single file with range %s", rangeErr)
-	}
-
-	if len(dbFile) != 1 {
-		t.Fatalf("expected %d files but got %d", 1, len(dbFile))
-	}
+	require.NoError(t, rangeErr)
+	require.Equal(t, 1, len(dbFile))
 
 	//make an empty request
 	noFiles, rangeErr := dbProvider.GetFiles([]model.MynahUuid{}, &user)
-	if rangeErr != nil {
-		t.Fatalf("failed to request zero files with range %s", rangeErr)
-	}
-
-	if len(noFiles) != 0 {
-		t.Fatalf("expected %d files but got %d", 0, len(noFiles))
-	}
+	require.NoError(t, rangeErr)
+	require.Equal(t, 0, len(noFiles))
 }

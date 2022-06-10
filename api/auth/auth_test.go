@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"os"
 	"reiform.com/mynah/log"
@@ -38,10 +39,7 @@ func TestJWTAuth(t *testing.T) {
 	testSettings := settings.DefaultSettings()
 	//load the auth provider
 	authProvider, apErr := NewAuthProvider(testSettings)
-	if apErr != nil {
-		t.Errorf("error loading auth provider: %s", apErr)
-		return
-	}
+	require.NoError(t, apErr)
 	defer authProvider.Close()
 
 	user := model.MynahUser{
@@ -50,10 +48,7 @@ func TestJWTAuth(t *testing.T) {
 
 	//create a new user
 	jwt, userErr := authProvider.GetUserAuth(&user)
-	if userErr != nil {
-		t.Errorf("error creating user: %s", userErr)
-		return
-	}
+	require.NoError(t, userErr)
 
 	//create a mock request
 	req := http.Request{
@@ -63,13 +58,7 @@ func TestJWTAuth(t *testing.T) {
 
 	//authenticate the request
 	userUuid, authErr := authProvider.IsAuthReq(&req)
-	if authErr != nil {
-		t.Errorf("error authenticating request: %s", authErr)
-		return
-	}
+	require.NoError(t, authErr)
 
-	//verify the uuid
-	if userUuid != user.Uuid {
-		t.Errorf("uuids don't match (%s != %s)", userUuid, user.Uuid)
-	}
+	require.Equal(t, user.Uuid, userUuid)
 }

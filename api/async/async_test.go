@@ -3,6 +3,7 @@
 package async
 
 import (
+	"github.com/stretchr/testify/require"
 	"os"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
@@ -94,13 +95,9 @@ func TestAsyncStatus(t *testing.T) {
 
 	time.Sleep(time.Second * 1)
 
-	if status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId); err == nil {
-		if status != StatusRunning {
-			t.Fatalf("expected task status to be %s but got %s", StatusRunning, status)
-		}
-	} else {
-		t.Fatalf("query task status returned error: %s", err)
-	}
+	status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId)
+	require.NoError(t, err)
+	require.Equal(t, StatusRunning, status)
 
 	//cause the task to end
 	taskChan <- 0
@@ -108,11 +105,7 @@ func TestAsyncStatus(t *testing.T) {
 	time.Sleep(time.Second * 1)
 
 	//get the status again
-	if status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId); err == nil {
-		if status != StatusCompleted {
-			t.Fatalf("expected task status to be %s but got %s", StatusCompleted, status)
-		}
-	} else {
-		t.Fatalf("query task status returned error: %s", err)
-	}
+	status, err = asyncProvider.GetAsyncTaskStatus(&user, taskId)
+	require.NoError(t, err)
+	require.Equal(t, StatusCompleted, status)
 }

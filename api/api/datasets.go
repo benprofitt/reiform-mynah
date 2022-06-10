@@ -3,6 +3,8 @@
 package api
 
 import (
+	"archive/zip"
+	"bytes"
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -13,9 +15,11 @@ import (
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
 	"strconv"
+	"time"
 )
 
 const datasetIdKey = "datasetid"
+const datasetVersionKey = "version"
 const datasetVersionStartKey = "from_version"
 const datasetVersionEndKey = "to_version"
 
@@ -30,7 +34,7 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 }
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -409,5 +413,136 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 			log.Errorf("failed to write response as json: %s", err)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
+	})
+}
+
+// export a dataset
+func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		//the user making the request
+		user := middleware.GetUserFromRequest(request)
+
+		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		//get request params
+		if !ok {
+			log.Errorf("ic dataset export request path missing %s key", datasetId)
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		//get the dataset to be exported
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, db.NewMynahDBColumns())
+		if err != nil {
+			log.Warnf("failed to get ic dataset %s from database for export: %s", datasetId, err)
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(datasetVersionKey))
+		if datasetVersionId == "" {
+			//if no specific version provided, default to latest version
+			datasetVersionId = dataset.LatestVersion
+		}
+
+		datasetVersion, ok := dataset.Versions[datasetVersionId]
+		if !ok {
+			log.Warnf("no such dataset version for dataset %s: %s", datasetId, datasetVersionId)
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		//request the files that are referenced by this dataset version
+		fileUuidSet := tools.NewUniqueSet()
+		for fileId := range datasetVersion.Files {
+			//add to set
+			fileUuidSet.UuidsUnion(fileId)
+		}
+
+		//request the files in this dataset as a group
+		files, err := dbProvider.GetFiles(fileUuidSet.UuidVals(), user)
+		if err != nil {
+			log.Warnf("failed to request files tracked by dataset %s for dataset export: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//for each file, map to its original name
+		filenames := make(map[model.MynahUuid]string)
+		for fileId, file := range files {
+			filenames[fileId] = file.Name
+		}
+
+		archiveName := fmt.Sprintf("%s_%s", dataset.DatasetName, datasetVersionId)
+
+		//create a new zip archive
+		archive, err := storageProvider.CreateTempFile(archiveName)
+		if err != nil {
+			log.Warnf("failed to create new zip archive for dataset %s during export: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// remove the temp file after serving the contents
+		defer func(storageProvider storage.StorageProvider, s string) {
+			err := storageProvider.DeleteTempFile(s)
+			if err != nil {
+				log.Warnf("failed to temp zip archive after export: %s", err)
+			}
+		}(storageProvider, archiveName)
+
+		zipWriter := zip.NewWriter(archive)
+
+		//write dataset files to archive
+		err = dataset.Format.Metadata.DatasetFileIterator(datasetVersion, filenames,
+			func(fileId model.MynahUuid, fileVersionId model.MynahFileVersionId, filePath string) error {
+				//get the file from the storage provider
+				localPath, err := storageProvider.GetTmpPath(files[fileId], fileVersionId)
+				if err != nil {
+					return err
+				}
+
+				// write to the zip archive
+				if err := tools.WriteToZip(zipWriter, localPath, filePath); err != nil {
+					return fmt.Errorf("failed to write file %s to zip archive: %s", fileId, err)
+				}
+				return nil
+			})
+
+		if err != nil {
+			log.Warnf("failed to write files for dataset %s during export: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//write additional artifacts to archive
+		err = dataset.Format.Metadata.GenerateArtifacts(datasetVersion,
+			func(fileContents []byte, filePath string) error {
+				// write to the zip archive
+				if err := tools.WriteReaderToZip(zipWriter, bytes.NewReader(fileContents), filePath); err != nil {
+					return fmt.Errorf("failed to write artifact %s to zip archive: %s", filePath, err)
+				}
+				return nil
+			})
+
+		if err != nil {
+			log.Warnf("failed to write additional artifacts for dataset %s during export: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err = zipWriter.Close(); err != nil {
+			log.Warnf("failed to close zip writer: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err = archive.Close(); err != nil {
+			log.Warnf("failed to close zip archive: %s", datasetId, err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		//respond with the zip archive
+		http.ServeContent(writer, request, archiveName, time.Unix(0, 0), archive)
 	})
 }

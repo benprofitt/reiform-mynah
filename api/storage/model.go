@@ -11,6 +11,10 @@ import (
 type StorageProvider interface {
 	// CopyFile copies a file from one version to another
 	CopyFile(*model.MynahFile, model.MynahFileVersionId, model.MynahFileVersionId) error
+	// CreateTempFile creates a temp file. Note: must be cleaned up by the caller with DeleteTempFile()
+	CreateTempFile(string) (*os.File, error)
+	// DeleteTempFile cleans up a temp file
+	DeleteTempFile(string) error
 	// StoreFile Save a file to the storage target. Local path passed to function, once function completes
 	//file is moved to storage target
 	StoreFile(*model.MynahFile, func(*os.File) error) error

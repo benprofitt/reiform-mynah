@@ -193,7 +193,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	if datasetList, listErr := dbProvider.ListICDatasets(&user); listErr == nil {
 		//should only be one dataset
 		if !reflect.DeepEqual(*datasetList[0], *icDataset) {
-			t.Fatalf("dataset in list (%v) not identical to local (%v)", *datasetList[0], icDataset)
+			t.Fatalf("dataset in list (%#v) not identical to local (%#v)", *datasetList[0], *icDataset)
 		}
 		if len(datasetList) > 1 {
 			t.Fatalf("more than one ic dataset in list (%d)", len(datasetList))
@@ -205,7 +205,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	if dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns()); getErr == nil {
 		//compare
 		if !reflect.DeepEqual(*dbDataset, *icDataset) {
-			t.Fatalf("ic dataset from db (%v) not identical to local (%v)", *dbDataset, icDataset)
+			t.Fatalf("ic dataset from db (%#v) not identical to local (%#v)", *dbDataset, icDataset)
 		}
 	} else {
 		t.Fatalf("failed to get ic dataset %s", getErr)

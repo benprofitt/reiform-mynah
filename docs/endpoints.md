@@ -461,6 +461,17 @@
   type: MynahICDataset
   ```
 
+### Exporting an image classification dataset
+- `POST /api/v1/dataset/ic/{datasetid}/export`
+- Params (optional)
+  - `version`
+  - Examples:
+    - Requesting the latest version:
+      - `GET /api/v1/dataset/ic/90jj9d20n3d/export`
+    - Requesting a specific version:
+      - `GET /api/v1/dataset/ic/90jj9d20n3d/export?version=4`
+- Response is a zip archive
+
 ### Starting an image classification process job
 - `POST /api/v1/dataset/ic/process/start`
 - Request body

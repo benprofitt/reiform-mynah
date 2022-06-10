@@ -1,50 +1,71 @@
+from sklearn import svm
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
-def train_correction_model(dataset: ReiformICDataSet, edge_size: int) -> nn.Module:
+def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : Any):
 
-    classes = len(dataset.classes())
+    X_known = []
+    y_known = []
 
-    model = SmallAutoNet(insize, edge_size, classes)
-    dataloader = dataset.get_dataloader(insize, edge_size, CORRECTION_MODEL_BATCH_SIZE)
-    model, _ = train_conv_net(model, dataloader, multiclass_model_loss, 
-                    get_optimizer(model), MONTE_CARLO_TRAINING_EPOCHS, MONTE_CARLO_TRAINING_EPOCHS//2)
+    for i, c in enumerate(dataset.classes()):
+        for _, file in dataset.get_items(c):
+            y_known.append(i)
+            X_known.append(file.get_projection(label))
 
-    return model
+    classifier.fit(X_known, y_known)
 
-def train_correction_model_ensemble(dataset : ReiformICDataSet) -> Tuple[List[nn.Module], List[int]]:
-    
-    models : List[nn.Module] = []
-    pwr_2 = max(32, closest_power_of_2(dataset.max_size()))
-    edgesizes = [pwr_2, pwr_2]
-    
-    for edge_size in edgesizes:
-        model = train_correction_model(dataset, edge_size)
-        models.append(model)
+    return classifier
 
-    return models, edgesizes
 
-def predict_correct_label(dataset : ReiformICDataSet, model: nn.Module, edge_size: int) -> ReiformICDataSet:
-    
-    for c in dataset.classes():
-        class_dataset : ReiformICDataSet = dataset.filter_classes(c)
+def train_correction_model_ensemble(dataset : ReiformICDataSet) -> Tuple[List[Any], List[str]]:
 
-        if class_dataset.file_count() == 0:
-            continue
+    # Train one model for each of RF, GB, KNN, Ada, SVM(later)
+    # Crossed with one for each embedding (at least reduced and 2D (maybe some combination), and maybe make more embeddings?)
 
-        dataloader = class_dataset.get_dataloader(insize, edge_size, 1)
-        labeling_results : List[Tuple[str, NDArray]] = predict_labels(model, dataloader)
+    models : List[Any] = []
+    labels : List[str] = []
+    for embedding_label in [PROJECTION_LABEL_REDUCED_EMBEDDING]:
+        models_to_train : List[Any] = [
+            AdaBoostClassifier(n_estimators=661),
+            KNeighborsClassifier(n_neighbors=min(100, dataset.file_count()//100), weights='distance'),
+            GradientBoostingClassifier(n_estimators=421, max_depth=4, min_samples_leaf=4),
+            RandomForestClassifier(n_estimators=450, min_samples_leaf=4)
+        ]
+        
+        for model_num, clf in enumerate(models_to_train):
+            start = time.time()
+            labels.append(embedding_label)
+            model = train_classic_model(dataset, embedding_label, clf)
+            models.append(model)
 
-        for name, new_label in labeling_results:
-            dataset.get_file(c, name).add_confidence_vector(new_label)
+    return models, labels
 
-    return dataset
 
-def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[nn.Module], edgesizes: List[int]) -> ReiformICDataSet:
+def predict_correct_label(outliers : ReiformICDataSet, classifier : Any, label : str):
 
-    for edge_size, model in zip(edgesizes, models):
-        dataset = predict_correct_label(dataset, model, edge_size)
+    X_unknown = []
+    y_unknown = []
+    name_unknown = []
 
-    return dataset
+    for i, c in enumerate(outliers.classes()):
+        for name, file in outliers.get_items(c):
+            X_unknown.append(file.get_projection(label))
+            y_unknown.append(c)
+            name_unknown.append(name)
+
+    preds = classifier.predict_proba(X_unknown)
+
+    return name_unknown, y_unknown, preds
+
+def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[Any], labels: List[str]) -> ReiformICDataSet:
+
+    results : List[Tuple[List[str], List[str], List[NDArray]]] = []
+
+    for label, model in zip(labels, models):
+        results.append(predict_correct_label(dataset, model, label))
+
+    return results
 
 def evaluate_correction_confidence(starting_label: int, predictions: NDArray) -> Tuple[bool, int]:
     # This will be complex: We will evaluate the combination of all label confidences
@@ -63,33 +84,35 @@ def evaluate_correction_confidence(starting_label: int, predictions: NDArray) ->
         max_freq[int(val)] = max_freq[int(val)] + 1
     max_max = int(max_freq.index(max(max_freq)))
 
-    if max_freq[max_max] >= total * (9/10):
+    if max_freq[max_max] >= total * (98/100):
         return True, max_max
 
     return False, -1
     
-
 def monte_carlo_label_correction(simulations: int, 
                                  inliers: ReiformICDataSet, 
                                  outliers: ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
     
     to_correct : ReiformICDataSet = outliers.copy()
 
+    packages : List[Tuple[ReiformICDataSet, ReiformICDataSet]] = []
+
     for i in range(simulations):
         ReiformInfo("Simulation: {}".format(i+1))
         incl, dinc = inliers.split(0.9)
-
         if outliers.file_count() == 0:
             to_correct = dinc
 
-        # Use incl to train several types of ML/DL models
-        models : List[nn.Module] = [] 
-        edgesizes : List[int] = [] 
+        packages.append((incl, to_correct))
 
-        models, edgesizes = train_correction_model_ensemble(incl)
+    with Pool(16) as p:
+        results = p.map(monte_carlo_parallel, packages)
 
-        # Classify contents of 'to_correct' using new models
-        to_correct = predict_correct_label_ensemble(to_correct, models, edgesizes)
+    for _, result_list in results:
+        for result in result_list:
+            name_unknown, y_unknown, preds = result
+            for name, o_class, pred_vec in zip(name_unknown, y_unknown, preds):
+                to_correct.get_file(o_class, name).add_confidence_vector(pred_vec)
 
     corrected : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
     dropped : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
@@ -105,7 +128,7 @@ def monte_carlo_label_correction(simulations: int,
 
 
     for i, c in enumerate(to_correct.classes()):
-        for key, data in to_correct.get_items(c):
+        for _, data in to_correct.get_items(c):
             predictions = np.array(data.get_confidence_vectors())
             keep, new_label = evaluate_correction_confidence(i, predictions)
             data.clear_confidence_vectors()
@@ -116,6 +139,22 @@ def monte_carlo_label_correction(simulations: int,
                 dropped.add_file(data)
 
     return corrected, dropped
+
+def monte_carlo_parallel(package):
+
+    # Get datasets out of the package
+    incl, to_correct = package
+
+    # Use incl to train several types of ML/DL models
+    models : List[Any] = [] 
+    labels : List[str] = [] 
+
+    # New plan : Train models that are KNN, AdaBoost, SVM, RandomForest and GradientBoost
+    models, labels = train_correction_model_ensemble(incl)
+
+    # Classify contents of 'to_correct' using new models
+    results = predict_correct_label_ensemble(to_correct, models, labels)
+    return to_correct, results
     
 
 def iterative_reinjection_label_correction(iterations : int, 

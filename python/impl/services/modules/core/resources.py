@@ -31,6 +31,7 @@ from nptyping import NDArray # type: ignore
 from impl.services.modules.utils.reiform_exceptions import *
 
 import umap # type: ignore
+import warnings
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.getLogger('numba').setLevel(logging.WARNING)
@@ -42,10 +43,16 @@ WORKERS : int = 3
 VERBOSE = False
 
 PROJECTION_LABEL : str = "inception_projection"
-PROJECTION_LABEL_2D : str = "2D_projection"
 
-LOCAL_EMBEDDING_PATH : str = "models/embedding"
+EMBEDDING_MODEL_NAME : str = "densenet201-imagenet-torch.pt"
+
 LOCAL_EMBEDDING_PATH_MOBILENET : str = "models/mobilenet-v2-embeddings.pt"
+LOCAL_EMBEDDING_PATH_RESNET18 : str = "models/resnet18-imagenet-torch.pt"
+LOCAL_EMBEDDING_PATH_RESNET50 : str = "models/resnet50-imagenet-torch.pt"
+LOCAL_EMBEDDING_PATH_RESNET152 : str = "models/resnet152-imagenet-torch.pt"
+LOCAL_EMBEDDING_PATH_INCEPTIONV3 : str = "models/inception-v3-imagenet-torch.pt"
+LOCAL_EMBEDDING_PATH_DENSENET201 : str = "models/densenet201-imagenet-torch.pt"
+
 LOCAL_PRETRAINED_PATH_LIGHT_DETECTION : str = "models/lighting/detection"
 LOCAL_PRETRAINED_PATH_LIGHT_CORRECTION : str = "models/lighting/correction"
 
@@ -53,8 +60,11 @@ PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION = "PROJECTION_LABEL_FULL_EMBEDDING
 PROJECTION_LABEL_REDUCED_EMBEDDING = "PROJECTION_LABEL_REDUCED_EMBEDDING"
 PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS = "PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS"
 PROJECTION_LABEL_2D_PER_CLASS = "PROJECTION_LABEL_3D_PER_CLASS"
+PROJECTION_LABEL_2D : str = "2D_projection"
 
 LIGHTING_PREDICTION = "lighting_prediciton"
+NEW_LABEL_PREDICTION = "corrected_label_prediction"
+NEW_LABEL_PREDICTION_PROBABILITIES = "corrected_label_prediction_probability_vector"
 
 CHANNELS = "channels"
 SIZE = "size"
@@ -65,7 +75,7 @@ STD = "std"
 LATENT_SIZE = "latent_size"
 NAME = "dataset_name"
 
-EMBEDDING_DIM_SIZE = 32
+EMBEDDING_DIM_SIZE = 31
 
 VARIATIONAL_BETA = 0.0000001
 VAE_PROJECTION_TRAINING_EPOCHS = 200

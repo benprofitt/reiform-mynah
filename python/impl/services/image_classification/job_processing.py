@@ -112,7 +112,7 @@ class Processing_Job():
     def run_processing_job(self, logger):
 
         models_path = self.config["models_path"]
-        embedding_models_path = "{}/{}".format(models_path, "embeddings")
+        embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
 
         prev_result_names = [v.split("::")[2] for v in list(self.previous_results.keys())]
         valid_embeddings = any([v in prev_result_names for v in ["mislabeled_images", "class_splitting"]])
@@ -124,7 +124,7 @@ class Processing_Job():
             if action == "diagnose":
                 if name == "mislabeled_images":
                     if not valid_embeddings:
-                        get_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding(self.dataset, embedding_models_path)
                         valid_embeddings = True
                     _, outliers = find_outlier_consensus(self.dataset)
                     self.results[task] = {"outliers" : [f.get_name() for f in outliers.all_files()]}
@@ -132,7 +132,7 @@ class Processing_Job():
 
                 if name == "class_splitting":
                     if not valid_embeddings:
-                        get_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding(self.dataset, embedding_models_path)
                         valid_embeddings = True
                     _, clusters = detect_split_need(self.dataset)
                     self.results[task] = {"predicted_class_splits" : clusters}
@@ -150,7 +150,7 @@ class Processing_Job():
             elif action == "correct":
                 if name == "mislabeled_images":
                     if not valid_embeddings:
-                        get_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding(self.dataset, embedding_models_path)
 
                     to_correct = self.previous_results["ic::diagnose::mislabeled_images"]["outliers"]
                     outliers = self.dataset.dataset_from_uuids(to_correct)
@@ -158,17 +158,17 @@ class Processing_Job():
                     inlier_ids = [f.get_name() for f in self.dataset.all_files() if f.get_name() not in as_keys]
                     inliers = self.dataset.dataset_from_uuids(inlier_ids)
 
-                    self.dataset, outliers, corrected = iterative_reinjection_label_correction(1, inliers, outliers)
+                    self.dataset, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
                     
                     self.results["task"] = {"removed" : [f.get_name() for f in outliers.all_files()], 
                                             "corrected" : [f.get_name() for f in corrected.all_files()]}
                     
-                    get_dataset_embedding(self.dataset, embedding_models_path)
+                    create_dataset_embedding(self.dataset, embedding_models_path)
                     valid_embeddings = True
                     self.dataset._mean_and_std_dev()
                 if name == "class_splitting":
                     if not valid_embeddings:
-                        get_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding(self.dataset, embedding_models_path)
                     
                     to_split = self.previous_results[task]["predicted_class_splits"]
 
@@ -176,7 +176,7 @@ class Processing_Job():
 
                     self.results[task] = {"actual_class_splits" : actual_class_splits}
 
-                    get_dataset_embedding(self.dataset, embedding_models_path)
+                    create_dataset_embedding(self.dataset, embedding_models_path)
                     valid_embeddings = True
                 if name == "lighting_conditions":
                     to_correct = self.previous_results["ic::diagnose::lighting_conditions"]

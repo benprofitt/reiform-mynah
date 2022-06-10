@@ -5,7 +5,6 @@ from impl.services.modules.core.reiform_imageclassificationdataset import *
 
 from .pretrained_embedding import *
 
-
 def pretrained_projection(data : ReiformICDataSet, model : torch.nn.Module, 
                           preprocess : transforms.Compose, label : str) -> ReiformICDataSet:
     
@@ -53,27 +52,67 @@ def vae_projection(data : ReiformICDataSet, latent_size : int,
 
 from torchvision.models.feature_extraction import create_feature_extractor # type: ignore
 
-def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
+def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model : str):
     
-    # Get all model files under this ^ path, 
-    # process dataset, and add the projections to 
-    # the dataset. Then combine all of the projections, 
-    # and use umap_red to reduce to fewer dimensions. (for outliers)
+    # Get the model file and process dataset. 
+    # Add the projection to the dataset. 
+    # Use umap_red to reduce to fewer dimensions. (for outliers)
     # Finally, reduce again to 2D (for reporting)
 
     start = time.time()
 
-    # Load a model from the saved model 
-    model_ = torchvision.models.mobilenet_v2()
-    model_.load_state_dict(torch.load(LOCAL_EMBEDDING_PATH_MOBILENET))
+    # Load a model from the saved model
+    batch_size = BASE_EMBEDDING_MODEL_BATCH_SIZE
+    if "mobilenet" in path_to_embedding_model:
+        model_ = torchvision.models.mobilenet_v2()
+        
+        batch_size *= 5
 
-    return_nodes = {
-        "features": "embedding"
-    }
-    model_ = create_feature_extractor(model_, return_nodes=return_nodes)
+        return_nodes = {
+            "features": "embedding"
+        }
+    elif "inception" in path_to_embedding_model:
+        model_ = torchvision.models.inception_v3(init_weights=False)
+
+        batch_size *= 3
+
+        return_nodes = {
+            "Mixed_7c": "embedding"
+        }
+        
+    elif "densenet" in path_to_embedding_model:
+
+        model_name = path_to_embedding_model.split("/")[-1].split("-")[0]
+        model_ = eval("torchvision.models.{}()".format(model_name))
+
+        num = int(model_name.split("net")[-1])
+        # This is just what fits in mem on the GPU. I'll make this global later
+        batch_size = 48
+
+        return_nodes = {
+            "features" : "embedding"
+        }
+
+    else:
+        # Resnets
+        model_name = path_to_embedding_model.split("/")[-1].split("-")[0]
+        model_ = eval("torchvision.models.{}()".format(model_name))
+        
+        num = int(model_name.split("net")[-1])
+        batch_size *= 152//num
+
+        return_nodes = {
+            "layer4": "embedding"
+        }
+
+    model_.load_state_dict(torch.load(path_to_embedding_model))
     model_.to(device)
     model_.eval()
-    pt_dl = dataset.get_dataloader(3, batch_size=96, edge_size=224)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        model_ = create_feature_extractor(model_, eval_return_nodes=return_nodes, train_return_nodes=return_nodes)
+
+    pt_dl = dataset.get_dataloader(3, batch_size=batch_size, edge_size=224)
 
     embeddings : List[NDArray] = []
     file_names : List[str] = []
@@ -84,20 +123,20 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
         pred = model_(images)["embedding"]
         x = nn.functional.adaptive_avg_pool2d(pred, (1, 1))
         x = torch.flatten(x, 1)
+        x = torch.sigmoid(x)
 
         file_names += name_batch
         for v in x.to("cpu").detach().numpy():
             embeddings.append(v)
 
-    ReiformInfo("Time: {}".format(time.time() - start))
-    start = time.time()
+    model_.to("cpu")
+    del model_
+
+    ReiformInfo("Time for initial embedding inference: {}".format(time.time() - start))
 
     for i, name in enumerate(file_names):
         file = dataset.get_file_by_uuid(name)
         file.add_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION, embeddings[i])
-
-    ReiformInfo("Time: {}".format(time.time() - start))
-    start = time.time()
 
     embeddings = []
     names : List[Tuple[str, str]] = []
@@ -116,7 +155,6 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
             embeddings_by_class[c].append(file.get_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION))
             names_by_class[c].append(name)
     
-    ReiformInfo("Time: {}".format(time.time() - start))
     start = time.time()
 
     for c in dataset.classes():
@@ -131,7 +169,7 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_2D_PER_CLASS, reduced_embeddings[i])
 
-    ReiformInfo("Time: {}".format(time.time() - start))
+    ReiformInfo("Time for per-class reduction: {}".format(time.time() - start))
     start = time.time()
 
     # Entire dataset embedding reduction -> used for outlier detection
@@ -148,5 +186,4 @@ def get_dataset_embedding(dataset : ReiformICDataSet, path_to_embeddings : str):
     for i, file in enumerate(names):
         dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_2D, reduced_embeddings[i])
 
-    ReiformInfo("Time: {}".format(time.time() - start))
-    start = time.time()
+    ReiformInfo("Time for dataset-level reduction: {}".format(time.time() - start))

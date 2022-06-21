@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"reiform.com/mynah/log"
+	"time"
 )
 
 //response for logging
@@ -40,15 +41,20 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 			status:         200, //success by default
 		}
 
+		start := time.Now()
+
 		//handle the request
 		handler.ServeHTTP(&res, request)
 
+		duration := time.Since(start)
+
 		//log the result
-		log.Infof("%s %s %s %d",
+		log.Infof("%s %s %s %d %v",
 			request.Method,
 			request.URL.Path,
 			request.Proto,
-			res.status)
+			res.status,
+			duration)
 	})
 }
 

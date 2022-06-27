@@ -88,6 +88,8 @@ type MynahSettings struct {
 	UnauthReadAccess bool `json:"unauth_read_access"`
 	//the port to listen for requests on
 	Port int `json:"port"`
+	//headers to allow
+	CORSAllowHeaders string `json:"cors_allow_headers"`
 	//origins to allow
 	CORSAllowOrigin string `json:"cors_allow_origin"`
 	//settings groups
@@ -108,6 +110,7 @@ func DefaultSettings() *MynahSettings {
 		BuildAssetsFolder:   "/assets/",
 		UnauthReadAccess:    false,
 		Port:                8080,
+		CORSAllowHeaders:    "*",
 		CORSAllowOrigin:     "*",
 		DBSettings: MynahDBSettings{
 			Type:            "local",

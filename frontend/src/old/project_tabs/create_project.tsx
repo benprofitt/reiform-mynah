@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import makeRequest from "../utils/apiFetch";
-import {
-  CreateICProject,
-  MynahICDataset,
-  MynahICProject,
-} from "../utils/types";
-import ImportData from "../components/import_data";
+import makeRequest from "../../utils/apiFetch";
+// import {
+//   CreateICProject,
+//   MynahICDataset,
+//   MynahICProject,
+// } from "../utils/types";
+import ImportData from "../../components/import_data";
 import ChooseDataset from "../components/choose_dataset";
 import NextButton from "../components/next_button";
 import { useLocation } from "wouter";
@@ -27,22 +27,22 @@ export default function CreateProject(props: CreateProjectProps): JSX.Element {
   const [, setLocation] = useLocation();
 
   // this will come from the backend in the future
-  const [datasets, setDatasets] = useState<MynahICDataset[]>([]);
+  // const [datasets, setDatasets] = useState<MynahICDataset[]>([]);
 
   // project creation state
   const [projectName, setProjectName] = useState("");
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([]);
 
   // project submission
-  const toSubmit: CreateICProject = {
-    name: projectName,
-    datasets: selectedDatasets,
-  };
-  const isValid = toSubmit.name.length > 3 && toSubmit.datasets.length > 0;
+  // const toSubmit: CreateICProject = {
+  //   name: projectName,
+  //   datasets: selectedDatasets,
+  // };
+  // const isValid = toSubmit.name.length > 3 && toSubmit.datasets.length > 0;
 
   return (
     <div className="grid grid-cols-2 divice-x-r divide-black h-full">
-      <NextButton
+      {/* <NextButton
         onClick={() => {
           makeRequest<MynahICProject>(
             "POST",
@@ -60,7 +60,7 @@ export default function CreateProject(props: CreateProjectProps): JSX.Element {
         }}
         text="Create Project"
         active={isValid}
-      />
+      /> */}
       {/* left side */}
       <div className="flex flex-col items-start w-full px-4">
         <h1 className="font-bold text-lg">Project Settings</h1>
@@ -76,7 +76,7 @@ export default function CreateProject(props: CreateProjectProps): JSX.Element {
       {/* right side */}
       <div className="flex flex-col justify-center items-center w-full px-4 border-black border-l">
         <h1 className="font-bold text-lg w-full text-left">Project Data</h1>
-        <ImportData
+        {/* <ImportData
           setDatasets={setDatasets}
           setSelectedDatasets={setSelectedDatasets}
         />
@@ -84,7 +84,7 @@ export default function CreateProject(props: CreateProjectProps): JSX.Element {
           selectedDatasets={selectedDatasets}
           setSelectedDatasets={setSelectedDatasets}
           datasets={datasets}
-        />
+        /> */}
       </div>
     </div>
   );

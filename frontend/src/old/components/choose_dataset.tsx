@@ -1,4 +1,4 @@
-import { MynahICDataset } from "../utils/types";
+import { MynahICDataset } from "../../utils/types";
 
 export interface ChooseDatasetProps {
   datasets: MynahICDataset[];

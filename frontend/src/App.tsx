@@ -1,45 +1,46 @@
-import HomePage from "./pages/home_page";
-import ProjectPage from "./pages/project_page";
+import DatasetsHomePage from "./pages/datasets_home_page";
+import DatasetPage from "./pages/dataset_page";
 import LoginPage, { authCookieName } from "./pages/login_page";
 import AccountSettingsPage from "./pages/account_settings_page";
-import PageNotFound from "./pages/page_not_found";
 
-// import {
-//   BrowserRouter as Router,
-//   Routes,
-//   Route,
-//   Navigate,
-// } from "react-router-dom";
 import Cookies from "universal-cookie";
 import { Switch, Route, Redirect, Router } from "wouter";
+import PageNotFound from "./pages/page_not_found";
+import { QueryClient, QueryClientProvider, useQuery } from "react-query";
+import SideBar from "./components/sidebar";
+
+const queryClient = new QueryClient();
 
 function App(): JSX.Element {
   const cookies = new Cookies();
   const jwt: string = cookies.get(authCookieName);
 
-  // maybe i should have a useeffect for login like halite instead of this boolean 
-
   return (
     <Router base="/mynah">
       {!Boolean(jwt) ? (
-        <Switch>
-          <Route path="/login" component={LoginPage} />
-          <Route>
-            <Redirect to="/login" />
-          </Route>
-        </Switch>
+        <LoginPage />
       ) : (
-        <Switch>
-          <Route path="/login">
-            <Redirect to="/" />
-          </Route>
-          <Route path="/" component={HomePage} />
-          <Route path="/project/:tab">
-            {(params) => <ProjectPage route={params.tab} />}
-          </Route>
-          <Route path="/account-settings" component={AccountSettingsPage} />
-          <Route component={PageNotFound} />
-        </Switch>
+        <QueryClientProvider client={queryClient}>
+          <Switch>
+            <Route path="/login">
+              <Redirect to="/home" />
+            </Route>
+            <Route path="/">
+              <Redirect to="/home" />
+            </Route>
+            <SideBar>
+              <Switch>
+                <Route path="/home" component={DatasetsHomePage} />
+                <Route path="/dataset/:uuid" component={DatasetPage} />
+                <Route
+                  path="/account-settings"
+                  component={AccountSettingsPage}
+                />
+                <Route component={PageNotFound} />
+              </Switch>
+            </SideBar>
+          </Switch>
+        </QueryClientProvider>
       )}
     </Router>
   );

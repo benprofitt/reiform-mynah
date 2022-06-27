@@ -1,11 +1,16 @@
 import React, { useState } from "react";
 import Cookies from "universal-cookie";
+import { useLocation } from "wouter";
 
 export const authCookieName = "reiform-api-key-jwt";
 export const authCookieOptions = { path: '/' }
 
 export default function LoginPage(): JSX.Element {
   const cookies = new Cookies();
+
+  const [_, setLocation] = useLocation()
+
+  setLocation('/login')
 
   const [jwt, setJwt] = useState("");
 

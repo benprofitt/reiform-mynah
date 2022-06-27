@@ -25,8 +25,8 @@ export default function AddUserModal(props: AddUserModalProps): JSX.Element {
     setAwaitingJWT(true);
     makeRequest<CreateUserResponse>(
       "POST",
-      { name_first: firstName, name_last: lastName },
       "/api/v1/admin/user/create",
+      { name_first: firstName, name_last: lastName },
       'application/json'
     )
       .then((res) => {

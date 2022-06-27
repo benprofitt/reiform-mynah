@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import ReiformLogo from "./reiform_logo";
+import ReiformLogo from "../../components/reiform_logo";
 
 export interface TopBarProps {
   children: JSX.Element | JSX.Element[];

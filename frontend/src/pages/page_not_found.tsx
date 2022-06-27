@@ -1,17 +1,16 @@
-import react from "react";
 import { Link } from "wouter";
 import ReiformLogo from "../components/reiform_logo";
 
 export default function PageNotFound(): JSX.Element {
   return (
-    <div id="wrapper">
-      <div className="mt-[200px] flex space-x-4 justify-center items-center">
+    <div className="flex flex-col flex-1 h-screen justify-center items-center">
+      <div className="flex flex-row w-full items-center justify-center">
         <Link to="/">
-          <ReiformLogo className="h-20 w-20" />
+          <ReiformLogo className="aspect-square w-[70px]" />
         </Link>
-        <p className="text-6xl text-center"> 404 </p>
+        <h1 className="text-6xl text-center ml-[20px]">404</h1>
       </div>
-      <p className="text-4xl text-center">This page could not be found</p>
+      <h2 className="text-4xl text-center">This page could not be found</h2>
     </div>
   );
 }

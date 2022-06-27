@@ -1,60 +1,88 @@
+import { Dialog, Listbox } from "@headlessui/react";
 import clsx from "clsx";
 import { useState } from "react";
 import makeRequest from "../utils/apiFetch";
 import { CreateICDataset, MynahFile, MynahICDataset } from "../utils/types";
+import ArrowIcon from "../images/ArrowIcon.svg";
+import { useQuery } from "react-query";
 
 export interface ImportDataProps {
-  setDatasets: React.Dispatch<React.SetStateAction<MynahICDataset[]>>;
-  setSelectedDatasets: React.Dispatch<React.SetStateAction<string[]>>;
+  open: boolean;
+  close: () => void;
+  refetch?: () => void;
+  // setDatasets: React.Dispatch<React.SetStateAction<MynahICDataset[]>>;
+  // setSelectedDatasets: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
-export default function ImportData(props: ImportDataProps): JSX.Element {
-  const { setDatasets, setSelectedDatasets } = props;
-  const [thisDevice, setThisDevice] = useState(false);
-  const [datasetName, setDatasetName] = useState("");
-  const [totalFiles, setTotalFiles] = useState(0);
-  const [filesUploaded, setFilesUploaded] = useState(0);
+const options = [
+  { id: 1, name: "Image Classification" },
+  { id: 2, name: "Object Detection" },
+];
 
-  const uploadFiles = async (files: File[]) => {
-    const total = files.length;
-    if (total === 0) return;
-    setTotalFiles(total);
+export default function ImportData(props: ImportDataProps): JSX.Element {
+  const { refetch } = useQuery("datasets", () =>
+  makeRequest("GET", "/api/v1/dataset/list"));
+  const { open, close } = props;
+  const [datasetName, setDatasetName] = useState("");
+  const [selectedType, setSelectedType] = useState<{
+    id: Number;
+    name: string;
+  }>();
+  const isValid = Boolean(datasetName && selectedType);
+  const [files, setFiles] = useState<{ file: File; isFinished: boolean }[]>();
+  // const numUploaded = files?.filter(({ isFinished }) => isFinished).length;
+  const [numFinished, setNumFinished] = useState(0);
+  // it seems like this state-y numFinished is necessary for
+  // getting rerenders to fire on individual upload completions
+  // (otherwise it just rerenders once every file is finished...)
+  const isUploadFinished = files && numFinished === files.length;
+
+  const uploadFiles = async (theFiles: File[]) => {
+    setFiles(
+      theFiles.map((file) => {
+        return { file, isFinished: false };
+      })
+    );
     const dataset: CreateICDataset = {
       name: datasetName,
       files: {},
     };
-    for (let i = 0; i < total; i++) {
-      const file = files[i];
-      const formData = new FormData();
-      const res = await makeRequest<MynahFile>(
-        "POST",
-        formData,
-        "/api/v1/upload",
-        "multipart/form-data"
-      ).catch((err) => {
-        alert("something went wrong with file upload");
-        console.log(err);
-      });
-      if (!res) return;
-      dataset.files[res.uuid] = file.webkitRelativePath.split("/")[1];
-      setFilesUploaded(i + 1);
-    }
+    await Promise.all(
+      theFiles.map(async (file, i) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await makeRequest<MynahFile>(
+          "POST",
+          "/api/v1/upload",
+          formData,
+          "multipart/form-data"
+        ).catch((err) => {
+          alert("something went wrong with file upload");
+          console.log(err);
+        });
+        if (!res) return;
+        dataset.files[res.uuid] = file.webkitRelativePath.split("/")[1];
+        setFiles((filesState) => {
+          if (!filesState) return;
+          filesState.splice(i, 1, { file, isFinished: true });
+          const numFinished = filesState.filter(
+            ({ isFinished }) => isFinished
+          ).length;
+          setNumFinished(numFinished);
+          return filesState;
+        });
+      })
+    );
     await makeRequest<MynahICDataset>(
       "POST",
+      "/api/v1/dataset/ic/create",
       JSON.stringify(dataset),
-      "/api/v1/icdataset/create",
       "application/json"
     )
       .then((res) => {
-        setDatasets((datasets) => [res, ...datasets]);
-        setSelectedDatasets((selectedDatasets) => [
-          res.uuid,
-          ...selectedDatasets,
-        ]);
-        setThisDevice(false);
-        setDatasetName("");
-        setTotalFiles(0);
-        setFilesUploaded(0);
+        // alert('making dataset') // this still gets called even if closed - yay
+        // can potentially use res to update list without refetching, but idk refetches aren't the end of the world..
+        refetch();
       })
       .catch((err) => {
         alert("error making dataset");
@@ -62,65 +90,134 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
       });
   };
 
+  const onClose = () => {
+    setNumFinished(0);
+    setFiles(undefined);
+    setSelectedType(undefined);
+    close();
+  };
+
   return (
-    <div className="mt-4 w-96 h-64 border-2 border-black flex flex-col items-center relative">
-      <h3 className="h-8 text-center border-b-2 border-black w-full">
-        New Dataset
-      </h3>
-      {totalFiles > 0 && (
-        <div className="absolute top-8 right-3">
-          {filesUploaded}/{totalFiles}
-        </div>
-      )}
-      <div className="mt-4 w-3/4 border-2 border-black text-center">Source</div>
-      <button
-        className="mt-4 w-1/2 border-2 border-black text-center"
-        onClick={() => setThisDevice(!thisDevice)}
-      >
-        This device
-      </button>
-      <div
-        className={clsx("flex flex-col w-full px-4", !thisDevice && "hidden")}
-      >
-        {/* below is the actual file upload component but its ugly so we just trigger it with a button instead */}
-        <input
-          className="hidden"
-          id="upload"
-          type="file"
-          directory=""
-          webkitdirectory=""
-          onChange={(e) => {
-            const uploadedFiles = e.target.files;
-            if (uploadedFiles === null) return;
-            uploadFiles(Array.from(uploadedFiles));
-          }}
-        />
-        <label className="flex flex-col justify-start">
-          First - Enter dataset name
+    <Dialog
+      open={open}
+      onClose={onClose}
+      className="fixed inset-0 z-20 /w-full /h-full flex items-center justify-center py-[10px]"
+    >
+      <Dialog.Overlay className="w-full h-full bg-black absolute  top-0 left-0 opacity-20 z-20" />
+      <div className="w-[752px] h-fit max-h-full mx-auto flex flex-col items-center relative z-30 bg-white px-[24px]">
+        <h1 className="text-[28px] w-full mt-[14px]">Create new data set</h1>
+        <form className="w-full">
+          <h3 className="font-black">Data set name</h3>
           <input
-            type="text"
-            value={datasetName}
-            placeholder="Dataset name"
-            className="border border-black"
+            className="w-full border border-grey1 focus:outline-none focus:ring-0 h-[56px] mt-[10px] pl-[10px]"
+            placeholder="Name collection"
             onChange={(e) => setDatasetName(e.target.value)}
           />
-        </label>
-        <label
-          className={clsx(
-            "flex flex-col justify-center",
-            datasetName.length < 3 && "hidden"
-          )}
-        >
-          Second - Choose files. <br />
-          The upload begins automatically.
+          <Listbox
+            value={selectedType}
+            onChange={setSelectedType}
+            as="div"
+            className="relative"
+          >
+            <Listbox.Button
+              className={clsx(
+                "w-full px-[10px] border border-grey1 h-[56px] items-center text-left flex mt-[10px]",
+                !selectedType && "text-grey2"
+              )}
+            >
+              {selectedType ? selectedType.name : "Data type"}
+              <img
+                src={ArrowIcon}
+                alt="arrow"
+                className="h-[10px] ml-auto my-auto"
+              />
+            </Listbox.Button>
+            <Listbox.Options className="rounded-b-[5px] overflow-hidden absolute w-full divide-y divide-grey2">
+              {options.map((option) => (
+                <Listbox.Option
+                  className="w-full text-black pl-[10px] h-[40px] bg-grey1 hover:bg-sideBar hover:text-white flex items-center"
+                  key={option.id}
+                  value={option}
+                >
+                  {option.name}
+                </Listbox.Option>
+              ))}
+            </Listbox.Options>
+          </Listbox>
+
+          <div className="font-black w-full border-b border-grey1 pb-[10px] mt-[30px] flex justify-between">
+            <h3>Upload Files</h3>
+            {files && (
+              <p className="font-medium">
+                {numFinished} of {files.length} images uploaded
+              </p>
+            )}
+          </div>
+          <input
+            className="hidden"
+            id="upload"
+            type="file"
+            directory=""
+            webkitdirectory=""
+            onChange={(e) => {
+              const uploadedFiles = e.target.files;
+              if (uploadedFiles === null) return;
+              uploadFiles(Array.from(uploadedFiles));
+            }}
+          />
+        </form>
+        {files ? (
+          <div className="overflow-y-scroll max-h-[500px] w-full">
+            {files.map(({ file, isFinished }) => {
+              const filename = file.name;
+              const src = URL.createObjectURL(file);
+              return (
+                <div className="flex w-full h-[60px] items-center border-b border-grey1">
+                  <img className="h-[40px] aspect-square mr-[10px]" src={src} />
+                  {filename}
+                  <div
+                    className={clsx(
+                      "animate-spin border-t border-b border-l border-sidebarSelected h-[24px] aspect-square rounded-full ml-auto mr-[10px] my-auto",
+                      isFinished && "hidden"
+                    )}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
           <button
-            className="text-white text-sm rounded px-2 h-8 bg-blue-500 hover:bg-blue-700"
+            type="button"
+            className={clsx(
+              "text-sm w-full text-left mt-[10px] font-bold mb-[80px]",
+              isValid ? "text-blue-500 hover:text-blue-700" : "text-grey2"
+            )}
+            disabled={!isValid}
             onClick={() => document.getElementById("upload")?.click()}
           >
-            Select the directory with a subdirectory for each class
+            Upload from computer
           </button>
-        </label>
+        )}
+        <button
+          className={clsx(
+            "w-full text-white h-[40px] font-bold text-[16px] shrink-0",
+            files ? "bg-blue-500" : "bg-grey1"
+          )}
+          onClick={onClose}
+        >
+          Close window
+        </button>
+        <p
+          className={clsx(
+            "text-grey2 my-[10px]",
+            !files && "opacity-0 select-none"
+          )}
+        >
+          {isUploadFinished
+            ? "Upload complete"
+            : "We will let you know once all of your data sets have been uploaded"}
+        </p>
       </div>
-    </div>
+    </Dialog>
   );
 }

@@ -62,7 +62,8 @@ func (r *MynahRouter) logMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 func (r *MynahRouter) corsMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//set the CORS headers
-		writer.Header().Set("Access-Control-Allow-Headers", r.settings.AuthSettings.JwtHeader)
+		// writer.Header().Set("Access-Control-Allow-Headers", r.settings.AuthSettings.JwtHeader)
+		writer.Header().Set("Access-Control-Allow-Headers", r.settings.CORSAllowHeaders)
 		writer.Header().Set("Access-Control-Allow-Origin", r.settings.CORSAllowOrigin)
 		if request.Method == http.MethodOptions {
 			return

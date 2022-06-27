@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import React, { useState } from "react";
 import TopBar from "../components/topbar";
-import SideBar from "../components/sidebar";
+import SideBar from "../../components/sidebar";
 import { Link } from "wouter";
 
 type Options = "Projects" | "Datasets";
@@ -44,7 +44,7 @@ export default function HomePage(): JSX.Element {
         </div>
       </TopBar>
       <div className="flex relative">
-        <SideBar homePage>
+        <SideBar>
           {[0, 1, 2, 3, 4, 5].map((ix) => (
             <div
               key={ix}

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SideBar from "../components/sidebar";
+import SideBar from "../../components/sidebar";
 import TopBar from "../components/topbar";
 import CreateProject from "../project_tabs/create_project";
 import DataDiagnosis from "../project_tabs/data_diagnosis";

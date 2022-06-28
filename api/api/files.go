@@ -210,6 +210,12 @@ func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
 
+		if err := request.ParseForm(); err != nil {
+			log.Errorf("failed to parse http form for list files request")
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
 		if ids, ok := request.Form[fileIdKey]; ok {
 			fileIds := make([]model.MynahUuid, len(ids))
 			for i := 0; i < len(ids); i++ {

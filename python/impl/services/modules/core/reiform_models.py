@@ -1,3 +1,4 @@
+from turtle import forward
 from .model_resources import *
 
 def create_conv_maxpool_block(insize: int, outsize: int):
@@ -119,6 +120,19 @@ def create_deep_conv_dilation_block(insize: int, outsize: int):
         create_conv_block(midsize, outsize, 3, 1, 2, d=2),
     )
 
+class AutoResnet(nn.Module):
+
+    def __init__(self, classes : int) -> None:
+        super().__init__()
+
+        self.features : nn.Module = torchvision.models.resnet50(pretrained=True)
+        self.classifier : nn.Module = linear_block(1000, classes, relu=False)
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return torch.sigmoid(x)
+
 class DeepAutoNet(nn.Module):
 
     def __init__(self, insize: int, edgesize: int, classes: int) -> None:
@@ -134,7 +148,7 @@ class DeepAutoNet(nn.Module):
     def forward(self, x):
 
         if VERBOSE:
-            ReiformInfo(x.size())
+            ReiformInfo("Layer size : {}".format(x.size()))
 
             for layer in self.conv:
                 x = layer(x)

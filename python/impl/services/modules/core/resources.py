@@ -35,6 +35,7 @@ import warnings
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 logging.getLogger('numba').setLevel(logging.WARNING)
+logging.getLogger('matplotlib.font_manager').disabled = True
 
 random.seed(73434323)
 

@@ -1,7 +1,7 @@
 from sklearn.metrics import precision_recall_fscore_support # type: ignore
 from impl.services.modules.utils.image_utils import closest_power_of_2
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-from impl.services.modules.core.reiform_models import DeepAutoNet, train_conv_net
+from impl.services.modules.core.reiform_models import AutoResnet, DeepAutoNet, train_conv_net
 
 
 def get_predictions(dataloader, model):
@@ -44,6 +44,42 @@ def get_predictions_with_names(dataloader, model):
 
     return labels, predictions, names
 
+def dataset_evaluation_resnet(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
+
+    batch_size = 128
+    epochs = 50
+    classes = len(train_ds.classes())
+
+    transformation = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.RandomCrop(256),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=train_ds.get_mean(), std=train_ds.get_std_dev())
+    ])
+
+    train_dl_pt = train_ds.get_dataloader(3, 256, batch_size, transformation)
+    test_dl_pt = test_ds.get_dataloader(3, 256, batch_size, transformation)
+
+    train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs, classes)
+
+def train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs : int, classes : int):
+
+    learning_rate = 0.001
+
+    model = AutoResnet(classes)
+
+    loss = F.cross_entropy
+    
+    optim = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-2)
+
+    model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs, epsilon=0.00001)
+
+    true_y, pred_y = get_predictions(test_dl_pt, model)
+
+    scores = precision_recall_fscore_support(true_y, pred_y, average=None)
+
+    return scores
+
 def dataset_evaluation(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
 
     sizes = train_ds.find_max_image_dims()
@@ -76,7 +112,7 @@ def train_model_for_eval(train_dl_pt, test_dl_pt, sizes, edge_size, epochs, clas
     
     optim = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay=1e-2)
 
-    model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs)
+    model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs, epsilon=0.00001)
 
     true_y, pred_y = get_predictions(test_dl_pt, model)
 

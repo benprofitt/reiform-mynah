@@ -1,4 +1,3 @@
-from turtle import forward
 from .model_resources import *
 
 def create_conv_maxpool_block(insize: int, outsize: int):

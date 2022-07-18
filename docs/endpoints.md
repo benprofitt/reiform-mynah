@@ -495,10 +495,10 @@
     - `task_uuid`: Identifier for the async task started (used to query task status, see "Async task endpoints")
 
 ### Getting an image classification diagnosis report
-- `GET /api/v1/dataset/ic/report`
+- `GET /api/v1/dataset/ic/{datasetid}/report`
 - Params
   - `version` - The dataset version
-  - Example: `GET /api/v1/ic/{datasetid}/report?version=0`
+  - Example: `GET /api/v1/dataset/ic/{datasetid}/report?version=0`
 - Response:
   ```json
   type: MynahICDatasetReport

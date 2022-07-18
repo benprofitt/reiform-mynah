@@ -1,7 +1,7 @@
 import Ellipsis from "../images/Ellipsis.svg";
 import BackArrowIcon from "../images/BackArrowIcon.svg";
 import { Link, RouteComponentProps } from "wouter";
-import { Menu, Tab } from "@headlessui/react";
+import { Dialog, Menu, Tab } from "@headlessui/react";
 import clsx from "clsx";
 import {
   EitherData,
@@ -12,6 +12,9 @@ import {
 import { useQuery } from "react-query";
 import makeRequest from "../utils/apiFetch";
 import Image from "../components/Image";
+import { reduce } from "lodash";
+import getDate from "../utils/date";
+import { useState } from "react";
 
 const MyTab = (props: { text: string }): JSX.Element => {
   const { text } = props;
@@ -39,21 +42,28 @@ const File = (props: {
   fileId: string;
   file: EitherFile;
   data: MynahFile;
+  onClick: () => void;
 }): JSX.Element => {
-  const { version, fileId, file } = props;
-
+  const { version, fileId, file, data, onClick } = props;
+  const { image_version_id } = file;
+  const imgClass = "current_class" in file ? file.current_class : "OD class";
+  if (!data) return <></>;
+  const { date_created } = data;
   return (
-    <div className="hover:shadow-floating cursor-pointer bg-white h-fit border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative">
+    <button
+      className="w-full hover:shadow-floating cursor-pointer bg-white h-fit border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative text-left"
+      onClick={onClick}
+    >
       <h6 className="w-[40%] font-black text-black flex items-center">
         <Image
-          src={`/api/v1/file/${fileId}/${file["image_version_id"]}`}
+          src={`/api/v1/file/${fileId}/${image_version_id}`}
           className="w-[9%] min-w-[70px] aspect-square mr-[1.5%] object-cover"
         />
-        {fileId}
+        {data.name}
       </h6>
+      <h6 className="w-[20%]">{getDate(date_created)}</h6>
+      <h6 className="w-[20%]">{imgClass}</h6>
       <h6 className="w-[20%]">{version}</h6>
-      {/* <h6 className="w-[20%]">{dateCreated}</h6>
-  <h6 className="w-[20%]">{dateModified}</h6> */}
       <Menu
         as="div"
         className="absolute inline-block text-left right-[15px] top-[30%]"
@@ -85,12 +95,13 @@ const File = (props: {
           </>
         )}
       </Menu>
-    </div>
+    </button>
   );
 };
 
 const Files = (props: { dataset: EitherDataset }): JSX.Element => {
   const { dataset } = props;
+  const [selectedFile, setSelectedFile] = useState<number | null>(null);
   const files = Object.entries(dataset.versions)
     .reverse()
     .map(([version, data]: [string, EitherData]) =>
@@ -113,16 +124,14 @@ const Files = (props: { dataset: EitherDataset }): JSX.Element => {
   );
 
   if (error) return <div>error getting datasetFiles</div>;
-  if (isLoading)
+  if (isLoading || !data)
     return (
       <div className="animate-spin aspect-square border-l border-r border-b border-sidebarSelected border-6 rounded-full w-[20px]" />
     );
   return (
     <div className="text-grey2">
       <div className="flex">
-        <h3>
-          {fileCount} {query}
-        </h3>
+        <h3>{fileCount}</h3>
       </div>
       <div className="mt-[30px] flex text-left">
         <h5 className="w-[40%]">Name</h5>
@@ -130,11 +139,173 @@ const Files = (props: { dataset: EitherDataset }): JSX.Element => {
         <h5 className="w-[20%]">Classes</h5>
         <h5 className="w-[20%]">Version</h5>
       </div>
-      {data &&
-        files.map((file, ix) => (
-          <File key={ix} {...file} data={data[file.fileId]} />
-        ))}
+      {files.map((file, ix) => (
+        <File
+          key={ix}
+          {...file}
+          data={data[file.fileId]}
+          onClick={() => setSelectedFile(ix)}
+        />
+      ))}
+      <DetailedFileView
+        files={files}
+        selected={selectedFile}
+        setSelected={setSelectedFile}
+        data={data}
+      />
     </div>
+  );
+};
+
+const ProcessDataModal = (props: {
+  uuid: string;
+  isOpen: boolean;
+  close: () => void;
+}): JSX.Element => {
+  const { uuid, isOpen, close } = props;
+  const [selected, setSelected] = useState<"correction" | "diagnosis" | null>(
+    null
+  );
+  const [labelingErrors, setLabelingErrors] = useState(false);
+  const [intraclassVariance, setIntraclassVariance] = useState(false);
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={close}
+      className="fixed inset-0 w-full h-full flex items-center justify-center"
+    >
+      <Dialog.Overlay className="w-full h-full bg-black absolute  top-0 left-0 opacity-20 z-0" />
+      <main className="bg-white w-[528px] relative z-10 p-[30px]">
+        <button
+          className="absolute top-[15px] right-[20px] text-[40px] leading-none"
+          onClick={close}
+        >
+          x
+        </button>
+        <Dialog.Title className="text-3xl">Process data</Dialog.Title>
+        <form
+          className="flex flex-col text-[18px]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            close();
+          }}
+        >
+          <h2 className="font-bold my-[10px]">Select process options</h2>
+          <label>
+            <input
+              className="mr-[10px]"
+              type="radio"
+              value="diagnosis"
+              checked={selected === "diagnosis"}
+              onChange={() => setSelected("diagnosis")}
+            />
+            Diagnosis
+          </label>
+          <label>
+            <input
+              className="mr-[10px]"
+              type="radio"
+              value="correction"
+              checked={selected === "correction"}
+              onChange={(e) => setSelected("correction")}
+            />
+            Correction
+          </label>
+          <label className="ml-[20px]">
+            <input
+              className="mr-[10px]"
+              disabled={selected !== "correction"}
+              type="checkbox"
+              checked={selected === "correction" && labelingErrors}
+              onChange={() => setLabelingErrors((cur) => !cur)}
+            />
+            Labeling errors
+          </label>
+          <label className="ml-[20px]">
+            <input
+              className="mr-[10px]"
+              disabled={selected !== "correction"}
+              type="checkbox"
+              checked={selected === "correction" && intraclassVariance}
+              onChange={() => setIntraclassVariance((cur) => !cur)}
+            />
+            Intra-class variance
+          </label>
+          <button
+            type="submit"
+            className={clsx(
+              "w-full h-[40px] text-white mt-[30px] font-bold",
+              selected === null ? "bg-grey1" : "bg-blue-600"
+            )}
+          >
+            Start process
+          </button>
+        </form>
+      </main>
+    </Dialog>
+  );
+};
+
+const MetaDetail = (props: { title: string; value: string }): JSX.Element => {
+  const { title, value } = props;
+  return (
+    <div className="grid grid-cols-2 ml-[24px]">
+      <h4 className="font-bold">{title}:</h4>
+      <p>{value}</p>
+    </div>
+  );
+};
+
+const DetailedFileView = (props: {
+  selected: number | null;
+  setSelected: (x: number | null) => void;
+  files: {
+    version: string;
+    fileId: string;
+    file: EitherFile;
+  }[];
+  data: Record<string, MynahFile>;
+}) => {
+  const { selected, setSelected, files, data } = props;
+  const theFile = selected !== null ? files[selected] : null;
+  const fileData = theFile !== null ? data[theFile.fileId] : null;
+
+  if (theFile === null) return <></>;
+  const imgClass =
+    "current_class" in theFile.file ? theFile.file.current_class : "OD class";
+  const origClass =
+    "original_class" in theFile.file ? theFile.file.current_class : "OD class";
+  return (
+    <Dialog
+      onClose={() => setSelected(null)}
+      open={selected !== null}
+      className="fixed inset-0 w-full h-full"
+    >
+      <Dialog.Overlay className="w-full h-full bg-black absolute top-0 left-0 opacity-20 z-0" />
+      <main className="bg-white z-10 h-full w-fit right-0 top-0 absolute px-[24px] max-w-[calc(100%-30px)]">
+        <button
+          className="absolute top-[15px] right-[20px] text-[40px] leading-none"
+          onClick={() => setSelected(null)}
+        >
+          x
+        </button>
+        <h1 className="py-[24px] font-black text-[28px]">{fileData?.name}</h1>
+        <div className="flex border-grey1 border-2 h-[350px]">
+          <Image
+            src={`/api/v1/file/${theFile.fileId}/${theFile.file.image_version_id}`}
+            className="max-w-[min(60%,700px)] object-contain"
+          />
+          <div className="w-[376px]">
+            <h3 className="text-[20px] p-[24px]">Version: {theFile.version}</h3>
+            <div className="grid gap-[10px]">
+              <MetaDetail title="Class" value={imgClass} />
+              <MetaDetail title="Original Class" value={origClass} />
+            </div>
+            {/* {JSON.stringify({ ...theFile, fileData })} */}
+          </div>
+        </div>
+      </main>
+    </Dialog>
   );
 };
 
@@ -145,6 +316,7 @@ export default function DatasetPage(
     makeRequest<EitherDataset[]>("GET", "/api/v1/dataset/list")
   );
   const { uuid } = props.params;
+  const [processDataOpen, setProcessDataOpen] = useState(false);
   console.log("got the uuid", uuid);
   if (datasets === undefined)
     return <div>Unable to retrive datasets, are you logged in?</div>;
@@ -172,7 +344,10 @@ export default function DatasetPage(
             <button className="text-linkblue h-full w-[134px] text-center font-medium">
               Add More Data
             </button>
-            <button className="bg-linkblue text-white h-full w-[134px] text-center font-medium rounded-md">
+            <button
+              className="bg-linkblue text-white h-full w-[134px] text-center font-medium rounded-md"
+              onClick={() => setProcessDataOpen(true)}
+            >
               Process Data
             </button>
             <button className="h-full">
@@ -185,10 +360,15 @@ export default function DatasetPage(
             <MyTab text="Cleaning" />
           </Tab.List>
         </header>
-        <main className="bg-grey w-full p-[32px] flex-1">
+        <main className="bg-grey w-full p-[32px] flex-1 overflow-y-scroll">
           <Tab.Panels>
             <Tab.Panel>
               <Files dataset={dataset} />
+              <ProcessDataModal
+                isOpen={processDataOpen}
+                close={() => setProcessDataOpen(false)}
+                uuid={uuid}
+              />
             </Tab.Panel>
             <Tab.Panel>Diagnosis Tab</Tab.Panel>
             <Tab.Panel>Cleaning Tab</Tab.Panel>

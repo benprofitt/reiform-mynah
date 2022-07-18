@@ -8,6 +8,7 @@ import { Link } from "wouter";
 import { useQuery } from "react-query";
 import makeRequest from "../utils/apiFetch";
 import Image from "../components/Image";
+import getDate from "../utils/date";
 
 const FilterDropdown = (): JSX.Element => {
   return (
@@ -67,8 +68,6 @@ const DatasetListItem = (props: DatasetListItemProps): JSX.Element => {
   const versionKeys = Object.keys(versions);
   const version = versionKeys.map((x) => parseInt(x)).at(-1);
   const fileId = Object.keys(versions[versionKeys[0]]["files"])[0];
-  const dateCreated = new Date(date_created).toDateString().slice(4);
-  const dateModified = new Date(date_modified).toDateString().slice(4);
   return (
     <Link to={`/dataset/${uuid}`}>
       <div className="hover:shadow-floating cursor-pointer bg-white h-fit border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative">
@@ -80,8 +79,8 @@ const DatasetListItem = (props: DatasetListItemProps): JSX.Element => {
           {dataset_name}
         </h6>
         <h6 className="w-[20%]">{version}</h6>
-        <h6 className="w-[20%]">{dateCreated}</h6>
-        <h6 className="w-[20%]">{dateModified}</h6>
+        <h6 className="w-[20%]">{getDate(date_created)}</h6>
+        <h6 className="w-[20%]">{getDate(date_modified)}</h6>
         <Menu
           as="div"
           className="absolute inline-block text-left right-[15px] top-[30%]"

@@ -89,8 +89,9 @@ MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3
-MONTE_CARLO_SIMULATIONS = 50
 MONTE_CARLO_TRAINING_EPOCHS = 50
+MONTE_CARLO_SIMULATIONS = 75
+DATASET_EVAL_EPOCHS = 15
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 # device = ("cpu") # Use this if you get obfuscated CUDA errors

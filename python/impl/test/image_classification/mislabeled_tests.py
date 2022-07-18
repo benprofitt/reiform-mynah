@@ -4,7 +4,7 @@ from impl.services.modules.mislabeled_images.detection import *
 from impl.services.modules.mislabeled_images.correction import *
 from impl.services.modules.mislabeled_images.report_generation import *
 from impl.services.modules.core.embeddings.pretrained_embedding import *
-from impl.test.image_classification.test_utils import dataset_evaluation
+from impl.test.image_classification.test_utils import dataset_evaluation, dataset_evaluation_resnet
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
 
@@ -39,7 +39,7 @@ def run_pretrained_detection(data : ReiformICDataSet):
 
 def run_label_correction(inliers : ReiformICDataSet, 
                           outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, ReiformICDataSet]:
-    inliers, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
+    inliers, outliers, corrected = iterative_reinjection_label_correction(15, inliers, outliers)
 
     return inliers, outliers, corrected
 
@@ -58,7 +58,7 @@ def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet,
 
     return new_out, corrected
 
-def run_tests(data_path=None, results_path=None):
+def run_tests(data_path=None, results_path=None, test_data_path=None):
 
     random_seed = 433
     random.seed(random_seed)
@@ -67,14 +67,16 @@ def run_tests(data_path=None, results_path=None):
     # These should be the actual dirs in git with the tests files
     # data_path : str = "./python/impl/test/test_data_mnist"
     if data_path is None:
-        data_path : str = "python/impl/test/test_data_cifar"
+        data_path : str = "python/impl/test/xray/train_data_xray"
     if results_path is None:
-        results_path : str = "python/impl/test/test_results"
+        results_path : str = "python/impl/test/xray/test_results_xray"
+    if test_data_path is None:
+        test_data_path : str = "python/impl/test/xray/test_data_xray"
 
     do_only_detection = False
-    do_dataset_evaluation = False
+    do_dataset_evaluation = True
     do_test_detection = False
-    do_test_correction = True
+    do_test_correction = False
 
     dataset : ReiformICDataSet = dataset_from_path(data_path)
 
@@ -121,9 +123,10 @@ def run_tests(data_path=None, results_path=None):
 
     if do_dataset_evaluation:
 
-        train_ds, test_ds = dataset.split(0.7)
+        train_ds : ReiformICDataSet = dataset.copy()
+        test_ds : ReiformICDataSet = dataset_from_path(test_data_path)
 
-        train_ds = train_ds.mislabel(5)
+        # train_ds, _ = train_ds.mislabel(5)
 
         ReiformInfo("Data split and mislabeled. Detection starting.")
         inliers, outliers = run_pretrained_detection(train_ds)
@@ -131,9 +134,9 @@ def run_tests(data_path=None, results_path=None):
         inliers, outliers, corrected = run_label_correction(inliers, outliers)
 
         ReiformInfo("Mislabeled evaluation starting.")
-        raw_scores = dataset_evaluation(train_ds, test_ds)
+        raw_scores = dataset_evaluation_resnet(train_ds, test_ds)
         ReiformInfo("Corrected evaluation starting.")
-        corrected_scores = dataset_evaluation(inliers, test_ds)
+        corrected_scores = dataset_evaluation_resnet(inliers, test_ds)
 
         ReiformInfo("Raw Scores       : {}".format(str(raw_scores)))
         ReiformInfo("Corrected Scores : {}".format(str(corrected_scores)))

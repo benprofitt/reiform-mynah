@@ -1,3 +1,4 @@
+from turtle import forward
 from .model_resources import *
 
 def create_conv_maxpool_block(insize: int, outsize: int):
@@ -125,7 +126,7 @@ class AutoResnet(nn.Module):
         super().__init__()
 
         self.features : nn.Module = torchvision.models.resnet50(pretrained=True)
-        self.classifier : nn.Module = linear_block(1000, classes, relu=False)
+        self.classifier : nn.Module = linear_block(1000, classes, relu=False, dropout=0.1)
 
     def forward(self, x):
         x = self.features(x)

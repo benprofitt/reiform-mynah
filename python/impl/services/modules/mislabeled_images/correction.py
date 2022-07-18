@@ -84,7 +84,7 @@ def evaluate_correction_confidence(starting_label: int, predictions: NDArray) ->
         max_freq[int(val)] = max_freq[int(val)] + 1
     max_max = int(max_freq.index(max(max_freq)))
 
-    if max_freq[max_max] >= total * (98/100):
+    if max_freq[max_max] >= total * (100/100):
         return True, max_max
 
     return False, -1

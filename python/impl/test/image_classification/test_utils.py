@@ -46,8 +46,8 @@ def get_predictions_with_names(dataloader, model):
 
 def dataset_evaluation_resnet(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
 
-    batch_size = 128
-    epochs = 50
+    batch_size = 64
+    epochs = DATASET_EVAL_EPOCHS
     classes = len(train_ds.classes())
 
     transformation = transforms.Compose([
@@ -57,10 +57,10 @@ def dataset_evaluation_resnet(train_ds : ReiformICDataSet, test_ds : ReiformICDa
         transforms.Normalize(mean=train_ds.get_mean(), std=train_ds.get_std_dev())
     ])
 
-    train_dl_pt = train_ds.get_dataloader(3, 256, batch_size, transformation)
+    train_dl_pt = train_ds.get_balanced_dataloader(3, 256, batch_size, transformation)
     test_dl_pt = test_ds.get_dataloader(3, 256, batch_size, transformation)
 
-    train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs, classes)
+    return train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs, classes)
 
 def train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs : int, classes : int):
 
@@ -86,7 +86,7 @@ def dataset_evaluation(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
     max_ = max(sizes)
     edge_size = min(1024, closest_power_of_2(max_)*2)
     batch_size = 512
-    epochs = 50
+    epochs = DATASET_EVAL_EPOCHS
     classes = len(train_ds.classes())
 
     transformation = transforms.Compose([

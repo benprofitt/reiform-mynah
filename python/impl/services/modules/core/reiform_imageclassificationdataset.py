@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from impl.services.modules.utils.image_utils import get_image_metadata
 from .reiform_imagedataset import *
+from torch.utils.data.sampler import WeightedRandomSampler
 
 class ReiformICFile(ReiformImageFile):
     def __init__(self, name: str, label : str) -> None:
@@ -484,6 +485,26 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return dataloader
 
+    def get_balanced_dataloader(self, in_size : int, edge_size : int = 256, batch_size : int = 32, transformation = None) -> torch.utils.data.DataLoader:
+
+        def class_imbalance_sampler(labels : List[int], class_count : int):
+            class_counts = [0] * class_count
+            for l in labels:
+                class_counts[l] += 1
+
+            class_weighting = 1. / np.array(class_counts)
+            sample_weights = class_weighting[labels]
+            sampler = WeightedRandomSampler(sample_weights, len(labels), replacement=True)
+            return sampler
+        
+        image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
+        sampler = class_imbalance_sampler(image_data.get_sample_labels(), len(self.class_list))
+
+        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size,  
+                                                 num_workers=WORKERS, sampler = sampler)
+
+        return dataloader
+
     def get_dataloader_with_names(self, preprocess : torchvision.transforms.Compose, batch_size: int = 16) -> torch.utils.data.DataLoader:
         image_data = ImageNameDataset(self, preprocess)
         dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=WORKERS)
@@ -551,6 +572,9 @@ class DatasetFromReiformDataset(torch.utils.data.Dataset):
             ])
         else:
             self.transform = transformation
+
+    def get_sample_labels(self):
+        return [v[1] for v in self.files_and_labels]
 
     def __len__(self) -> int:
         return len(self.files_and_labels)
@@ -648,7 +672,7 @@ def make_file(package : Tuple):
 
     new_file.width  = data["width"]
     new_file.height = data["height"]
-    new_file.channels = data["channels"]
+    new_file.channels = max(data["channels"], 3)
 
     new_file.mean = data["mean"]
     new_file.std_dev = data["std_dev"]

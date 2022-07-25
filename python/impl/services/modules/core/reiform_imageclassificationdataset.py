@@ -478,10 +478,30 @@ class ReiformICDataSet(ReiformImageDataset):
         for id in uuids:
             new_dataset.add_file(self.get_file_by_uuid(id))
 
-    def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None) -> torch.utils.data.DataLoader:
+    def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None, shuffle = True) -> torch.utils.data.DataLoader:
         
         image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
-        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=True, num_workers=WORKERS)
+        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=shuffle, num_workers=WORKERS)
+
+        return dataloader
+
+    def get_balanced_dataloader(self, in_size : int, edge_size : int = 256, batch_size : int = 32, transformation = None) -> torch.utils.data.DataLoader:
+
+        def class_imbalance_sampler(labels : List[int], class_count : int):
+            class_counts = [0] * class_count
+            for l in labels:
+                class_counts[l] += 1
+
+            class_weighting = 1. / np.array(class_counts)
+            sample_weights = class_weighting[labels]
+            sampler = WeightedRandomSampler(sample_weights, len(labels), replacement=True)
+            return sampler
+        
+        image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
+        sampler = class_imbalance_sampler(image_data.get_sample_labels(), len(self.class_list))
+
+        dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size,  
+                                                 num_workers=WORKERS, sampler = sampler)
 
         return dataloader
 

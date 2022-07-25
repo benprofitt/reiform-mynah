@@ -2,6 +2,109 @@
 
 ## Functions
 
+### Start Image Correction Model Training Job
+- Name: `start_ic_training_job(uuid: str, local_model_save_path : str, request: str, sock_addr: str)`
+- `uuid`: The uuid of the user starting the job
+- `local_model_save_path`: The local path designating where to save the trained model
+- `request`:
+  ```json
+  {
+    "config_params": {
+      "model" : "resnet50",
+      "min_epochs" : 3,
+      "max_epochs" : 50,
+      "loss_epsilon" : 0.001,
+      "batch_size" : 64,
+      "train_test_split" : 0.9
+    },
+    "dataset": "Type::ReiformICDataset (see below)",
+
+  }
+  ```
+- `sock_addr`: The ipc socket address for sending websocket data
+- Output:
+```json
+  {
+    "model_saved" : true,
+    "config_params": {
+      "model" : "resnet50",
+      "min_epochs" : 3,
+      "max_epochs" : 50,
+      "loss_epsilon" : 0.001,
+      "batch_size" : 64,
+      "train_test_split" : 0.9
+    },
+    "avg_training_loss" : [0.234, 0.221, 0.201, 0.109, 0.091, 0.009, 0.008],
+    "all_file_test_loss" : [
+      [0.234, 0.221, 0.201, 0.100, 0.091, 0.009, 0.008],
+      [0.234, 0.221, 0.201, 0.159, 0.095, 0.009, 0.003],
+      [0.234, 0.221, 0.201, 0.119, 0.094, 0.019, 0.04],
+      [0.234, 0.221, 0.201, 0.11, 0.092, 0.01, 0.001]
+    ],
+    "ordered_fileids" : [
+      "fileId1",
+      "fileId2",
+      "fileId3",
+      "fileId4"
+    ]
+  }
+
+### ReiformICDataset
+```json
+{
+      "uuid": "uuid_of_dataset",
+      "classes" : ["class1", "class2"],
+      "mean": [0.3, 0.4, 0.1],
+      "std_dev": [0.1, 0.12, 0.03],
+      "class_files" : {
+        "class1" : {
+          "/tmp/uuid1" : {
+            "uuid": "uuid1",
+            "width": 32,
+            "height": 32,
+            "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          },
+          "/tmp/uuid2" : {
+            "uuid": "uuid2",
+            "width": 32,
+            "height": 32,
+            "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          }
+        },
+        "class2" : {
+          "/tmp/uuid3" : {
+            "uuid": "uuid3",
+            "width": 32,
+            "height": 32,
+            "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          },
+          "/tmp/uuid4" : {
+            "uuid": "uuid4",
+            "width": 32,
+            "height": 32,
+            "channels": 3,
+            "projections": {},
+            "confidence_vectors": [[1.0, 2.0]],
+            "mean": [0.3, 0.4, 0.1],
+            "std_dev": [0.1, 0.12, 0.03]
+          }
+        }
+      }
+    }
+    ```
+
 ### Start Image Correction Processing Job
 - Name: `start_ic_processing_job(uuid: str, request: str, sock_addr: str)`
 - `uuid`: The uuid of the user starting the job

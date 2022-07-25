@@ -34,6 +34,7 @@ export interface MynahICData {
 }
 
 export type MynahICVersion = Record<string, MynahICData>;
+// the string is the version number
 
 export interface MynahICDataset {
   uuid: string;
@@ -96,4 +97,3 @@ export type EitherDataset = MynahICDataset | MynahODDataset;
 export type EitherFile = MynahICFile | MynahODFile;
 export type EitherData = MynahICData | MynahODData;
 export type EitherVersion = MynahICVersion | MynahODVersion;
-export type DatasetList = EitherDataset[];

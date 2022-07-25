@@ -4,10 +4,10 @@ import { Link, RouteComponentProps } from "wouter";
 import { Dialog, Menu, Tab } from "@headlessui/react";
 import clsx from "clsx";
 import {
-  EitherData,
-  EitherDataset,
-  EitherFile,
   MynahFile,
+  MynahICDataset,
+  MynahICFile,
+  MynahICData
 } from "../utils/types";
 import { useQuery } from "react-query";
 import makeRequest from "../utils/apiFetch";
@@ -40,7 +40,7 @@ const MyTab = (props: { text: string }): JSX.Element => {
 const File = (props: {
   version: string;
   fileId: string;
-  file: EitherFile;
+  file: MynahICFile;
   data: MynahFile;
   onClick: () => void;
 }): JSX.Element => {
@@ -99,14 +99,14 @@ const File = (props: {
   );
 };
 
-const Files = (props: { dataset: EitherDataset }): JSX.Element => {
+const Files = (props: { dataset: MynahICDataset }): JSX.Element => {
   const { dataset } = props;
   const [selectedFile, setSelectedFile] = useState<number | null>(null);
   const files = Object.entries(dataset.versions)
     .reverse()
-    .map(([version, data]: [string, EitherData]) =>
+    .map(([version, data]: [string, MynahICData]) =>
       Object.entries(data.files).map(
-        ([fileId, file]: [string, EitherFile]) => ({
+        ([fileId, file]: [string, MynahICFile]) => ({
           version,
           fileId,
           file,
@@ -262,7 +262,7 @@ const DetailedFileView = (props: {
   files: {
     version: string;
     fileId: string;
-    file: EitherFile;
+    file: MynahICFile;
   }[];
   data: Record<string, MynahFile>;
 }) => {
@@ -271,10 +271,6 @@ const DetailedFileView = (props: {
   const fileData = theFile !== null ? data[theFile.fileId] : null;
 
   if (theFile === null) return <></>;
-  const imgClass =
-    "current_class" in theFile.file ? theFile.file.current_class : "OD class";
-  const origClass =
-    "original_class" in theFile.file ? theFile.file.current_class : "OD class";
   return (
     <Dialog
       onClose={() => setSelected(null)}
@@ -298,8 +294,8 @@ const DetailedFileView = (props: {
           <div className="w-[376px]">
             <h3 className="text-[20px] p-[24px]">Version: {theFile.version}</h3>
             <div className="grid gap-[10px]">
-              <MetaDetail title="Class" value={imgClass} />
-              <MetaDetail title="Original Class" value={origClass} />
+              <MetaDetail title="Class" value={theFile.file.current_class} />
+              <MetaDetail title="Original Class" value={theFile.file.original_class} />
             </div>
             {/* {JSON.stringify({ ...theFile, fileData })} */}
           </div>
@@ -312,8 +308,8 @@ const DetailedFileView = (props: {
 export default function DatasetPage(
   props: RouteComponentProps<{ uuid: string }>
 ): JSX.Element {
-  const { data: datasets } = useQuery<EitherDataset[]>("datasets", () =>
-    makeRequest<EitherDataset[]>("GET", "/api/v1/dataset/list")
+  const { data: datasets } = useQuery<MynahICDataset[]>("datasets", () =>
+    makeRequest<MynahICDataset[]>("GET", "/api/v1/dataset/list")
   );
   const { uuid } = props.params;
   const [processDataOpen, setProcessDataOpen] = useState(false);

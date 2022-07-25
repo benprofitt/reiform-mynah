@@ -2,7 +2,7 @@ import clsx from "clsx";
 import ArrowIcon from "../images/ArrowIcon.svg";
 import OpenDatasetIcon from "../images/OpenDatasetIcon.svg";
 import TrashIcon from "../images/TrashIcon.svg";
-import { DatasetList, EitherDataset } from "../utils/types";
+import { EitherDataset } from "../utils/types";
 import { Menu } from "@headlessui/react";
 import { Link } from "wouter";
 import { useQuery } from "react-query";
@@ -67,9 +67,11 @@ const DatasetListItem = (props: DatasetListItemProps): JSX.Element => {
   const { dataset_name, versions, date_created, date_modified, uuid } = dataset;
   const versionKeys = Object.keys(versions);
   const version = versionKeys.map((x) => parseInt(x)).at(-1);
-  const fileId = Object.keys(versions[versionKeys[0]]["files"])[0];
+  const someVersion = versions[versionKeys[0]]
+  const fileId = Object.keys(someVersion["files"])[0];
+  const isIC = "mean" in someVersion
   return (
-    <Link to={`/dataset/${uuid}`}>
+    <Link to={isIC ? `/dataset/ic/${uuid}` : `/dataset/od/${uuid}`}>
       <div className="hover:shadow-floating cursor-pointer bg-white h-fit border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative">
         <h6 className="w-[40%] font-black text-black flex items-center">
           <Image
@@ -118,7 +120,7 @@ const DatasetListItem = (props: DatasetListItemProps): JSX.Element => {
 };
 
 interface MainDatasetContentProps {
-  datasets: DatasetList;
+  datasets: EitherDataset[];
 }
 
 const MainDatasetContent = (props: MainDatasetContentProps): JSX.Element => {

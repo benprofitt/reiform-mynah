@@ -31,7 +31,7 @@ function App(): JSX.Element {
             <SideBar>
               <Switch>
                 <Route path="/home" component={DatasetsHomePage} />
-                <Route path="/dataset/:uuid" component={DatasetPage} />
+                <Route path="/dataset/ic/:uuid" component={DatasetPage} />
                 <Route
                   path="/account-settings"
                   component={AccountSettingsPage}

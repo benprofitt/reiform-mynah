@@ -44,6 +44,10 @@ class ReiformUnimplementedException(ReiformException):
     def __init__(self, message : str=""):
         super().__init__("Reiform Unimplemented Method: {}".format(message))
 
+class ReiformTrainingException(ReiformException):
+    def __init__(self, message: str = "Something requested does not exist: "):
+        super().__init__(message)
+
 class ReiformClassMethodException(ReiformException):
     def __init__(self, class_name: str, method: str):
         super().__init__("Error in: {}::{}".format(class_name, method))

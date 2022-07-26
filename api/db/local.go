@@ -582,15 +582,15 @@ func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUs
 	}
 
 	//delete referenced reports
-	for _, reportId := range dataset.Reports {
+	for _, reportMetadata := range dataset.Reports {
 		affected, err := d.engine.Delete(&model.MynahBinObject{
-			Uuid: reportId,
+			Uuid: reportMetadata.DataId,
 		})
 		if err != nil {
-			log.Warnf("when deleting ic dataset %s, report %s was not deleted: %s", uuid, reportId, err)
+			log.Warnf("when deleting ic dataset %s, report %s was not deleted: %s", uuid, reportMetadata.DataId, err)
 		}
 		if affected == 0 {
-			log.Warnf("when deleting ic dataset %s, report %s was not deleted, no records affected", uuid, reportId)
+			log.Warnf("when deleting ic dataset %s, report %s was not deleted, no records affected", uuid, reportMetadata.DataId)
 		}
 	}
 

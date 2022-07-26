@@ -182,8 +182,8 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 				c.Router.HandleHTTPRequest("POST", "dataset/ic/process/start",
 					icProcessJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
 				c.Router.HandleHTTPRequest("GET",
-					fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
-					icProcessReportView(c.DBProvider))
+					fmt.Sprintf("data/json/{%s}", idKey),
+					getDataJSON(c.DBProvider))
 
 				//make the request
 				return c.WithHTTPRequest(req, jwt, func(code int, rr *httptest.ResponseRecorder) error {
@@ -199,8 +199,12 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 					//wait for task completion
 					return c.AsyncTaskWaiter(user, res.TaskUuid, func() error {
+						//get the dataset with the updated report section
+						updatedDataset, err := c.DBProvider.GetICDataset(dataset.Uuid, user, db.NewMynahDBColumns())
+						require.NoError(t, err)
+
 						//get the report
-						requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report?version=1", string(dataset.Uuid)))
+						requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("data/json/%s", string(updatedDataset.Reports["1"].DataId)))
 						req, reqErr := http.NewRequest("GET", requestPath, nil)
 						require.NoError(t, reqErr)
 
@@ -342,11 +346,11 @@ func TestAPIReportFilter(t *testing.T) {
 			return c.WithCreateICDataset(user, expectedFileIds.UuidVals(), func(dataset *model.MynahICDataset) error {
 
 				c.Router.HandleHTTPRequest("GET",
-					fmt.Sprintf("dataset/ic/{%s}/report", datasetIdKey),
-					icProcessReportView(c.DBProvider))
+					fmt.Sprintf("data/json/{%s}", idKey),
+					getDataJSON(c.DBProvider))
 
 				//make a standard request
-				requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("dataset/ic/%s/report", string(dataset.Uuid)))
+				requestPath := path.Join(mynahSettings.ApiPrefix, fmt.Sprintf("data/json/%s", string(dataset.Reports["0"].DataId)))
 				req, reqErr := http.NewRequest("GET", requestPath, nil)
 				require.NoError(t, reqErr)
 

@@ -26,6 +26,7 @@ import (
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
 	"reiform.com/mynah/websockets"
+	"time"
 )
 
 // TestContext maintains the context for testing
@@ -325,7 +326,13 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 				if err != nil {
 					return err
 				}
-				d.Reports["0"] = binObj.Uuid
+				d.Reports["0"] = &model.MynahICDatasetReportMetadata{
+					DataId:      binObj.Uuid,
+					DateCreated: time.Now().Unix(),
+					Tasks: []model.MynahICProcessTaskType{
+						model.ICProcessCorrectLightingConditionsTask,
+					},
+				}
 
 			} else {
 				return err

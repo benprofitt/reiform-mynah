@@ -40,8 +40,17 @@
         "std_dev": [0,0,0],
       },
       ...
+    },
+    "reports": {
+      "0": {
+        "data_id": "901dj012931iu3091",
+        "date_created": 12341212,
+        "tasks": [
+          MynahICProcessTaskType
+        ]
+      },
+      ...
     }
-
   }
   ```
 ### `MynahODDataset`
@@ -342,6 +351,11 @@
   ```
 - Note, providing no `fileid` will return a 4xx status
 
+### Requesting JSON data
+- `GET /api/v1/data/json/{id}`
+- Example: used to request report data from report metadata `data_id`
+- Response: Some json structure
+
 ## Admin Management Endpoints
 
 ### Creating a User
@@ -493,17 +507,6 @@
   }
   ```
     - `task_uuid`: Identifier for the async task started (used to query task status, see "Async task endpoints")
-
-### Getting an image classification diagnosis report
-- `GET /api/v1/dataset/ic/{datasetid}/report`
-- Params
-  - `version` - The dataset version
-  - Example: `GET /api/v1/dataset/ic/{datasetid}/report?version=0`
-- Response:
-  ```json
-  type: MynahICDatasetReport
-  ```
-  - Note: when requesting images, use the tag: `report["image_data"]["{image_id}"]["image_version_id"]`
 
 ## Async task endpoints
 

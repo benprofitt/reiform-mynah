@@ -149,6 +149,16 @@ type MynahICDatasetVersion struct {
 	TaskData []*MynahICProcessTaskData `json:"task_data,omitempty"`
 }
 
+// MynahICDatasetReportMetadata contains metadata about a report
+type MynahICDatasetReportMetadata struct {
+	// id for requesting report contents
+	DataId MynahUuid `json:"data_id"`
+	// the date the report was created
+	DateCreated int64 `json:"date_created"`
+	// the tasks that were run
+	Tasks []MynahICProcessTaskType `json:"tasks"`
+}
+
 // MynahICDataset Defines a dataset specifically for image classification
 type MynahICDataset struct {
 	//underlying mynah dataset
@@ -156,7 +166,7 @@ type MynahICDataset struct {
 	//versions of the dataset
 	Versions map[MynahDatasetVersionId]*MynahICDatasetVersion `json:"versions" xorm:"TEXT 'versions'"`
 	//reports for this dataset by version (references a binobject)
-	Reports map[MynahDatasetVersionId]MynahUuid `json:"-" xorm:"TEXT 'reports'"`
+	Reports map[MynahDatasetVersionId]*MynahICDatasetReportMetadata `json:"reports" xorm:"TEXT 'reports'"`
 	//the latest version
 	LatestVersion MynahDatasetVersionId `json:"latest_version" xorm:"TEXT 'latest_version'"`
 	//the format
@@ -168,7 +178,7 @@ func NewICDataset(creator *MynahUser) *MynahICDataset {
 	return &MynahICDataset{
 		MynahDataset:  *NewDataset(creator),
 		Versions:      make(map[MynahDatasetVersionId]*MynahICDatasetVersion),
-		Reports:       make(map[MynahDatasetVersionId]MynahUuid),
+		Reports:       make(map[MynahDatasetVersionId]*MynahICDatasetReportMetadata),
 		LatestVersion: "0",
 		Format: MynahICDatasetFormat{
 			Type:     ICDatasetFolderFormat,

@@ -11,6 +11,7 @@ import (
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
+	"time"
 )
 
 //local python impl provider
@@ -103,7 +104,11 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 	}
 
 	//record the report by id
-	dataset.Reports[dataset.LatestVersion] = binObj.Uuid
+	dataset.Reports[dataset.LatestVersion] = &model.MynahICDatasetReportMetadata{
+		DataId:      binObj.Uuid,
+		DateCreated: time.Now().Unix(),
+		Tasks:       tasks,
+	}
 	return err
 }
 

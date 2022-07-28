@@ -168,6 +168,68 @@
 ### `MynahICDatasetReport`
   ```json
   {
+    "points" : [
+        {
+            "fileId" : "<insert id here>", 
+            "imgVersionId" : "<insert id here>",
+            "x" : 3.123,
+            "y" : 1.112,
+            "class" : "dog, but note that this will determine the color of the point plotted",
+            "original_class" : "cat"
+        },
+        {
+            "fileId" : "<insert id here>", 
+            "imgVersionId" : "<insert id here>",
+            "x" : 3.123,
+            "y" : 1.112,
+            "class" : "dog, but note that this will determine the color of the point plotted",
+            "original_class" : "cat"
+        }
+    ], 
+    "files" : {
+        "fileId1" : {
+            "imgVersionId" :"<insert id here>",
+            "class" : "<class>",
+            "original_class" : "<o_class>",
+            "x" : 3.123,
+            "y" : 1.112
+        },
+        "fileId2" : {
+            "imgVersionId" :"<insert id here>",
+            "class" : "<class>",
+            "original_class" : "<o_class>",
+            "x" : 2.123,
+            "y" : 8.112
+        }
+    },
+    "classes_label_errors" : {
+        "cat" : {
+            "mislabeled" : [ "<fileId1>", "<fileId2>", "..." ],
+            "correct" : [ "<fileId3>", "<fileId4>", "..." ],
+            "mislabeled_count" : 32,
+            "correct_count" : 441
+        },
+        "dog" : {
+            "mislabeled" : [ "<fileId5>", "<fileId6>", "..." ],
+            "correct" : [ "<fileId8>", "<fileId9>", "..." ],
+            "mislabeled_count" : 3,
+            "correct_count" : 419
+        }
+    },
+    "classes_splitting" : {
+        "cat" : {
+            "new_classes_count" : 3, "new_classes" : [ "cat_split_0", "cat_split_1", "cat_split_2" ]
+        },
+        "dog" : {
+            "new_classes_count" : 2, "new_classes" : [ "dog_split_0", "dog_split_1" ]
+        }
+    }
+}
+```
+
+### `Old Dataset Report - Not sure we won't need some of this...`
+```json
+  {
     "uuid": "",
     "image_ids" : [
       "fileid1",

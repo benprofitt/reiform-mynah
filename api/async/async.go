@@ -23,22 +23,14 @@ type asyncTask struct {
 	taskUuid model.MynahUuid
 }
 
-//the current status of a task
-type taskStatus struct {
-	//the uuid of the user who has permission to view
-	userUuid model.MynahUuid
-	//the status
-	stat MynahAsyncTaskStatus
-}
-
 //maintain the async queue, process new items
 type asyncEngine struct {
 	//channel for accepting new tasks
 	taskChan chan *asyncTask
 	//wait group for workers
 	waitGroup sync.WaitGroup
-	//task status lookup
-	taskLookup map[model.MynahUuid]*taskStatus
+	//task status lookup (map from user to map from task id)
+	taskLookup map[model.MynahUuid]map[model.MynahUuid]*AsyncTaskData
 	//mutex on task lookup
 	taskLock sync.RWMutex
 	//task completion context
@@ -48,14 +40,17 @@ type asyncEngine struct {
 }
 
 // setTaskStatus sets the status of a given task
-func (a *asyncEngine) setTaskStatus(taskId model.MynahUuid, newStat MynahAsyncTaskStatus) {
+func (a *asyncEngine) setTaskStatus(userUuid model.MynahUuid, taskId model.MynahUuid, newStat MynahAsyncTaskStatus) {
 	a.taskLock.Lock()
 	defer a.taskLock.Unlock()
-	if stat, ok := a.taskLookup[taskId]; ok {
-		stat.stat = newStat
-	} else {
-		log.Warnf("unable to set status for task %s: does not exist", taskId)
+	if userTasks, ok := a.taskLookup[userUuid]; ok {
+		if stat, ok := userTasks[taskId]; ok {
+			stat.TaskStatus = newStat
+			return
+		}
 	}
+
+	log.Warnf("unable to set status for task %s owned by user %s: does not exist", taskId, userUuid)
 }
 
 //execute tasks
@@ -69,16 +64,16 @@ func (a *asyncEngine) taskRunner(wsProvider websockets.WebSocketProvider) {
 		case task := <-a.taskChan:
 			start := time.Now().Unix()
 			log.Infof("started async task %s at timestamp %d", task.taskUuid, start)
-			a.setTaskStatus(task.taskUuid, StatusRunning)
+			a.setTaskStatus(task.userUuid, task.taskUuid, StatusRunning)
 			//run the task
 			res, err := task.handler(task.userUuid)
 			//get the stop timestamp
 			stop := time.Now().Unix()
 
 			if err != nil {
-				a.setTaskStatus(task.taskUuid, StatusFailed)
+				a.setTaskStatus(task.userUuid, task.taskUuid, StatusFailed)
 			} else {
-				a.setTaskStatus(task.taskUuid, StatusCompleted)
+				a.setTaskStatus(task.userUuid, task.taskUuid, StatusCompleted)
 			}
 
 			if err != nil {
@@ -99,7 +94,7 @@ func NewAsyncProvider(mynahSettings *settings.MynahSettings, wsProvider websocke
 	e := asyncEngine{
 		taskChan:   make(chan *asyncTask, mynahSettings.AsyncSettings.BufferSize),
 		waitGroup:  sync.WaitGroup{},
-		taskLookup: make(map[model.MynahUuid]*taskStatus),
+		taskLookup: make(map[model.MynahUuid]map[model.MynahUuid]*AsyncTaskData),
 	}
 	workers := 1
 	if mynahSettings.AsyncSettings.Workers > workers {
@@ -133,32 +128,54 @@ func (a *asyncEngine) StartAsyncTask(user *model.MynahUser, handler AsyncTaskHan
 	a.taskLock.Lock()
 	defer a.taskLock.Unlock()
 
+	if _, ok := a.taskLookup[user.Uuid]; !ok {
+		a.taskLookup[user.Uuid] = make(map[model.MynahUuid]*AsyncTaskData)
+	}
+
 	//mark the task as pending
-	a.taskLookup[taskUuid] = &taskStatus{
-		userUuid: user.Uuid,
-		stat:     StatusPending,
+	a.taskLookup[user.Uuid][taskUuid] = &AsyncTaskData{
+		Started:    time.Now().Unix(),
+		TaskId:     taskUuid,
+		TaskStatus: StatusPending,
 	}
 
 	return taskUuid
 }
 
 // GetAsyncTaskStatus gets the status of a task
-func (a *asyncEngine) GetAsyncTaskStatus(user *model.MynahUser, taskId model.MynahUuid) (MynahAsyncTaskStatus, error) {
+func (a *asyncEngine) GetAsyncTaskStatus(user *model.MynahUser, taskId model.MynahUuid) (*AsyncTaskData, error) {
 	a.taskLock.RLock()
 	defer a.taskLock.RUnlock()
-	if stat, ok := a.taskLookup[taskId]; ok {
-		if stat.userUuid == user.Uuid {
-			return stat.stat, nil
-		} else {
-			return "", fmt.Errorf("user %s does not have permission to view task: %s", user.Uuid, taskId)
-		}
 
+	if userTasks, ok := a.taskLookup[user.Uuid]; ok {
+		if stat, ok := userTasks[taskId]; ok {
+			return stat, nil
+		} else {
+			return nil, fmt.Errorf("user %s does not have task: %s", user.Uuid, taskId)
+		}
 	} else {
-		return "", fmt.Errorf("no such task: %s", taskId)
+		return nil, fmt.Errorf("user %s does not have any tasks", user.Uuid)
 	}
 }
 
-// Close close async provider gracefully, finish pending tasks
+// ListAsyncTasks lists the async tasks owned by a user
+func (a *asyncEngine) ListAsyncTasks(user *model.MynahUser) (res []*AsyncTaskData) {
+	a.taskLock.RLock()
+	defer a.taskLock.RUnlock()
+
+	res = make([]*AsyncTaskData, 0)
+
+	// iterate over the users tasks, add status
+	if userTasks, ok := a.taskLookup[user.Uuid]; ok {
+		for _, task := range userTasks {
+			res = append(res, task)
+		}
+	}
+
+	return res
+}
+
+// Close async provider gracefully, finish pending tasks
 func (a *asyncEngine) Close() {
 	defer close(a.taskChan)
 

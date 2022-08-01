@@ -87,6 +87,8 @@ func TestAsyncStatus(t *testing.T) {
 
 	taskChan := make(chan int)
 
+	require.Equal(t, []*AsyncTaskData{}, asyncProvider.ListAsyncTasks(&user))
+
 	taskId := asyncProvider.StartAsyncTask(&user, func(uuid model.MynahUuid) ([]byte, error) {
 		//wait to exit
 		<-taskChan
@@ -97,7 +99,12 @@ func TestAsyncStatus(t *testing.T) {
 
 	status, err := asyncProvider.GetAsyncTaskStatus(&user, taskId)
 	require.NoError(t, err)
-	require.Equal(t, StatusRunning, status)
+	require.Equal(t, StatusRunning, status.TaskStatus)
+
+	tasks := asyncProvider.ListAsyncTasks(&user)
+	require.Len(t, tasks, 1)
+	require.Equal(t, StatusRunning, tasks[0].TaskStatus)
+	require.Equal(t, taskId, tasks[0].TaskId)
 
 	//cause the task to end
 	taskChan <- 0
@@ -107,5 +114,5 @@ func TestAsyncStatus(t *testing.T) {
 	//get the status again
 	status, err = asyncProvider.GetAsyncTaskStatus(&user, taskId)
 	require.NoError(t, err)
-	require.Equal(t, StatusCompleted, status)
+	require.Equal(t, StatusCompleted, status.TaskStatus)
 }

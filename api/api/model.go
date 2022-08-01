@@ -3,7 +3,6 @@
 package api
 
 import (
-	"reiform.com/mynah/async"
 	"reiform.com/mynah/model"
 )
 
@@ -42,10 +41,4 @@ type ICProcessJobRequest struct {
 type ICProcessJobResponse struct {
 	//the id of the task
 	TaskUuid model.MynahUuid `json:"task_uuid"`
-}
-
-// TaskStatusResponse response type for querying the status of a task
-type TaskStatusResponse struct {
-	//the status of the task
-	TaskStatus async.MynahAsyncTaskStatus `json:"task_status"`
 }

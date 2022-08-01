@@ -51,6 +51,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 
 	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
 
+	router.HandleHTTPRequest("GET", "task/list", listAsyncTasks(asyncProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("task/status/{%s}", taskIdKey), getAsyncTaskStatus(asyncProvider))
 	return nil
 }

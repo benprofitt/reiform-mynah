@@ -165,6 +165,15 @@
   }
   ```
 
+### `AsyncTaskData`
+  ```json
+  {
+    "started": 141513413,
+    "task_id": "awojifd-9023je12",
+    "task_status": "pending" | "running" | "completed" | "failed"
+  }
+  ```
+
 ### `MynahICDatasetReport`
   ```json
   {
@@ -514,7 +523,14 @@
 - `GET /api/v1/task/status/{taskid}`
 - Response:
   ```json
-  {
-    "task_status": "pending" | "running" | "completed" | "failed"
-  }
+  AsyncTaskData
+  ```
+
+### Listing tasks owned by a user
+- `GET /api/v1/task/list`
+- Response:
+  ```json
+  [
+    AsyncTaskData
+  ]
   ```

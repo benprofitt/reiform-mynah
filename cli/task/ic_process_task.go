@@ -48,7 +48,7 @@ func icProcess(mynahServer *server.MynahClient, datasetId model.MynahUuid, tasks
 
 	//wait for completion
 	for {
-		var taskStatus api.TaskStatusResponse
+		var taskStatus async.AsyncTaskData
 		if err := mynahServer.ExecuteGetRequest(fmt.Sprintf("task/status/%s", response.TaskUuid), &taskStatus); err == nil {
 			if taskStatus.TaskStatus == async.StatusCompleted {
 				return nil

@@ -417,9 +417,9 @@ func (t *TestContext) AsyncTaskWaiter(user *model.MynahUser, taskId model.MynahU
 			return err
 		}
 
-		if stat == async.StatusCompleted {
+		if stat.TaskStatus == async.StatusCompleted {
 			return handler()
-		} else if stat == async.StatusFailed {
+		} else if stat.TaskStatus == async.StatusFailed {
 			return fmt.Errorf("async task %s failed", taskId)
 		}
 	}

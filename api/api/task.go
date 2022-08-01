@@ -29,12 +29,8 @@ func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 
 		//get the status of the task from the async engine
 		if stat, err := asyncProvider.GetAsyncTaskStatus(user, model.MynahUuid(taskId)); err == nil {
-			res := TaskStatusResponse{
-				TaskStatus: stat,
-			}
-
 			//write the response
-			if err := responseWriteJson(writer, &res); err != nil {
+			if err := responseWriteJson(writer, stat); err != nil {
 				log.Warnf("failed to write response as json: %s", err)
 				writer.WriteHeader(http.StatusInternalServerError)
 			}
@@ -42,6 +38,20 @@ func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 			log.Errorf("failed to get task status: %s", err)
 			writer.WriteHeader(http.StatusBadRequest)
 			return
+		}
+	})
+}
+
+// list async tasks owned by the user
+func listAsyncTasks(asyncProvider async.AsyncProvider) http.HandlerFunc {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		//get the user user from context
+		user := middleware.GetUserFromRequest(request)
+
+		//list tasks and write response
+		if err := responseWriteJson(writer, asyncProvider.ListAsyncTasks(user)); err != nil {
+			log.Warnf("failed to write response as json: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	})
 }

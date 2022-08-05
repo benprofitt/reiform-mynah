@@ -179,8 +179,8 @@
   {
     "points" : [
         {
-            "fileId" : "<insert id here>", 
-            "imgVersionId" : "<insert id here>",
+            "fileid" : "<insert id here>", 
+            "image_version_id" : "<insert id here>",
             "x" : 3.123,
             "y" : 1.112,
             "class" : "dog, but note that this will determine the color of the point plotted",
@@ -188,109 +188,19 @@
         },
         {
             "fileId" : "<insert id here>", 
-            "imgVersionId" : "<insert id here>",
+            "image_version_id" : "<insert id here>",
             "x" : 3.123,
             "y" : 1.112,
             "class" : "dog, but note that this will determine the color of the point plotted",
             "original_class" : "cat"
         }
-    ], 
-    "files" : {
-        "fileId1" : {
-            "imgVersionId" :"<insert id here>",
-            "class" : "<class>",
-            "original_class" : "<o_class>",
-            "x" : 3.123,
-            "y" : 1.112
-        },
-        "fileId2" : {
-            "imgVersionId" :"<insert id here>",
-            "class" : "<class>",
-            "original_class" : "<o_class>",
-            "x" : 2.123,
-            "y" : 8.112
-        }
-    },
-    "classes_label_errors" : {
-        "cat" : {
-            "mislabeled" : [ "<fileId1>", "<fileId2>", "..." ],
-            "correct" : [ "<fileId3>", "<fileId4>", "..." ],
-            "mislabeled_count" : 32,
-            "correct_count" : 441
-        },
-        "dog" : {
-            "mislabeled" : [ "<fileId5>", "<fileId6>", "..." ],
-            "correct" : [ "<fileId8>", "<fileId9>", "..." ],
-            "mislabeled_count" : 3,
-            "correct_count" : 419
-        }
-    },
-    "classes_splitting" : {
-        "cat" : {
-            "new_classes_count" : 3, "new_classes" : [ "cat_split_0", "cat_split_1", "cat_split_2" ]
-        },
-        "dog" : {
-            "new_classes_count" : 2, "new_classes" : [ "dog_split_0", "dog_split_1" ]
-        }
-    }
-}
-```
-
-### `Old Dataset Report - Not sure we won't need some of this...`
-```json
-  {
-    "uuid": "",
-    "image_ids" : [
-      "fileid1",
-      "fileid2",
-      ...
     ],
-    "image_data": {
-      "fileid1": {
-        "image_version_id": "908ne9812en128easd2qe12",
-        "class": "class1",
-        "point": {
-          "x": 0,
-          "y": 0
-        },
-        "removed": false,
-        "outlier_tasks": [
-          MynahICProcessTaskType,
-          ...
-        ]
-      },
-      "fileid2": {
-        "image_version_id": "asd8932jn9uiqna9sdsar3",
-        "class": "class2",
-        "point": {
-          "x": 20,
-          "y": 55
-        },
-        "removed": true,
-        "outlier_tasks": [
-          MynahICProcessTaskType,
-          ...
-        ]
-      },
-      ...
-    },
-    "breakdown": {
-      "class1" : {
-        "bad": 30,
-        "acceptable": 100
-      },
-      "class2" : {
-        "bad": 500,
-        "acceptable": 250
-      },
-      ...
-    },
     "tasks": [
       MynahICProcessTaskReport,
       ...
     ]
-  }
-  ```
+}
+```
 
 ### MynahICProcessTaskType
   ```
@@ -298,10 +208,6 @@
   "ic::correct::mislabeled_images"
   "ic::diagnose::class_splitting"
   "ic::correct::class_splitting"
-  "ic::diagnose::lighting_conditions"
-  "ic::correct::lighting_conditions"
-  "ic::diagnose::image_blur"
-  "ic::correct::image_blur"
   ```
 
 ### MynahICProcessTaskReport
@@ -319,68 +225,73 @@
   MynahICProcessTaskCorrectMislabeledImagesReport
   MynahICProcessTaskDiagnoseClassSplittingReport
   MynahICProcessTaskCorrectClassSplittingReport
-  MynahICProcessTaskDiagnoseLightingConditionsReport
-  MynahICProcessTaskCorrectLightingConditionsReport
-  MynahICProcessTaskDiagnoseImageBlurReport
-  MynahICProcessTaskCorrectImageBlurReport
 ```
 
 #### MynahICProcessTaskDiagnoseMislabeledImagesReport
+
+
 - Type: `"ic::diagnose::mislabeled_images"`
   ```json
   {
-
+    "class_label_errors" : {
+      "cat" : {
+        "mislabeled" : [ "<fileId1>", "<fileId2>", "..." ],
+        "correct" : [ "<fileId3>", "<fileId4>", "..." ]
+      },
+      "dog" : {
+        "mislabeled" : [ "<fileId5>", "<fileId6>", "..." ],
+        "correct" : [ "<fileId8>", "<fileId9>", "..." ]
+      }
+    }
   }
   ```
 #### MynahICProcessTaskCorrectMislabeledImagesReport
 - Type: `"ic::correct::mislabeled_images"`
   ```json
   {
-
+    "class_label_errors" : {
+      "cat" : {
+        "mislabeled_corrected" : [ "<fileId1>", "<fileId2>", "..." ],
+        "mislabeled_removed" : [ "<fileId5>", "<fileId6>", "..." ],
+        "unchanged" : [ "<fileId3>", "<fileId4>", "..." ]
+      },
+      "dog" : {
+        "mislabeled_corrected" : [ "<fileId1>", "<fileId2>", "..." ],
+        "mislabeled_removed" : [ "<fileId5>", "<fileId6>", "..." ],
+        "unchanged" : [ "<fileId3>", "<fileId4>", "..." ]
+      }
+    }
   }
   ```
 #### MynahICProcessTaskDiagnoseClassSplittingReport
 - Type: `"ic::diagnose::class_splitting"`
   ```json
   {
-
+    "classes_splitting" : {
+        "cat" : {
+            "predicted_classes_count" : 3
+        },
+        "dog" : {
+            "predicted_classes_count" : 2
+        }
+    }
   }
   ```
 #### MynahICProcessTaskCorrectClassSplittingReport
 - Type: `"ic::correct::class_splitting"`
   ```json
   {
-
+    "classes_splitting" : {
+        "cat" : {
+            "new_classes" : [ "cat_split_0", "cat_split_1", "cat_split_2" ]
+        },
+        "dog" : {
+            "new_classes" : [ "dog_split_0", "dog_split_1" ]
+        }
+    }
   }
   ```
-#### MynahICProcessTaskDiagnoseLightingConditionsReport
-- Type: `"ic::diagnose::lighting_conditions"`
-  ```json
-  {
 
-  }
-  ```
-#### MynahICProcessTaskCorrectLightingConditionsReport
-- Type: `"ic::correct::lighting_conditions"`
-  ```json
-  {
-
-  }
-  ```
-#### MynahICProcessTaskDiagnoseImageBlurReport
-- Type: `"ic::diagnose::image_blur"`
-  ```json
-  {
-
-  }
-  ```
-#### MynahICProcessTaskCorrectImageBlurReport
-- Type: `"ic::correct::image_blur"`
-  ```json
-  {
-
-  }
-  ```
 
 ## WebSocket Endpoint
 - `GET/POST /api/v1/websocket`

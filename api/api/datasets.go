@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
+	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
@@ -49,13 +50,13 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 
 		//request referenced files as a group
-		fileIdSet := tools.NewUniqueSet()
+		fileIdSet := containers.NewUniqueSet[model.MynahUuid]()
 		for fileId := range req.Files {
-			fileIdSet.UuidsUnion(fileId)
+			fileIdSet.Union(fileId)
 		}
 
 		//request all files
-		files, err := dbProvider.GetFiles(fileIdSet.UuidVals(), user)
+		files, err := dbProvider.GetFiles(fileIdSet.Vals(), user)
 		if err != nil {
 			log.Errorf("failed request files for ic dataset creation: %s", err)
 			writer.WriteHeader(http.StatusBadRequest)
@@ -452,14 +453,14 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		}
 
 		//request the files that are referenced by this dataset version
-		fileUuidSet := tools.NewUniqueSet()
+		fileUuidSet := containers.NewUniqueSet[model.MynahUuid]()
 		for fileId := range datasetVersion.Files {
 			//add to set
-			fileUuidSet.UuidsUnion(fileId)
+			fileUuidSet.Union(fileId)
 		}
 
 		//request the files in this dataset as a group
-		files, err := dbProvider.GetFiles(fileUuidSet.UuidVals(), user)
+		files, err := dbProvider.GetFiles(fileUuidSet.Vals(), user)
 		if err != nil {
 			log.Warnf("failed to request files tracked by dataset %s for dataset export: %s", datasetId, err)
 			writer.WriteHeader(http.StatusInternalServerError)

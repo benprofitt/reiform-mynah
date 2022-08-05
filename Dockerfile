@@ -5,8 +5,8 @@ MAINTAINER Jack Hay jack@reiform.com
 WORKDIR /
 RUN apt-get update -y --fix-missing
 RUN apt-get install -y python3.7-dev python3.7 python3-pip pkg-config wget curl
-RUN wget https://golang.org/dl/go1.17.6.linux-amd64.tar.gz && \
-    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz
+RUN wget https://golang.org/dl/go1.18.linux-amd64.tar.gz && \
+    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.18.linux-amd64.tar.gz
 RUN python3.7 -m pip install Cython
 
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -

@@ -3,156 +3,119 @@
 package model
 
 import (
-	"errors"
+	"reiform.com/mynah/containers"
 )
 
-// ApplyToDataset task changes for mislabeled images diagnosis
-func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//mislabeled image diagnosis does not modify dataset
-	return nil
-}
+// ApplyChanges generates report for mislabeled images diagnosis
+func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyChanges(version *MynahICDatasetVersion, report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	classLabelErrors := make(map[MynahClassName]*MynahICProcessTaskDiagnoseMislabeledImagesReportClass)
 
-// ApplyToReport generates report for mislabeled images diagnosis
-func (m MynahICProcessTaskDiagnoseMislabeledImagesMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	for _, fileId := range m.Outliers {
-		//get the file data in the report
-		if fileData, ok := report.ImageData[fileId]; ok {
-			//reference this task
-			fileData.OutlierTasks = append(fileData.OutlierTasks, taskType)
+	outliers := containers.NewUniqueSet[MynahUuid]()
+	outliers.Union(m.Outliers...)
+
+	for fileId, fileData := range version.Files {
+		if _, ok := classLabelErrors[fileData.CurrentClass]; !ok {
+			classLabelErrors[fileData.CurrentClass] = &MynahICProcessTaskDiagnoseMislabeledImagesReportClass{
+				Mislabeled: make([]MynahUuid, 0),
+				Correct:    make([]MynahUuid, 0),
+			}
 		}
-		//NOTE: if doesn't exist: may have been removed by correction
-	}
 
-	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskDiagnoseMislabeledImagesReport{},
-	})
-	return nil
-}
-
-// ApplyToDataset task changes for mislabeled images correction
-func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//make sure the images are removed from this version
-	for _, fileId := range m.Removed {
-		delete(version.Files, fileId)
-	}
-	return nil
-}
-
-// ApplyToReport generates report for mislabeled images correction
-func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	//mark removed files (if not already removed by another task)
-	for _, fileId := range m.Removed {
-		if reportFile, ok := report.ImageData[fileId]; ok {
-			reportFile.Removed = true
+		if outliers.Contains(fileId) {
+			classLabelErrors[fileData.CurrentClass].Mislabeled = append(classLabelErrors[fileData.CurrentClass].Mislabeled, fileId)
+		} else {
+			classLabelErrors[fileData.CurrentClass].Correct = append(classLabelErrors[fileData.CurrentClass].Correct, fileId)
 		}
 	}
 
+	//add to the report
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskCorrectMislabeledImagesReport{},
+		Type: taskType,
+		Metadata: &MynahICProcessTaskDiagnoseMislabeledImagesReport{
+			ClassLabelErrors: classLabelErrors,
+		},
 	})
 	return nil
 }
 
-// ApplyToDataset task changes for class splitting diagnosis
-func (m MynahICProcessTaskDiagnoseClassSplittingMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//class splitting diagnosis does not modify dataset
-	return nil
-}
+// ApplyChanges generates report for mislabeled images correction and updates dataset
+func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyChanges(version *MynahICDatasetVersion, report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	classLabelErrors := make(map[MynahClassName]*MynahICProcessTaskCorrectMislabeledImagesReportClass)
 
-// ApplyToReport generates report for class splitting diagnosis
-func (m MynahICProcessTaskDiagnoseClassSplittingMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskDiagnoseClassSplittingReport{},
-	})
-	return nil
-}
+	removed := containers.NewUniqueSet[MynahUuid]()
+	removed.Union(m.Removed...)
+	corrected := containers.NewUniqueSet[MynahUuid]()
+	corrected.Union(m.Corrected...)
 
-// ApplyToDataset task changes for class splitting correction
-func (m MynahICProcessTaskCorrectClassSplittingMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
-	return errors.New("MynahICProcessTaskCorrectClassSplittingMetadata dataset task changes undefined")
-}
+	for fileId, fileData := range version.Files {
+		if _, ok := classLabelErrors[fileData.CurrentClass]; !ok {
+			classLabelErrors[fileData.CurrentClass] = &MynahICProcessTaskCorrectMislabeledImagesReportClass{
+				MislabeledCorrected: make([]MynahUuid, 0),
+				MislabeledRemoved:   make([]MynahUuid, 0),
+				Unchanged:           make([]MynahUuid, 0),
+			}
+		}
 
-// ApplyToReport generates report for class splitting correction
-func (m MynahICProcessTaskCorrectClassSplittingMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskCorrectClassSplittingReport{},
-	})
-	return nil
-}
+		if removed.Contains(fileId) {
+			classLabelErrors[fileData.CurrentClass].MislabeledRemoved = append(classLabelErrors[fileData.CurrentClass].MislabeledRemoved, fileId)
+			// remove the file
+			delete(version.Files, fileId)
 
-// ApplyToDataset task changes for lighting conditions diagnosis
-func (m MynahICProcessTaskDiagnoseLightingConditionsMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
-	return errors.New("MynahICProcessTaskDiagnoseLightingConditionsMetadata dataset task changes undefined")
-}
-
-// ApplyToReport generates report for lighting conditions diagnosis
-func (m MynahICProcessTaskDiagnoseLightingConditionsMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskDiagnoseLightingConditionsReport{},
-	})
-	return nil
-}
-
-// ApplyToDataset task changes for lighting conditions correction
-func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//make sure the images are removed from this version
-	for _, fileId := range m.Removed {
-		delete(version.Files, fileId)
-	}
-	return nil
-}
-
-// ApplyToReport generates report for lighting conditions correction
-func (m MynahICProcessTaskCorrectLightingConditionsMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
-	//mark removed files (if not already removed by another task)
-	for _, fileId := range m.Removed {
-		if reportFile, ok := report.ImageData[fileId]; ok {
-			reportFile.Removed = true
+		} else if corrected.Contains(fileId) {
+			classLabelErrors[fileData.CurrentClass].MislabeledCorrected = append(classLabelErrors[fileData.CurrentClass].MislabeledCorrected, fileId)
+		} else {
+			classLabelErrors[fileData.CurrentClass].MislabeledCorrected = append(classLabelErrors[fileData.CurrentClass].MislabeledCorrected, fileId)
 		}
 	}
 
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskCorrectLightingConditionsReport{},
+		Type: taskType,
+		Metadata: &MynahICProcessTaskCorrectMislabeledImagesReport{
+			ClassLabelErrors: classLabelErrors,
+		},
 	})
 	return nil
 }
 
-// ApplyToDataset task changes for image blur diagnosis
-func (m MynahICProcessTaskDiagnoseImageBlurMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
+// ApplyChanges generates report for class splitting diagnosis
+func (m MynahICProcessTaskDiagnoseClassSplittingMetadata) ApplyChanges(version *MynahICDatasetVersion, report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	classesSplitting := make(map[MynahClassName]*MynahICProcessTaskDiagnoseClassSplittingReportClass)
 
-	return errors.New("MynahICProcessTaskDiagnoseImageBlurMetadata dataset task changes undefined")
-}
+	for class, classFiles := range m.PredictedClassSplits {
+		classesSplitting[class] = &MynahICProcessTaskDiagnoseClassSplittingReportClass{
+			PredictedClassesCount: len(classFiles),
+		}
+	}
 
-// ApplyToReport generates report for image blur diagnosis
-func (m MynahICProcessTaskDiagnoseImageBlurMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskDiagnoseImageBlurReport{},
+		Type: taskType,
+		Metadata: &MynahICProcessTaskDiagnoseClassSplittingReport{
+			ClassesSplitting: classesSplitting,
+		},
 	})
 	return nil
 }
 
-// ApplyToDataset task changes for image blur correction
-func (m MynahICProcessTaskCorrectImageBlurMetadata) ApplyToDataset(version *MynahICDatasetVersion, taskType MynahICProcessTaskType) error {
-	//TODO
+// ApplyChanges generates report for class splitting correction and updates dataset
+func (m MynahICProcessTaskCorrectClassSplittingMetadata) ApplyChanges(version *MynahICDatasetVersion, report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+	classesSplitting := make(map[MynahClassName]*MynahICProcessTaskCorrectClassSplittingReportClass)
 
-	return errors.New("MynahICProcessTaskCorrectImageBlurMetadata dataset task changes undefined")
-}
+	for class, classSplit := range m.ActualClassSplits {
+		newClasses := make([]MynahClassName, 0)
+		for newClass := range classSplit {
+			newClasses = append(newClasses, newClass)
+		}
 
-// ApplyToReport generates report for image blur correction
-func (m MynahICProcessTaskCorrectImageBlurMetadata) ApplyToReport(report *MynahICDatasetReport, taskType MynahICProcessTaskType) error {
+		classesSplitting[class] = &MynahICProcessTaskCorrectClassSplittingReportClass{
+			NewClasses: newClasses,
+		}
+	}
+
 	report.Tasks = append(report.Tasks, &MynahICProcessTaskReportData{
-		Type:     taskType,
-		Metadata: &MynahICProcessTaskCorrectImageBlurReport{},
+		Type: taskType,
+		Metadata: &MynahICProcessTaskCorrectClassSplittingReport{
+			ClassesSplitting: classesSplitting,
+		},
 	})
 	return nil
 }

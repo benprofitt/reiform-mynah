@@ -6,7 +6,7 @@ from impl.services.modules.utils.progress_logger import ProgressLogger # type: i
 import impl.services.modules.utils.image_utils as image_utils # type: ignore
 import impl.services.image_classification.dataset_processing as processing # type: ignore
 import impl.services.image_classification.model_training as training
-from python.impl.services.modules.utils.progress_logger import ReiformProgressLogger # type: ignore
+from impl.services.modules.utils.progress_logger import ReiformProgressLogger # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)

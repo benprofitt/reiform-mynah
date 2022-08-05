@@ -7,6 +7,9 @@ class TrainingJob(Processing_Job):
 
     def __init__(self, job_json: Dict[str, Any]) -> None:
         super().__init__(job_json)
+        self.mean = self.dataset.get_mean()
+        self.std = self.dataset.get_std_dev()
+
         self.config = job_json["config_params"]
         self.save_path = self.config["model_save_path"]
 
@@ -28,7 +31,21 @@ class TrainingJob(Processing_Job):
         # This is useful for showing users which images have high losses
         body["all_file_test_loss"] = self.test_losses
         body["ordered_fileids"] = self.filename_order
+
+        body["model_metadata"] = self.make_metadata()
+
         return body
+
+    def make_metadata(self):
+        return {
+            "model" : self.config["model"],
+            "image_dims" : [299, 299], # for now this is constant, but provides flexibility
+            "type" : "mynah::IC::model",
+            "classes" : self.dataset.classes(),
+            "mean" : self.mean,
+            "std" : self.std,
+            "path_to_model" : self.save_path
+        }
 
     def save_model(self, model : torch.nn.Module, channels : int, 
                size : int, mean : List[float], std : List[float]) -> None:
@@ -82,8 +99,8 @@ class TrainingJob(Processing_Job):
 
         train_test_split = self.config["train_test_ratio"]
 
-        mean=[0.485, 0.456, 0.406] 
-        std=[0.229, 0.224, 0.225]
+        mean=self.mean
+        std=self.std
 
         transform : torchvision.transforms.Compose = transforms.Compose([
             transforms.Resize(299),

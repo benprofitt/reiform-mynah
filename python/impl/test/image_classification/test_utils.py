@@ -74,10 +74,14 @@ def train_model_for_evaluation_resnet(train_dl_pt, test_dl_pt, epochs : int, cla
 
     model, _ = train_conv_net(model, train_dl_pt, loss, optim, epochs, epsilon=0.00001)
 
+    scores = get_scores_for_model(test_dl_pt, model)
+
+    return scores
+
+def get_scores_for_model(test_dl_pt, model):
     true_y, pred_y = get_predictions(test_dl_pt, model)
 
     scores = precision_recall_fscore_support(true_y, pred_y, average=None)
-
     return scores
 
 def dataset_evaluation(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):

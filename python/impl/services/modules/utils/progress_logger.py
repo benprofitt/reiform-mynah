@@ -1,6 +1,15 @@
 import socket
 
-class ProgressLogger():
+class ReiformProgressLogger():
+
+    def __init__(self):
+        self.value = 1
+
+    def write(self, msg: str) -> None:
+        # raise Exception()
+        print()
+
+class ProgressLogger(ReiformProgressLogger):
     """
     Writes json or other data to
     the websocket server that frontend clients
@@ -23,3 +32,15 @@ class ProgressLogger():
     def write(self, msg: str) -> None:
         '''Write a message to the socket'''
         self._sock.send(("{0: <36}{1}".format(self._uuid, msg)).encode('utf-8'))
+
+class TestLogger(ReiformProgressLogger):
+    """
+    Writes json or other data to
+    std out for testing only
+    """
+    def __init__(self):
+        print("Test logger init")
+
+    def write(self, msg: str) -> None:
+        '''Write a message to the socket'''
+        print(msg)

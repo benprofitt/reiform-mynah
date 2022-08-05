@@ -4,7 +4,7 @@ from impl.services.modules.class_splitting.detection import detect_split_need
 from impl.services.modules.lighting_correction.correction import run_lighting_correction_model
 from impl.services.modules.lighting_correction.detection import run_lighting_detection_models
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-from python.impl.services.image_classification.job_processing import Processing_Job
+from impl.services.image_classification.job_processing import Processing_Job
 from .resources import *
 
 class DatasetProcessingJob(Processing_Job):
@@ -12,7 +12,7 @@ class DatasetProcessingJob(Processing_Job):
         super().__init__(job_json)
         self.previous_results : Dict[str, Dict[str, Any]] = self.make_previous_results(job_json["previous_results"])
 
-        self.tasks_requested : List[str] = self.order_tasks(list(job_json["tasks"].keys()))
+        self.tasks_requested : List[str] = self.order_tasks(list([v["type"] for v in job_json["tasks"]]))
 
         self.config : Dict[str, Any] = job_json["config_params"]
 
@@ -54,10 +54,10 @@ class DatasetProcessingJob(Processing_Job):
         # Standard order for tasks to be most effective
         std_order = ["lighting_conditions", "image_blur", "class_splitting", "mislabeled_images"]
 
-        self.raw_tasks = copy.copy(task_list)
+        self.raw_tasks = copy.copy(tasks_list)
         task_list : List[List[str]] = [t.split("::") for t in tasks_list]
 
-        task_types : Dict[str, Dict[str, bool]]
+        task_types : Dict[str, Dict[str, bool]] = {}
 
         # If we're correcting anything, that needs to happen _before_ any detection that isn't also corrected
         data_type : str

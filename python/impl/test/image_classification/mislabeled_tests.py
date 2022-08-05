@@ -20,7 +20,7 @@ def test_vae_projection(data : ReiformICDataSet) -> Tuple[ReiformICDataSet, Reif
 
     return inliers, outliers
 
-def test_pretrained_projection_detection(data : ReiformICDataSet) -> ReiformICDataSet:
+def test_pretrained_projection_detection(data : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet, int]:
 
     data, count = data.mislabel(5)
     inliers, outliers = run_pretrained_detection(data)

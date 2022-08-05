@@ -15,7 +15,8 @@
       "max_epochs" : 50,
       "loss_epsilon" : 0.001,
       "batch_size" : 64,
-      "train_test_split" : 0.9
+      "train_test_split" : 0.9,
+      "model_save_path" : "<local path>"
     },
     "dataset": "Type::ReiformICDataset (see below)",
 
@@ -167,7 +168,9 @@
       }
     },
     "tasks": [ 
-      {"type" : MynahICProcessTaskType}
+      {
+        "type" : MynahICProcessTaskType
+      }
     ],
     "previous_results" : [ {
         "type" : MynahICProcessTaskType,

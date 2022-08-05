@@ -1,13 +1,13 @@
 from impl.services.modules.core.resources import *
-from python.impl.services.modules.core.reiform_imageclassificationdataset import ReiformICDataSet
-from python.impl.services.modules.core.reiform_models import multiclass_model_loss
-from python.impl.services.modules.utils.progress_logger import ProgressLogger
+from impl.services.modules.core.reiform_imageclassificationdataset import ReiformICDataSet
+from impl.services.modules.core.reiform_models import multiclass_model_loss
+from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 
 class TrainingSpecifications:
 
     def __init__(self, epochs : int, min_epochs : int, optimizer : Any, 
                  loss_epsilon : float, batch_size : int, train_test_split : float, 
-                 transformation : Any, loss_function : Callable) -> None:
+                 transformation : Any, loss_function : Callable = F.cross_entropy) -> None:
         
         self.epochs = epochs
         self.min_epochs = min_epochs
@@ -47,7 +47,9 @@ def calculate_loss(model : nn.Module, dataloader : Any, loss_function : Callable
 
     return losses
 
-def train_ic_model(dataset : ReiformICDataSet, model : nn.Module, training_specs: TrainingSpecifications, logger : ProgressLogger) -> Tuple[nn.Module, List[float]]:
+def train_ic_model(dataset : ReiformICDataSet, model : nn.Module, 
+                   training_specs: TrainingSpecifications, 
+                   logger : ReiformProgressLogger) -> Tuple[nn.Module, List[float], List[List[float]], List[str]]:
 
     train_ds, test_ds = dataset.split(training_specs.train_test_split)
 
@@ -60,7 +62,9 @@ def train_ic_model(dataset : ReiformICDataSet, model : nn.Module, training_specs
 
     return train_model(model, training_specs, train_dl_pt, test_dl_pt, logger)
 
-def train_model(model : nn.Module, training_specs : TrainingSpecifications, train_dl_pt, test_dl_pt, logger : ProgressLogger):
+def train_model(model : nn.Module, training_specs : TrainingSpecifications, 
+                train_dl_pt : Any, test_dl_pt : Any, 
+                logger : ReiformProgressLogger) -> Tuple[nn.Module, List[float], List[List[float]], List[str]]:
     loss_function = (training_specs.loss_function if training_specs.loss_function is not None else multiclass_model_loss)
     epsilon = training_specs.loss_epsilon
     model.train()
@@ -69,10 +73,10 @@ def train_model(model : nn.Module, training_specs : TrainingSpecifications, trai
     train_loss_avg : List[float] = []
     test_losses : List[List[float]] = []
     
-    logger.write("INFO  Begin training")
+    logger.write("Begin training")
 
     for epoch in range(1, training_specs.epochs+1):
-      logger.write("INFO  Start epoch {}/{}".format(epoch, training_specs.epochs+1))
+      logger.write("Start epoch {}/{}".format(epoch, training_specs.epochs+1))
       train_loss_avg.append(0)
 
       num_batches = 0

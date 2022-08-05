@@ -1,13 +1,14 @@
-from python.impl.services.modules.ic_training.training_interface import TrainingSpecifications, train_ic_model
+from impl.services.modules.ic_training.training_interface import TrainingSpecifications, train_ic_model
+from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 from .resources import *
 from .job_processing import Processing_Job
 
 class TrainingJob(Processing_Job):
 
-    def __init__(self, model_save_path : str, job_json: Dict[str, Any]) -> None:
+    def __init__(self, job_json: Dict[str, Any]) -> None:
         super().__init__(job_json)
         self.config = job_json["config_params"]
-        self.save_path = model_save_path
+        self.save_path = self.config["model_save_path"]
 
         self.train_loss : List[float] = []
         self.test_losses : List[List[float]] = []
@@ -25,8 +26,8 @@ class TrainingJob(Processing_Job):
         body["config_params"] = self.config
         body["avg_training_loss"] = self.train_loss
         # This is useful for showing users which images have high losses
-        body["all_file_test_loss"] = self.train_loss
-        body["ordered_fileids"] = self.train_loss
+        body["all_file_test_loss"] = self.test_losses
+        body["ordered_fileids"] = self.filename_order
         return body
 
     def save_model(self, model : torch.nn.Module, channels : int, 
@@ -55,7 +56,7 @@ class TrainingJob(Processing_Job):
 
         return
 
-    def run_processing_job(self, logger):
+    def run_processing_job(self, logger : ReiformProgressLogger) -> Dict[str, Any]:
 
         MODEL_LIST = ["resnet50"]#, "resnet18", "densenet202"]
         MODEL_MAP = {
@@ -69,7 +70,7 @@ class TrainingJob(Processing_Job):
             raise ReiformTrainingException("Model not available")
 
         model_classname : str = MODEL_MAP[model_name]
-        target_classes : int = self.dataset.classes()
+        target_classes : int = len(self.dataset.classes())
 
         self.model = eval("{}({})".format(model_classname, target_classes))
 
@@ -95,10 +96,8 @@ class TrainingJob(Processing_Job):
 
         training_spec = TrainingSpecifications(max_epochs, min_epochs, optimizer, 
                                             loss_epsilon, batch_size, train_test_split,
-                                            transform, None)
+                                            transform)
 
-        self.model, self.train_loss, \
-            self.test_losses, self.filename_order = \
-                train_ic_model(self.dataset, self.model, training_spec, logger)
+        self.model, self.train_loss, self.test_losses, self.filename_order = train_ic_model(self.dataset, self.model, training_spec, logger)
 
         return self.make_result()

@@ -5,7 +5,8 @@ from typing import *
 from impl.services.modules.utils.progress_logger import ProgressLogger # type: ignore
 import impl.services.modules.utils.image_utils as image_utils # type: ignore
 import impl.services.image_classification.dataset_processing as processing # type: ignore
-import impl.services.image_classification.model_training as training # type: ignore
+import impl.services.image_classification.model_training as training
+from python.impl.services.modules.utils.progress_logger import ReiformProgressLogger # type: ignore
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -49,9 +50,9 @@ def start_ic_training_job(uuid : str, request_str : str, sock_addr: str) -> str:
     
         # call impl
         training_job : training.TrainingJob = training.TrainingJob(request)
-
+        rlogger : ReiformProgressLogger = plogger
         # Pass in logger to relay progress
-        training_results : Dict[str, Any] = training_job.run_processing_job(plogger)
+        training_results : Dict[str, Any] = training_job.run_processing_job(rlogger)
 
     # response
     return json.dumps({

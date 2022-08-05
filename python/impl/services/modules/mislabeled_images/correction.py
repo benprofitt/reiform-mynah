@@ -1,6 +1,6 @@
-from sklearn import svm
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm # type: ignore
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
+from sklearn.neighbors import KNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
 def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : Any):
@@ -58,7 +58,7 @@ def predict_correct_label(outliers : ReiformICDataSet, classifier : Any, label :
 
     return name_unknown, y_unknown, preds
 
-def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[Any], labels: List[str]) -> ReiformICDataSet:
+def predict_correct_label_ensemble(dataset : ReiformICDataSet, models: List[Any], labels: List[str]) -> List[Tuple[List[str], List[str], List[NDArray]]]:
 
     results : List[Tuple[List[str], List[str], List[NDArray]]] = []
 

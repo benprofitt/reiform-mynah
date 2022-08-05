@@ -1,6 +1,6 @@
-from sklearn import svm
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier
-from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier
+from sklearn import svm # type: ignore
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
+from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
 def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:

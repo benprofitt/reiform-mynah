@@ -1,0 +1,1 @@
+An empty directory to save the results of running tests.

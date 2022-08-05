@@ -300,17 +300,15 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						ConfidenceVectors: make(model.ConfidenceVectors, 0),
 						Projections:       make(map[model.MynahClassName][]int),
 					}
-					report.ImageIds = append(report.ImageIds, f.Uuid)
-					report.ImageData[f.Uuid] = &model.MynahICDatasetReportImageMetadata{
-						Class: "class1",
-						Point: model.MynahICDatasetReportPoint{
-							X: 0,
-							Y: 0,
-						},
-						OutlierTasks: []model.MynahICProcessTaskType{model.ICProcessCorrectLightingConditionsTask},
-					}
+					report.Points = append(report.Points, &model.MynahICDatasetReportPoint{
+						FileId:         f.Uuid,
+						ImageVersionId: model.LatestVersionId,
+						X:              0,
+						Y:              0,
+						Class:          "class1",
+						OriginalClass:  "class1",
+					})
 				}
-				report.Breakdown["class1"] = &model.MynahICDatasetReportBucket{}
 
 				//save the report
 				binObj, err := t.DBProvider.CreateBinObject(owner, func(binObj *model.MynahBinObject) error {
@@ -329,9 +327,7 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 				d.Reports["0"] = &model.MynahICDatasetReportMetadata{
 					DataId:      binObj.Uuid,
 					DateCreated: time.Now().Unix(),
-					Tasks: []model.MynahICProcessTaskType{
-						model.ICProcessCorrectLightingConditionsTask,
-					},
+					Tasks:       []model.MynahICProcessTaskType{},
 				}
 
 			} else {

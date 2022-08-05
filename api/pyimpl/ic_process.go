@@ -4,6 +4,7 @@ package pyimpl
 
 import (
 	"fmt"
+	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/storage"
@@ -84,24 +85,24 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]ICProcessJobRequestFile)
 
 	//accumulate the file uuids in this dataset
-	fileUuidSet := tools.NewUniqueSet()
+	fileUuidSet := containers.NewUniqueSet[model.MynahUuid]()
 	for fileId := range newDatasetVersion.Files {
 		//add to set
-		fileUuidSet.UuidsUnion(fileId)
+		fileUuidSet.Union(fileId)
 	}
 
 	//request the files in this dataset as a group
-	files, err := p.dbProvider.GetFiles(fileUuidSet.UuidVals(), user)
+	files, err := p.dbProvider.GetFiles(fileUuidSet.Vals(), user)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load dataset %s files for ic process job: %s", dataset.Uuid, err)
 	}
 
 	//record unique class names
-	classNameSet := tools.NewUniqueSet()
+	classNameSet := containers.NewUniqueSet[model.MynahClassName]()
 
 	for fileId, classInfo := range newDatasetVersion.Files {
 		//include the class
-		classNameSet.Union(string(classInfo.CurrentClass))
+		classNameSet.Union(classInfo.CurrentClass)
 
 		var tmpPath string
 
@@ -153,7 +154,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	}
 
 	//set the classes
-	req.Dataset.Classes = classNameSet.ClassNameVals()
+	req.Dataset.Classes = classNameSet.Vals()
 
 	return &req, nil
 }
@@ -195,51 +196,23 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	//add all dataset files to the report (will have strict file versions)
 	//NOTE: this will add removed files to the report before they are deleted from the dataset
 	for fileId, fileData := range dataset.Files {
-		//record this image for the report
-		report.ImageIds = append(report.ImageIds, fileId)
-
 		//add file data to report (will be updated by any completed tasks)
-		report.ImageData[fileId] = &model.MynahICDatasetReportImageMetadata{
+		report.Points = append(report.Points, &model.MynahICDatasetReportPoint{
+			FileId:         fileId,
 			ImageVersionId: fileData.ImageVersionId,
+			X:              0,
+			Y:              0,
 			Class:          fileData.CurrentClass,
-			Point: model.MynahICDatasetReportPoint{
-				X: 0,
-				Y: 0,
-			},
-			Removed:      false, //updated by ApplyToReport on a per-task basis
-			OutlierTasks: []model.MynahICProcessTaskType{},
-		}
+			OriginalClass:  fileData.OriginalClass,
+		})
 	}
 
 	//apply task metadata to the dataset (may remove, modify files)
 	for _, task := range d.Tasks {
-		if err := task.Metadata.ApplyToDataset(dataset, task.Type); err != nil {
-			return fmt.Errorf("failed to apply task of type %s result to dataset: %s", task.Type, err)
+		if err := task.Metadata.ApplyChanges(dataset, report, task.Type); err != nil {
+			return fmt.Errorf("failed to apply task of type %s result to dataset and report: %s", task.Type, err)
 		}
 	}
 
-	//apply task metadata to the report (adds task specific section, marks files as removed, etc)
-	for _, task := range d.Tasks {
-		if err := task.Metadata.ApplyToReport(report, task.Type); err != nil {
-			return fmt.Errorf("failed to apply task of type %s result to report: %s", task.Type, err)
-		}
-	}
-
-	//compute breakdown
-	for _, fileData := range report.ImageData {
-		if _, ok := report.Breakdown[fileData.Class]; !ok {
-			report.Breakdown[fileData.Class] = &model.MynahICDatasetReportBucket{
-				Bad:        0,
-				Acceptable: 0,
-			}
-		}
-
-		//consider this file "bad" if it's an outlier in at least one task
-		if len(fileData.OutlierTasks) > 0 {
-			report.Breakdown[fileData.Class].Bad++
-		} else {
-			report.Breakdown[fileData.Class].Acceptable++
-		}
-	}
 	return nil
 }

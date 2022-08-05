@@ -6,69 +6,55 @@ package model
 type MynahICProcessTaskReportMetadata interface {
 }
 
+// MynahICProcessTaskDiagnoseMislabeledImagesReportClass defines the files for a class
+type MynahICProcessTaskDiagnoseMislabeledImagesReportClass struct {
+	// the mislabeled files in the dataset
+	Mislabeled []MynahUuid `json:"mislabeled"`
+	// the correct files in the dataset
+	Correct []MynahUuid `json:"correct"`
+}
+
 // MynahICProcessTaskDiagnoseMislabeledImagesReport records diagnosis report info for mislabeled images
 type MynahICProcessTaskDiagnoseMislabeledImagesReport struct {
+	ClassLabelErrors map[MynahClassName]*MynahICProcessTaskDiagnoseMislabeledImagesReportClass `json:"class_label_errors"`
+}
+
+// MynahICProcessTaskCorrectMislabeledImagesReportClass defines the files for a class
+type MynahICProcessTaskCorrectMislabeledImagesReportClass struct {
+	// the mislabeled files in the dataset that were corrected
+	MislabeledCorrected []MynahUuid `json:"mislabeled_corrected"`
+	// the mislabeled files in the dataset that were removed
+	MislabeledRemoved []MynahUuid `json:"mislabeled_removed"`
+	// the unchanged files in the dataset
+	Unchanged []MynahUuid `json:"unchanged"`
 }
 
 // MynahICProcessTaskCorrectMislabeledImagesReport records correction
 //report info for mislabeled images
 type MynahICProcessTaskCorrectMislabeledImagesReport struct {
+	ClassLabelErrors map[MynahClassName]*MynahICProcessTaskCorrectMislabeledImagesReportClass `json:"class_label_errors"`
+}
+
+// MynahICProcessTaskDiagnoseClassSplittingReportClass defines the class splitting predictions for a class
+type MynahICProcessTaskDiagnoseClassSplittingReportClass struct {
+	PredictedClassesCount int `json:"predicted_classes_count"`
 }
 
 // MynahICProcessTaskDiagnoseClassSplittingReport records diagnosis
 //report info for class splitting
 type MynahICProcessTaskDiagnoseClassSplittingReport struct {
+	ClassesSplitting map[MynahClassName]*MynahICProcessTaskDiagnoseClassSplittingReportClass `json:"classes_splitting"`
+}
+
+// MynahICProcessTaskCorrectClassSplittingReportClass defines the new split classes
+type MynahICProcessTaskCorrectClassSplittingReportClass struct {
+	NewClasses []MynahClassName `json:"new_classes"`
 }
 
 // MynahICProcessTaskCorrectClassSplittingReport records correction
 //report info for class splitting
 type MynahICProcessTaskCorrectClassSplittingReport struct {
-}
-
-// MynahICProcessTaskDiagnoseLightingConditionsReport records diagnosis
-//report info for lighting conditions
-type MynahICProcessTaskDiagnoseLightingConditionsReport struct {
-}
-
-// MynahICProcessTaskCorrectLightingConditionsReport records correction
-//report info for lighting conditions
-type MynahICProcessTaskCorrectLightingConditionsReport struct {
-}
-
-// MynahICProcessTaskDiagnoseImageBlurReport records diagnosis
-//report info for blur
-type MynahICProcessTaskDiagnoseImageBlurReport struct {
-}
-
-// MynahICProcessTaskCorrectImageBlurReport records correction
-//report info for blur
-type MynahICProcessTaskCorrectImageBlurReport struct {
-}
-
-// MynahICDatasetReportPoint a cartesian point
-type MynahICDatasetReportPoint struct {
-	X int64 `json:"x"`
-	Y int64 `json:"y"`
-}
-
-// MynahICDatasetReportBucket classifications for images in class
-type MynahICDatasetReportBucket struct {
-	Bad        int `json:"bad"`
-	Acceptable int `json:"acceptable"`
-}
-
-// MynahICDatasetReportImageMetadata defines the metadata associated with an image
-type MynahICDatasetReportImageMetadata struct {
-	//the version id for the file
-	ImageVersionId MynahFileVersionId `json:"image_version_id"`
-	//the class
-	Class MynahClassName `json:"class"`
-	//point for display in graph
-	Point MynahICDatasetReportPoint `json:"point"`
-	//whether this file was removed
-	Removed bool `json:"removed"`
-	//the tasks for which this image is an outlier
-	OutlierTasks []MynahICProcessTaskType `json:"outlier_tasks"`
+	ClassesSplitting map[MynahClassName]*MynahICProcessTaskCorrectClassSplittingReportClass `json:"classes_splitting"`
 }
 
 // MynahICProcessTaskReportData defines info about report task section
@@ -79,14 +65,24 @@ type MynahICProcessTaskReportData struct {
 	Metadata MynahICProcessTaskReportMetadata `json:"metadata"`
 }
 
+// MynahICDatasetReportPoint defines a plotted point and associated info
+type MynahICDatasetReportPoint struct {
+	// the id of the image this point plots
+	FileId MynahUuid `json:"fileid"`
+	//the version of the image
+	ImageVersionId MynahFileVersionId `json:"image_version_id"`
+	//the x,y coordinates
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
+	//the current class assigned
+	Class MynahClassName `json:"class"`
+	//the original class given
+	OriginalClass MynahClassName `json:"original_class"`
+}
+
 // MynahICDatasetReport a mynah image classification report
 type MynahICDatasetReport struct {
-	//all of the images, in the order to display
-	ImageIds []MynahUuid `json:"image_ids"`
-	//the images included in this report, map fileid to metadata
-	ImageData map[MynahUuid]*MynahICDatasetReportImageMetadata `json:"image_data"`
-	//the class breakdown table info, map class to buckets
-	Breakdown map[MynahClassName]*MynahICDatasetReportBucket `json:"breakdown"`
+	Points []*MynahICDatasetReportPoint `json:"points"`
 	//report data about tasks that were run
 	Tasks []*MynahICProcessTaskReportData `json:"tasks"`
 }
@@ -94,9 +90,7 @@ type MynahICDatasetReport struct {
 // NewICDatasetReport creates a new report
 func NewICDatasetReport() *MynahICDatasetReport {
 	return &MynahICDatasetReport{
-		ImageIds:  make([]MynahUuid, 0),
-		ImageData: make(map[MynahUuid]*MynahICDatasetReportImageMetadata),
-		Breakdown: make(map[MynahClassName]*MynahICDatasetReportBucket),
-		Tasks:     make([]*MynahICProcessTaskReportData, 0),
+		Points: make([]*MynahICDatasetReportPoint, 0),
+		Tasks:  make([]*MynahICProcessTaskReportData, 0),
 	}
 }

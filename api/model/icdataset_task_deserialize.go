@@ -22,26 +22,12 @@ var mynahICProcessTaskConstructor = map[MynahICProcessTaskType]func() MynahICPro
 	ICProcessCorrectClassSplittingTask: func() MynahICProcessTaskMetadata {
 		return &MynahICProcessTaskCorrectClassSplittingMetadata{}
 	},
-	ICProcessDiagnoseLightingConditionsTask: func() MynahICProcessTaskMetadata {
-		return &MynahICProcessTaskDiagnoseLightingConditionsMetadata{}
-	},
-	ICProcessCorrectLightingConditionsTask: func() MynahICProcessTaskMetadata {
-		return &MynahICProcessTaskCorrectLightingConditionsMetadata{}
-	},
-	ICProcessDiagnoseImageBlurTask: func() MynahICProcessTaskMetadata {
-		return &MynahICProcessTaskDiagnoseImageBlurMetadata{}
-	},
-	ICProcessCorrectImageBlurTask: func() MynahICProcessTaskMetadata {
-		return &MynahICProcessTaskCorrectImageBlurMetadata{}
-	},
 }
 
 // create new task data structs by type identifier
 var mynahICProcessDiagnosisTasks = map[MynahICProcessTaskType]interface{}{
-	ICProcessDiagnoseMislabeledImagesTask:   nil,
-	ICProcessDiagnoseClassSplittingTask:     nil,
-	ICProcessDiagnoseLightingConditionsTask: nil,
-	ICProcessDiagnoseImageBlurTask:          nil,
+	ICProcessDiagnoseMislabeledImagesTask: nil,
+	ICProcessDiagnoseClassSplittingTask:   nil,
 }
 
 // IsMynahICDiagnosisTask returns true if the task type corresponds to a diagnosis process
@@ -63,18 +49,6 @@ var mynahICProcessTaskReportConstructor = map[MynahICProcessTaskType]func() Myna
 	},
 	ICProcessCorrectClassSplittingTask: func() MynahICProcessTaskReportMetadata {
 		return &MynahICProcessTaskCorrectClassSplittingReport{}
-	},
-	ICProcessDiagnoseLightingConditionsTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseLightingConditionsReport{}
-	},
-	ICProcessCorrectLightingConditionsTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectLightingConditionsReport{}
-	},
-	ICProcessDiagnoseImageBlurTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskDiagnoseImageBlurReport{}
-	},
-	ICProcessCorrectImageBlurTask: func() MynahICProcessTaskReportMetadata {
-		return &MynahICProcessTaskCorrectImageBlurReport{}
 	},
 }
 

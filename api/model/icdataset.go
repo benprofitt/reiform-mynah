@@ -9,14 +9,10 @@ type ConfidenceVectors [][]float64
 type MynahICProcessTaskType string
 
 const (
-	ICProcessDiagnoseMislabeledImagesTask   MynahICProcessTaskType = "ic::diagnose::mislabeled_images"
-	ICProcessCorrectMislabeledImagesTask    MynahICProcessTaskType = "ic::correct::mislabeled_images"
-	ICProcessDiagnoseClassSplittingTask     MynahICProcessTaskType = "ic::diagnose::class_splitting"
-	ICProcessCorrectClassSplittingTask      MynahICProcessTaskType = "ic::correct::class_splitting"
-	ICProcessDiagnoseLightingConditionsTask MynahICProcessTaskType = "ic::diagnose::lighting_conditions"
-	ICProcessCorrectLightingConditionsTask  MynahICProcessTaskType = "ic::correct::lighting_conditions"
-	ICProcessDiagnoseImageBlurTask          MynahICProcessTaskType = "ic::diagnose::image_blur"
-	ICProcessCorrectImageBlurTask           MynahICProcessTaskType = "ic::correct::image_blur"
+	ICProcessDiagnoseMislabeledImagesTask MynahICProcessTaskType = "ic::diagnose::mislabeled_images"
+	ICProcessCorrectMislabeledImagesTask  MynahICProcessTaskType = "ic::correct::mislabeled_images"
+	ICProcessDiagnoseClassSplittingTask   MynahICProcessTaskType = "ic::diagnose::class_splitting"
+	ICProcessCorrectClassSplittingTask    MynahICProcessTaskType = "ic::correct::class_splitting"
 )
 
 // MynahICDatasetFormatType is the dataset format type identifier
@@ -47,10 +43,8 @@ type MynahICDatasetFormat struct {
 
 // MynahICProcessTaskMetadata defines metadata specific to some task
 type MynahICProcessTaskMetadata interface {
-	// ApplyToDataset makes changes to the dataset based on this metadata
-	ApplyToDataset(*MynahICDatasetVersion, MynahICProcessTaskType) error
-	// ApplyToReport makes changes to the report based on this metadata
-	ApplyToReport(*MynahICDatasetReport, MynahICProcessTaskType) error
+	// ApplyChanges applies these changes to the dataset and the report
+	ApplyChanges(*MynahICDatasetVersion, *MynahICDatasetReport, MynahICProcessTaskType) error
 }
 
 // MynahICProcessTaskDiagnoseMislabeledImagesMetadata is metadata for
@@ -80,35 +74,7 @@ type MynahICProcessTaskDiagnoseClassSplittingMetadata struct {
 //correcting class splitting task response
 type MynahICProcessTaskCorrectClassSplittingMetadata struct {
 	//map from class name to map from class split name to list of fileids
-	ActualClassSplits map[MynahClassName]map[string][]MynahUuid `json:"actual_class_splits"`
-}
-
-// MynahICProcessTaskDiagnoseLightingConditionsMetadata is metadata for
-//diagnosing lighting conditions task response
-type MynahICProcessTaskDiagnoseLightingConditionsMetadata struct {
-	//bright images by id
-	Bright []MynahUuid `json:"bright"`
-	//dark images by id
-	Dark []MynahUuid `json:"dark"`
-}
-
-// MynahICProcessTaskCorrectLightingConditionsMetadata is metadata for
-//correcting lighting conditions task response
-type MynahICProcessTaskCorrectLightingConditionsMetadata struct {
-	//the uuids of removed images
-	Removed []MynahUuid `json:"removed"`
-	//the uuids of corrected images
-	Corrected []MynahUuid `json:"corrected"`
-}
-
-// MynahICProcessTaskDiagnoseImageBlurMetadata is metadata for
-//diagnosing image blur task response
-type MynahICProcessTaskDiagnoseImageBlurMetadata struct {
-}
-
-// MynahICProcessTaskCorrectImageBlurMetadata is metadata for
-//correcting image blur task response
-type MynahICProcessTaskCorrectImageBlurMetadata struct {
+	ActualClassSplits map[MynahClassName]map[MynahClassName][]MynahUuid `json:"actual_class_splits"`
 }
 
 // MynahICProcessTaskData defines the result of running a task on an ic dataset

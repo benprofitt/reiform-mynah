@@ -4,6 +4,7 @@ package tools
 
 import (
 	"fmt"
+	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/storage"
@@ -58,12 +59,12 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 	//map from fileid to the SHA1 version created
 	newImageSHAVersions := make(map[model.MynahUuid]model.MynahFileVersionId)
 
-	fileIdSet := NewUniqueSet()
+	fileIdSet := containers.NewUniqueSet[model.MynahUuid]()
 	for fileId := range version.Files {
-		fileIdSet.UuidsUnion(fileId)
+		fileIdSet.Union(fileId)
 	}
 	//batch request files
-	files, err := dbProvider.GetFiles(fileIdSet.UuidVals(), user)
+	files, err := dbProvider.GetFiles(fileIdSet.Vals(), user)
 	if err != nil {
 		return err
 	}

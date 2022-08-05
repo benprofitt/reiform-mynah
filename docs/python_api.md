@@ -259,10 +259,6 @@
   "ic::correct::mislabeled_images"
   "ic::diagnose::class_splitting"
   "ic::correct::class_splitting"
-  "ic::diagnose::lighting_conditions"
-  "ic::correct::lighting_conditions"
-  "ic::diagnose::image_blur"
-  "ic::correct::image_blur"
 ```
 
 #### Metadata
@@ -297,32 +293,6 @@
     }
   }
   ```
-- `"ic::diagnose::lighting_conditions"`
-  ```json
-  {
-    "bright" : ["fileid1", ...],
-    "dark" : ["fileid420", ...]
-  }
-  ```  
-- `"ic::correct::lighting_conditions"`
-  ```json
-  {
-    "removed": ["fileid", ...],
-    "corrected": ["fileid", ...]
-  }
-  ```  
-- `"ic::diagnose::image_blur"`
-  ```json
-  {
-    "TODO" : "TODO"
-  }
-  ```  
-- `"ic::correct::image_blur"`
-  ```json
-  {
-    "TODO" : "TODO"
-  }
-  ```  
 
 ### Get Image Metadata
 - Name: `get_image_metadata(uuid: str, request: str, sock_addr: str)`

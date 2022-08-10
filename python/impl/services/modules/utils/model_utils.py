@@ -25,3 +25,14 @@ def load_reiform_model(model_path : str, model_type : str, target_classes : int)
     model.eval()
     
     return model
+
+def calculate_batch_size(dims : List[int]):
+    prod = 64 * 2 # bytes in long float + buffer
+    for v in dims:
+        prod*=v
+
+    r = torch.cuda.memory_reserved(0)
+    a = torch.cuda.memory_allocated(0)
+    f = r-a  # free inside reserved
+
+    return f // prod

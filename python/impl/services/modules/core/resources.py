@@ -67,6 +67,9 @@ LIGHTING_PREDICTION = "lighting_prediciton"
 NEW_LABEL_PREDICTION = "corrected_label_prediction"
 NEW_LABEL_PREDICTION_PROBABILITIES = "corrected_label_prediction_probability_vector"
 
+MODEL_METADATA = "model_metadata"
+PATH_TO_MODEL = "path_to_model"
+MODEL = "model"
 CHANNELS = "channels"
 SIZE = "size"
 CROP = "crop"
@@ -75,6 +78,7 @@ MEAN = "mean"
 STD = "std"
 LATENT_SIZE = "latent_size"
 NAME = "dataset_name"
+IMAGE_DIMS = "image_dims"
 
 EMBEDDING_DIM_SIZE = 31
 
@@ -86,6 +90,7 @@ MAX_CORRECTION_MODEL_BATCH_SIZE = 1024
 
 BASE_EMBEDDING_MODEL_BATCH_SIZE = 22
 MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
+RESNET_SIZE = 299
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3

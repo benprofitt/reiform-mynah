@@ -1,9 +1,9 @@
 from impl.services.modules.ic_training.training_interface import TrainingSpecifications, train_ic_model
 from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 from .resources import *
-from .job_processing import Processing_Job
+from .job_processing import Model_Processing_Job
 
-class TrainingJob(Processing_Job):
+class TrainingJob(Model_Processing_Job):
 
     def __init__(self, job_json: Dict[str, Any]) -> None:
         super().__init__(job_json)
@@ -32,19 +32,19 @@ class TrainingJob(Processing_Job):
         body["all_file_test_loss"] = self.test_losses
         body["ordered_fileids"] = self.filename_order
 
-        body["model_metadata"] = self.make_metadata()
+        body[MODEL_METADATA] = self.make_metadata()
 
         return body
 
     def make_metadata(self):
         return {
-            "model" : self.config["model"],
-            "image_dims" : [299, 299], # for now this is constant, but provides flexibility
+            MODEL : self.config[MODEL],
+            IMAGE_DIMS : [299, 299], # for now this is constant, but provides flexibility
             "type" : "mynah::IC::model",
             "classes" : self.dataset.classes(),
-            "mean" : self.mean,
-            "std" : self.std,
-            "path_to_model" : self.save_path
+            MEAN : self.mean,
+            STD : self.std,
+            PATH_TO_MODEL : self.save_path
         }
 
     def save_model(self, model : torch.nn.Module, channels : int, 
@@ -75,21 +75,9 @@ class TrainingJob(Processing_Job):
 
     def run_processing_job(self, logger : ReiformProgressLogger) -> Dict[str, Any]:
 
-        MODEL_LIST = ["resnet50"]#, "resnet18", "densenet202"]
-        MODEL_MAP = {
-            "resnet18" : "AutoResnet18",
-            "resnet50" : "AutoResnet",
-            "densenet202" : "AutoDensenet202"
-        }
+        class_list : List[str] = self.dataset.classes()
 
-        model_name = self.config["model"]
-        if model_name not in MODEL_LIST:
-            raise ReiformTrainingException("Model not available")
-
-        model_classname : str = MODEL_MAP[model_name]
-        target_classes : int = len(self.dataset.classes())
-
-        self.model = eval("{}({})".format(model_classname, target_classes))
+        self.model = self.create_model(class_list, self.config[MODEL])
 
         min_epochs = self.config["min_epochs"]
         max_epochs = self.config["max_epochs"]
@@ -101,10 +89,11 @@ class TrainingJob(Processing_Job):
 
         mean=self.mean
         std=self.std
+        size=RESNET_SIZE
 
         transform : torchvision.transforms.Compose = transforms.Compose([
-            transforms.Resize(299),
-            transforms.CenterCrop(299),
+            transforms.Resize(size),
+            transforms.CenterCrop(size),
             transforms.ToTensor(),
             transforms.Normalize(mean=mean, std=std)
         ])

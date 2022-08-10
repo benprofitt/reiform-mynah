@@ -2,10 +2,37 @@
 
 ## Functions
 
-### Start Image Classification Model Training Job
-- Name: `start_ic_training_job(uuid: str, local_model_save_path : str, request: str, sock_addr: str)`
+### Start Image Classification Model Inference Job
+- Name: `start_ic_inference_job(uuid: str, request: str, sock_addr: str)`
 - `uuid`: The uuid of the user starting the job
-- `local_model_save_path`: The local path designating where to save the trained model
+- `request`:
+  ```json
+  {
+    "model_metadata" : {
+      "model": "resnet50",
+      "image_dims" : [256, 512],
+      "type" : "mynah::IC::model",
+      "classes" : ["cat", "dog", "jack hay"],
+      "mean" : [0.445, 0.544, 0.569],
+      "std" : [0.420, 0.069, 0.235],
+      "path_to_model" : "local/path/to/saved/model.pt"
+    },
+    "dataset": "Type::ReiformICDataset (see below)",
+
+  }
+  ```
+- `sock_addr`: The ipc socket address for sending websocket data
+- Output:
+```json
+  {
+    "dataset": "Type::ReiformICDataset (see below)"
+  }
+```
+
+
+### Start Image Classification Model Training Job
+- Name: `start_ic_training_job(uuid: str, request: str, sock_addr: str)`
+- `uuid`: The uuid of the user starting the job
 - `request`:
   ```json
   {

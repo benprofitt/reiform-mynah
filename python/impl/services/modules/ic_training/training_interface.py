@@ -3,7 +3,7 @@ from impl.services.modules.core.reiform_imageclassificationdataset import Reifor
 from impl.services.modules.core.reiform_models import multiclass_model_loss
 from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 
-class TrainingSpecifications:
+class TrainingSpecifications():
 
     def __init__(self, epochs : int, min_epochs : int, optimizer : Any, 
                  loss_epsilon : float, batch_size : int, train_test_split : float, 

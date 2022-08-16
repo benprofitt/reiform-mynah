@@ -11,11 +11,11 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/extensions"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
-	"reiform.com/mynah/pyimpl"
-	"reiform.com/mynah/python"
+	"reiform.com/mynah/mynahExec"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -54,11 +54,14 @@ func main() {
 		log.Fatalf("failed to initialize storage %s", storageErr)
 	}
 
-	//initialize python
-	pythonProvider := python.NewPythonProvider(mynahSettings)
+	//initialize the executor
+	mynahExecutor, executorErr := mynahExec.NewLocalExecutor(mynahSettings)
+	if executorErr != nil {
+		log.Fatalf("failed to initialize execution environment %s", executorErr)
+	}
 
 	//create the python impl provider
-	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider, dbProvider, storageProvider)
+	implProvider := impl.NewImplProvider(mynahSettings, dbProvider, storageProvider, mynahExecutor)
 
 	//initialize websockets
 	wsProvider := websockets.NewWebSocketProvider(mynahSettings)
@@ -67,16 +70,16 @@ func main() {
 	asyncProvider := async.NewAsyncProvider(mynahSettings, wsProvider)
 
 	//initialize the python ipc server
-	ipcProvider, ipcErr := ipc.NewIPCProvider(mynahSettings)
+	ipcProvider, ipcErr := ipc.NewIPCServer(mynahSettings.IPCSettings.SocketAddr)
 	if ipcErr != nil {
 		log.Fatalf("failed to initialize ipc %s", ipcErr)
 	}
 
 	//start the ipc server
-	go ipcProvider.HandleEvents(wsProvider.Send)
+	go ipcProvider.ListenMany(wsProvider.Send)
 
 	//check that the mynah module can be loaded successfully
-	version, versionErr := pyImplProvider.GetMynahImplVersion()
+	version, versionErr := implProvider.GetMynahImplVersion()
 	if versionErr != nil {
 		log.Fatalf("failed to initialize mynah python %s", versionErr)
 	}
@@ -100,7 +103,7 @@ func main() {
 		dbProvider,
 		authProvider,
 		storageProvider,
-		pyImplProvider,
+		implProvider,
 		wsProvider,
 		asyncProvider,
 		extensionManager,
@@ -127,7 +130,7 @@ func main() {
 	wsProvider.Close()
 	dbProvider.Close()
 	authProvider.Close()
-	pythonProvider.Close()
+	mynahExecutor.Close()
 	storageProvider.Close()
 	os.Exit(0)
 }

@@ -1,13 +1,13 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package pyimpl
+package impl
 
 import (
 	"reiform.com/mynah/model"
 )
 
-// PyImplProvider provider interface
-type PyImplProvider interface {
+// ImplProvider provider interface
+type ImplProvider interface {
 	// GetMynahImplVersion get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
 	// ICProcessJob start ic diagnosis on some dataset

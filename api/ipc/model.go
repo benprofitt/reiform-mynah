@@ -4,10 +4,12 @@ package ipc
 
 import "reiform.com/mynah/model"
 
-// IPCProvider ipc provider
-type IPCProvider interface {
-	// HandleEvents handle new events
-	HandleEvents(func(userUuid model.MynahUuid, msg []byte))
+// IPCServer ipc server
+type IPCServer interface {
+	// Listen for an ipc message
+	Listen() ([]byte, error)
+	// ListenMany accepts messages until closed
+	ListenMany(func(userUuid model.MynahUuid, msg []byte))
 	//Close the ipc provider
 	Close()
 }

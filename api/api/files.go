@@ -11,10 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"time"
@@ -50,7 +50,7 @@ func isImageType(mType *mimetype.MIME) bool {
 func handleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
 	storageProvider storage.StorageProvider,
-	pyImplProvider pyimpl.PyImplProvider) http.HandlerFunc {
+	pyImplProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user uploading the file
 		user := middleware.GetUserFromRequest(request)

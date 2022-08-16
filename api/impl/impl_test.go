@@ -1,6 +1,6 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package pyimpl
+package impl
 
 import (
 	"fmt"
@@ -9,18 +9,14 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
-	"reiform.com/mynah/python"
+	"reiform.com/mynah/mynahExec"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"testing"
 )
 
 // withPyImplProvider initialize a python impl provider for tests
-func withPyImplProvider(mynahSettings *settings.MynahSettings, handler func(provider PyImplProvider) error) error {
-	//initialize python
-	pythonProvider := python.NewPythonProvider(mynahSettings)
-	defer pythonProvider.Close()
-
+func withPyImplProvider(mynahSettings *settings.MynahSettings, handler func(provider ImplProvider) error) error {
 	storageProvider, storagePErr := storage.NewStorageProvider(mynahSettings)
 	if storagePErr != nil {
 		return fmt.Errorf("failed to create storage provider for test %s", storagePErr)
@@ -39,7 +35,14 @@ func withPyImplProvider(mynahSettings *settings.MynahSettings, handler func(prov
 		return fmt.Errorf("failed to create db provider for test %s", authErr)
 	}
 	defer dbProvider.Close()
-	return handler(NewPyImplProvider(mynahSettings, pythonProvider, dbProvider, storageProvider))
+
+	executor, err := mynahExec.NewLocalExecutor(mynahSettings)
+	if err != nil {
+		return fmt.Errorf("failed to create executor for test %s", authErr)
+	}
+	defer executor.Close()
+
+	return handler(NewImplProvider(mynahSettings, dbProvider, storageProvider, executor))
 }
 
 //setup and teardown
@@ -65,9 +68,9 @@ func TestMain(m *testing.M) {
 // TestMynahPythonVersion verifies that the python version is the same as the app version
 func TestMynahPythonVersion(t *testing.T) {
 	s := settings.DefaultSettings()
-	s.PythonSettings.ModulePath = "../../python"
+	s.PythonSettings.PythonExecutable = "../../python/python_version_test.py"
 
-	err := withPyImplProvider(s, func(provider PyImplProvider) error {
+	err := withPyImplProvider(s, func(provider ImplProvider) error {
 		res, err := provider.GetMynahImplVersion()
 		require.NoError(t, err)
 		require.Equal(t, settings.MynahApplicationVersion, res.Version)

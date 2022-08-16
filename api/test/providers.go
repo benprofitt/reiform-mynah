@@ -16,12 +16,12 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/pyimpl"
-	"reiform.com/mynah/python"
+	"reiform.com/mynah/mynahExec"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
@@ -35,9 +35,8 @@ type TestContext struct {
 	DBProvider        db.DBProvider
 	AuthProvider      auth.AuthProvider
 	StorageProvider   storage.StorageProvider
-	PythonProvider    python.PythonProvider
-	PyImplProvider    pyimpl.PyImplProvider
-	IPCProvider       ipc.IPCProvider
+	ImplProvider      impl.ImplProvider
+	IPCServer         ipc.IPCServer
 	WebSocketProvider websockets.WebSocketProvider
 	AsyncProvider     async.AsyncProvider
 	Router            *middleware.MynahRouter
@@ -47,7 +46,6 @@ type TestContext struct {
 
 // WithTestContext load test context and pass to test handler
 func WithTestContext(mynahSettings *settings.MynahSettings,
-	pythonProvider python.PythonProvider,
 	handler func(t *TestContext) error) error {
 	//initialize auth
 	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
@@ -70,8 +68,14 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	}
 	defer storageProvider.Close()
 
+	executor, err := mynahExec.NewLocalExecutor(mynahSettings)
+	if err != nil {
+		return err
+	}
+	defer executor.Close()
+
 	//create the python impl provider
-	pyImplProvider := pyimpl.NewPyImplProvider(mynahSettings, pythonProvider, dbProvider, storageProvider)
+	implProvider := impl.NewImplProvider(mynahSettings, dbProvider, storageProvider, executor)
 
 	//initialize websockets
 	websocketProvider := websockets.NewWebSocketProvider(mynahSettings)
@@ -82,11 +86,11 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 	defer asyncProvider.Close()
 
 	//initialize the python ipc server
-	ipcProvider, ipcErr := ipc.NewIPCProvider(mynahSettings)
+	icpServer, ipcErr := ipc.NewIPCServer(mynahSettings.IPCSettings.SocketAddr)
 	if ipcErr != nil {
 		return ipcErr
 	}
-	defer ipcProvider.Close()
+	defer icpServer.Close()
 
 	//Note: don't call close on router since we never ListenAndServe()
 
@@ -95,9 +99,8 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		DBProvider:        dbProvider,
 		AuthProvider:      authProvider,
 		StorageProvider:   storageProvider,
-		PythonProvider:    pythonProvider,
-		PyImplProvider:    pyImplProvider,
-		IPCProvider:       ipcProvider,
+		ImplProvider:      implProvider,
+		IPCServer:         icpServer,
 		WebSocketProvider: websocketProvider,
 		AsyncProvider:     asyncProvider,
 		Router:            middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider),

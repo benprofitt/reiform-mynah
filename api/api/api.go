@@ -8,8 +8,8 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/extensions"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/middleware"
-	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -20,7 +20,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	authProvider auth.AuthProvider,
 	storageProvider storage.StorageProvider,
-	pyImplProvider pyimpl.PyImplProvider,
+	pyImplProvider impl.ImplProvider,
 	wsProvider websockets.WebSocketProvider,
 	asyncProvider async.AsyncProvider,
 	extensionManager *extensions.ExtensionManager,

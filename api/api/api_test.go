@@ -16,13 +16,10 @@ import (
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/python"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/test"
 	"testing"
 )
-
-var pythonProvider python.PythonProvider
 
 //setup and teardown
 func TestMain(m *testing.M) {
@@ -32,12 +29,6 @@ func TestMain(m *testing.M) {
 	if err := os.MkdirAll(dirPath, os.ModePerm); err != nil {
 		log.Fatalf("failed to create directory: %s", dirPath)
 	}
-
-	//initialize python provider once (segfault for double initialization by same process)
-	mynahSettings := settings.DefaultSettings()
-	mynahSettings.PythonSettings.ModulePath = "../../python"
-	pythonProvider = python.NewPythonProvider(mynahSettings)
-	defer pythonProvider.Close()
 
 	//run tests
 	exitVal := m.Run()
@@ -93,9 +84,10 @@ func makeCreateUserReq(user *model.MynahUser, jwt string, c *test.TestContext) e
 //Test admin endpoints
 func TestAPIAdminEndpoints(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
 
 	//load the testing context
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		//handle user creation endpoint
 		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
 
@@ -118,9 +110,10 @@ func TestAPIAdminEndpoints(t *testing.T) {
 
 func TestFileGetEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
 
 	//load the testing context
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		filePath := fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey)
 
 		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
@@ -153,10 +146,10 @@ func TestFileGetEndpoint(t *testing.T) {
 
 func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
-	mynahSettings.PythonSettings.ModuleName = "mynah_test"
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/diagnosis_data_test.py"
 
 	//load the testing context
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		//create a user
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 			startingFileids := containers.NewUniqueSet[model.MynahUuid]()
@@ -180,7 +173,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 				//handle user creation endpoint
 				c.Router.HandleHTTPRequest("POST", "dataset/ic/process/start",
-					icProcessJob(c.DBProvider, c.AsyncProvider, c.PyImplProvider, c.StorageProvider))
+					icProcessJob(c.DBProvider, c.AsyncProvider, c.ImplProvider, c.StorageProvider))
 				c.Router.HandleHTTPRequest("GET",
 					fmt.Sprintf("data/json/{%s}", idKey),
 					getDataJSON(c.DBProvider))
@@ -245,14 +238,33 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 										ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
 										X:              0,
 										Y:              0,
-										Class:          "class2",
+										Class:          "class1",
 										OriginalClass:  "class1",
 									},
 								},
 								Tasks: []*model.MynahICProcessTaskReportData{
 									{
-										Type:     "ic::diagnose::mislabeled_images",
-										Metadata: &model.MynahICProcessTaskDiagnoseMislabeledImagesReport{},
+										Type: "ic::diagnose::mislabeled_images",
+										Metadata: &model.MynahICProcessTaskDiagnoseMislabeledImagesReport{
+											ClassLabelErrors: map[model.MynahClassName]*model.MynahICProcessTaskDiagnoseMislabeledImagesReportClass{
+												"class1": {
+													Mislabeled: []model.MynahUuid{
+														"fileuuid1",
+													},
+													Correct: []model.MynahUuid{
+														"fileuuid4",
+													},
+												},
+												"class2": {
+													Mislabeled: []model.MynahUuid{
+														"fileuuid3",
+													},
+													Correct: []model.MynahUuid{
+														"fileuuid2",
+													},
+												},
+											},
+										},
 									},
 								},
 							}
@@ -279,9 +291,10 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 //test the creation of an ic dataset
 func TestICDatasetCreationEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
 
 	//load the testing context
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 
 			//handle user creation endpoint
@@ -337,9 +350,10 @@ func TestICDatasetCreationEndpoint(t *testing.T) {
 
 func TestAPIReportFilter(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
 
 	//load the testing concd /vag	text
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 			expectedFileIds := containers.NewUniqueSet[model.MynahUuid]()
 			expectedFileIds.Union("fileuuid1", "fileuuid2", "fileuuid3", "fileuuid4")
@@ -370,9 +384,10 @@ func TestAPIReportFilter(t *testing.T) {
 //test dataset list
 func TestListDatasetsEndpoint(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
+	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
 
 	//load the testing context
-	err := test.WithTestContext(mynahSettings, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(mynahSettings, func(c *test.TestContext) error {
 		return c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
 			return c.WithCreateICDataset(user, []model.MynahUuid{}, func(icDataset *model.MynahICDataset) error {
 				return c.WithCreateODDataset(user, func(odDataset *model.MynahODDataset) error {
@@ -427,8 +442,9 @@ func TestAPIFileEndpoints(t *testing.T) {
 //test size detection
 func TestImageSizeDetection(t *testing.T) {
 	s := settings.DefaultSettings()
+	s.PythonSettings.PythonExecutable = "../../python/image_metadata_data_test.py"
 
-	err := test.WithTestContext(s, pythonProvider, func(c *test.TestContext) error {
+	err := test.WithTestContext(s, func(c *test.TestContext) error {
 		jpegPath := "../../docs/test_image.jpg"
 		pngPath := "../../docs/mynah_arch_1-13-21.drawio.png"
 		notImagePath := "../../docs/ipc.md"
@@ -439,7 +455,7 @@ func TestImageSizeDetection(t *testing.T) {
 
 		err := c.WithCreateFileFromPath(&user, jpegPath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
-				require.NoError(t, c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
+				require.NoError(t, c.ImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
 
 				width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0)
 				height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0)
@@ -455,7 +471,7 @@ func TestImageSizeDetection(t *testing.T) {
 
 		err = c.WithCreateFileFromPath(&user, pngPath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
-				require.NoError(t, c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
+				require.NoError(t, c.ImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId]))
 
 				width := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataWidth, 0)
 				height := file.Versions[model.OriginalVersionId].Metadata.GetDefaultInt(model.MetadataHeight, 0)
@@ -471,7 +487,7 @@ func TestImageSizeDetection(t *testing.T) {
 
 		err = c.WithCreateFileFromPath(&user, notImagePath, func(file *model.MynahFile) error {
 			return c.StorageProvider.GetStoredFile(file, model.OriginalVersionId, func(path string) error {
-				return c.PyImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId])
+				return c.ImplProvider.ImageMetadata(&user, path, file, file.Versions[model.OriginalVersionId])
 			})
 		})
 

@@ -54,10 +54,8 @@ type MynahStorageSettings struct {
 
 // MynahPythonSettings defines configuration settings for python
 type MynahPythonSettings struct {
-	//the path where python modules are stored
-	ModulePath string `json:"module_path"`
-	//the top level module name
-	ModuleName string `json:"module_name"`
+	//python executable command
+	PythonExecutable string `json:"python_executable"`
 }
 
 // MynahAsyncSettings defines configuration settings for async task engine
@@ -128,8 +126,7 @@ func DefaultSettings() *MynahSettings {
 			ModelsPath: "data/models", //TODO: default
 		},
 		PythonSettings: MynahPythonSettings{
-			ModulePath: "./python",
-			ModuleName: "mynah",
+			PythonExecutable: "./python/mynah.py",
 		},
 		AsyncSettings: MynahAsyncSettings{
 			Workers:    3,

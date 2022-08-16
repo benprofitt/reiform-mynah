@@ -72,11 +72,12 @@ func (r *MynahRouter) ListenAndServe() {
 	})
 
 	r.server = &http.Server{
-		Handler:      r,
-		Addr:         fmt.Sprintf(":%d", r.settings.Port),
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Handler:           r,
+		Addr:              fmt.Sprintf(":%d", r.settings.Port),
+		WriteTimeout:      15 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 15 * time.Second,
 	}
 	log.Infof("server starting on %s", r.server.Addr)
 	log.Warnf("server exit: %s", r.server.ListenAndServe())

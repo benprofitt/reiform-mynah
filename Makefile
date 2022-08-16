@@ -1,4 +1,4 @@
-.PHONY: frontend api format test data-test clean all lint cli
+.PHONY: frontend api format test data-test clean all lint cli setup
 GO=/usr/local/go/bin/go
 GO_ARGS= #-tags s3
 

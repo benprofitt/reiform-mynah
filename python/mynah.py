@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import json
 import logging
 import sys
@@ -8,6 +9,8 @@ import impl.services.image_classification.dataset_processing as processing # typ
 import impl.services.image_classification.model_training as training
 from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 from python.impl.services.image_classification.inference import InferenceJob # type: ignore
+import argparse
+import fileinput
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -86,3 +89,15 @@ def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     body = json.loads(request_str)
     path = body['path']
     return json.dumps(image_utils.get_image_metadata(path))
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--operation', type=str, required=True)
+    parser.add_argument('--ipc-socket-path', type=str, required=True)
+    parser.add_argument('--uuid', type=str, required=True)
+    args = parser.parse_args()
+
+    # TODO format logger
+
+    print(eval("{}({}, {}, {})".format(args.operation, args.uuid, json.loads(sys.stdin.read()), args.ipc_socket_path)))

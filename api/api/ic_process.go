@@ -7,17 +7,17 @@ import (
 	"net/http"
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/pyimpl"
 	"reiform.com/mynah/storage"
 )
 
 // icProcessJob handle request to start a new async job
 func icProcessJob(dbProvider db.DBProvider,
 	asyncProvider async.AsyncProvider,
-	pyImplProvider pyimpl.PyImplProvider,
+	pyImplProvider impl.ImplProvider,
 	storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		user := middleware.GetUserFromRequest(request)

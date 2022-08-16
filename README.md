@@ -46,7 +46,18 @@ This repository combines the frontend interface and the backend api for Mynah.
 
 - To run tests:
 ```
-make test
+make clean && make test
+```
+
+### Linting
+- Setup:
+```
+go install github.com/securego/gosec/v2/cmd/gosec@latest
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+```
+Then run:
+```
+make lint
 ```
 
 ### Extensions
@@ -82,22 +93,3 @@ vagrant up && vagrant ssh
 ```
 cd /vagrant
 ```
-
-## Misc.
-
-### Useful shell configurations (for Linux, maybe MacOS)
-- Show current branch in terminal prompt (i.e. `jackhay@archlinux ~/development/reiform/com.reiform.mynah (jh/branch-name) $ `)
-  - Add to `~/.bashrc`
-  ```
-  parse_git_branch() {
-       git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
-  }
-  export PS1="\u@\h \[\033[32m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\] $ "
-  ```
-
-- Git tab autocompletions (i.e. for branch names)
-  - Add to `~/.bashrc`
-  ```
-  source /usr/share/bash-completion/completions/git
-  ```
-- For both of the above you need to open a new terminal or `source ~/.bashrc`

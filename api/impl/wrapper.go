@@ -1,63 +1,41 @@
 // Copyright (c) 2022 by Reiform. All Rights Reserved.
 
-package pyimpl
+package impl
 
 import (
 	"encoding/json"
 	"fmt"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/python"
+	"reiform.com/mynah/mynahExec"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
 	"time"
 )
 
-//local python impl provider
+//local impl provider
 type localImplProvider struct {
-	//the python provider
-	pythonProvider python.PythonProvider
+	mynahSettings *settings.MynahSettings
 	//the database provider
 	dbProvider db.DBProvider
 	//the storage provider
 	storageProvider storage.StorageProvider
-	//settings
-	mynahSettings *settings.MynahSettings
+	//the executor
+	mynahExecutor mynahExec.MynahExecutor
 }
 
 // GetMynahImplVersion request the current version of python tools
 func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
-	//initialize the function
-	fn, err := p.pythonProvider.InitFunction(p.mynahSettings.PythonSettings.ModuleName, "get_impl_version")
-	if err != nil {
-		return nil, err
-	}
-
 	var user model.MynahUser
-
-	//call the function
-	res := fn.Call(&user, nil)
-
-	var versionResponse VersionResponse
-
-	resErr := res.GetResponse(&versionResponse)
-	if resErr != nil {
-		return nil, resErr
-	}
-	return &versionResponse, nil
+	var versionRes VersionResponse
+	return &versionRes, p.mynahExecutor.Call(&user, "get_impl_version", nil).GetAs(&versionRes)
 }
 
 // ICProcessJob start a ic process job
 func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 	dataset *model.MynahICDataset,
 	tasks []model.MynahICProcessTaskType) error {
-	//initialize the function
-	fn, err := p.pythonProvider.InitFunction(p.mynahSettings.PythonSettings.ModuleName, "start_ic_processing_job")
-	if err != nil {
-		return err
-	}
-
 	//create a new version of the dataset to operate on
 	newVersion, err := tools.MakeICDatasetVersion(dataset)
 	if err != nil {
@@ -70,14 +48,12 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		return fmt.Errorf("ic process job failed when creating request: %s", err)
 	}
 
-	//call the function
-	res := fn.Call(user, req)
+	res := p.mynahExecutor.Call(user, "start_ic_processing_job", req)
 
 	var jobResponse ICProcessJobResponse
 
-	//parse the response
-	if err = res.GetResponse(&jobResponse); err != nil {
-		return fmt.Errorf("ic process job failed: %s", err)
+	if err = res.GetAs(&jobResponse); err != nil {
+		return fmt.Errorf("failed to execute start_ic_processing_job: %s", err)
 	}
 
 	//create a new report based on this run
@@ -114,21 +90,11 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 
 // ImageMetadata get image metadata
 func (p *localImplProvider) ImageMetadata(user *model.MynahUser, path string, file *model.MynahFile, version *model.MynahFileVersion) error {
-	//initialize the function
-	fn, err := p.pythonProvider.InitFunction(p.mynahSettings.PythonSettings.ModuleName, "get_image_metadata")
-	if err != nil {
-		return err
-	}
-
-	//call the function
-	res := fn.Call(user, p.NewImageMetadataRequest(path))
-
 	var response ImageMetadataResponse
+	err := p.mynahExecutor.Call(user, "get_image_metadata", p.NewImageMetadataRequest(path)).GetAs(&response)
 
-	//parse the response
-	resErr := res.GetResponse(&response)
-	if resErr != nil {
-		return resErr
+	if err != nil {
+		return fmt.Errorf("failed to execute get_image_metadata: %s", err)
 	}
 
 	//modify the file

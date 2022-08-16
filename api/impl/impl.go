@@ -25,6 +25,19 @@ type localImplProvider struct {
 	mynahExecutor mynahExec.MynahExecutor
 }
 
+// NewImplProvider create a new provider
+func NewImplProvider(mynahSettings *settings.MynahSettings,
+	dbProvider db.DBProvider,
+	storageProvider storage.StorageProvider,
+	mynahExecutor mynahExec.MynahExecutor) ImplProvider {
+	return &localImplProvider{
+		mynahSettings:   mynahSettings,
+		dbProvider:      dbProvider,
+		storageProvider: storageProvider,
+		mynahExecutor:   mynahExecutor,
+	}
+}
+
 // GetMynahImplVersion request the current version of python tools
 func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 	var user model.MynahUser

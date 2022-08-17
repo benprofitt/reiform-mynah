@@ -39,7 +39,7 @@ export interface SideBarProps {
   children: JSX.Element | JSX.Element[];
 }
 export default function SideBar(props: SideBarProps): JSX.Element {
-  const { children } = props
+  const { children } = props;
   const [isAddingDataset, setIsAddingDataset] = useState(false);
   return (
     <div className="h-screen flex">
@@ -52,13 +52,7 @@ export default function SideBar(props: SideBarProps): JSX.Element {
           <ReiformLogo className="w-[36px] mb-[60px]" />
         </Link>
         <SideBarButton onClick={() => setIsAddingDataset(true)}>
-          <>
-            <img src={PlusCircle} alt="add new dataset" />
-            <ImportData
-              open={isAddingDataset}
-              close={() => setIsAddingDataset(false)}
-            />
-          </>
+          <img src={PlusCircle} alt="add new dataset" />
         </SideBarButton>
         <SideBarButton selected>
           <Link to="/home">
@@ -71,6 +65,10 @@ export default function SideBar(props: SideBarProps): JSX.Element {
         >
           JL
         </Link>
+        <ImportData
+          open={isAddingDataset}
+          close={() => setIsAddingDataset(false)}
+        />
       </nav>
       {children}
     </div>

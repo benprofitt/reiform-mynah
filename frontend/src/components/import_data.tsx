@@ -9,9 +9,6 @@ import { useQuery } from "react-query";
 export interface ImportDataProps {
   open: boolean;
   close: () => void;
-  refetch?: () => void;
-  // setDatasets: React.Dispatch<React.SetStateAction<MynahICDataset[]>>;
-  // setSelectedDatasets: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const options = [
@@ -20,8 +17,9 @@ const options = [
 ];
 
 export default function ImportData(props: ImportDataProps): JSX.Element {
-  const { refetch } = useQuery("datasets", () =>
-  makeRequest("GET", "/api/v1/dataset/list"));
+  const { refetch } = useQuery<MynahICDataset[]>("datasets", () =>
+    makeRequest<MynahICDataset[]>("GET", "/api/v1/dataset/list")
+  );
   const { open, close } = props;
   const [datasetName, setDatasetName] = useState("");
   const [selectedType, setSelectedType] = useState<{
@@ -168,11 +166,11 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
         </form>
         {files ? (
           <div className="overflow-y-scroll max-h-[500px] w-full">
-            {files.map(({ file, isFinished }) => {
+            {files.map(({ file, isFinished }, ix) => {
               const filename = file.name;
               const src = URL.createObjectURL(file);
               return (
-                <div className="flex w-full h-[60px] items-center border-b border-grey1">
+                <div className="flex w-full h-[60px] items-center border-b border-grey1" key={ix}>
                   <img className="h-[40px] aspect-square mr-[10px]" src={src} />
                   {filename}
                   <div

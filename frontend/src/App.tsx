@@ -1,5 +1,5 @@
 import DatasetsHomePage from "./pages/datasets_home_page";
-import DatasetPage from "./pages/dataset_page";
+import DatasetPage from "./pages/datasets_page/dataset_page";
 import LoginPage, { authCookieName } from "./pages/login_page";
 import AccountSettingsPage from "./pages/account_settings_page";
 

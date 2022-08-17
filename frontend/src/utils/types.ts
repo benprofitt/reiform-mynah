@@ -24,25 +24,96 @@ export interface MynahICFile {
 
 export interface CreateICDataset {
   name: string;
-  files: Record<string, string>
+  files: Record<string, string>;
 }
 
-export interface MynahICData {
+export interface MynahICVersion {
   files: Record<string, MynahICFile>;
   mean: number[];
   std_dev: number[];
 }
 
-export type MynahICVersion = Record<string, MynahICData>;
-// the string is the version number
-
+export interface MynahICReport {
+  data_id: string;
+  date_created: number;
+  tasks: MynahICProcessTaskType[];
+}
 export interface MynahICDataset {
   uuid: string;
   owner_uuid: string;
   dataset_name: string;
   date_created: number;
   date_modified: number;
-  versions: MynahICVersion;
+  versions: { [versionID: string]: MynahICVersion };
+  reports: {
+    [versionID: string]: MynahICReport;
+  };
+}
+
+export interface MynahICPoint {
+  fileid: string;
+  image_version_id: string;
+  x: number;
+  y: number;
+  class: string;
+  original_class: string;
+}
+
+export type MynahICProcessTaskType =
+  | "ic::diagnose::mislabeled_images"
+  | "ic::correct::mislabeled_images"
+  | "ic::diagnose::class_splitting"
+  | "ic::correct::class_splitting";
+
+export interface MynahICProcessTaskDiagnoseMislabeledImagesReport {
+  class_label_errors: {
+    [className: string]: {
+      mislabeled: string[];
+      correct: string[];
+    };
+  };
+}
+
+export interface MynahICProcessTaskCorrectMislabeledImagesReport {
+  class_label_errors: {
+    [className: string]: {
+      mislabeled_corrected: string[];
+      mislabeled_removed: string[];
+      unchanged: string[];
+    };
+  };
+}
+
+export interface MynahICProcessTaskDiagnoseClassSplittingReport {
+  classes_splitting: {
+    [className: string]: {
+      predicted_classes_count: number;
+    };
+  };
+}
+
+export interface MynahICProcessTaskCorrectClassSplittingReport {
+  classes_splitting: {
+    [className: string]: {
+      new_classes: string[];
+    };
+  };
+}
+
+export type MynahICProcessTaskReportMetadata =
+  | MynahICProcessTaskDiagnoseMislabeledImagesReport
+  | MynahICProcessTaskCorrectMislabeledImagesReport
+  | MynahICProcessTaskDiagnoseClassSplittingReport
+  | MynahICProcessTaskCorrectClassSplittingReport;
+
+export interface MynahICTaskReport {
+  type: MynahICProcessTaskType;
+  metadata: MynahICProcessTaskReportMetadata;
+}
+
+export interface MynahICDatasetReport {
+  points: MynahICPoint[];
+  tasks: MynahICTaskReport[];
 }
 
 /* --------------Object Detection ---------------*/
@@ -58,13 +129,11 @@ export interface MynahODEntitie {
   vertices: number[][];
 }
 
-export interface MynahODData {
+export interface MynahODVersion {
   entities: Record<string, MynahODEntitie>;
   files: Record<string, MynahODFile>;
   file_entities: Record<string, string[]>;
 }
-
-export type MynahODVersion = Record<string, MynahODData>;
 
 export interface MynahODDataset {
   uuid: string;
@@ -72,7 +141,7 @@ export interface MynahODDataset {
   dataset_name: string;
   date_created: number;
   date_modified: number;
-  versions: MynahODVersion;
+  versions: { [versionID: string]: MynahODVersion };
 }
 
 /* ---------------GeneralFiles-------------------*/
@@ -93,7 +162,12 @@ export interface MynahFile {
   };
 }
 
+export interface AsyncTaskData {
+  started: number;
+  task_id: string;
+  task_status: "pending" | "running" | "completed" | "failed";
+}
+
 export type EitherDataset = MynahICDataset | MynahODDataset;
 export type EitherFile = MynahICFile | MynahODFile;
-export type EitherData = MynahICData | MynahODData;
 export type EitherVersion = MynahICVersion | MynahODVersion;

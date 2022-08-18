@@ -303,12 +303,11 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 						ConfidenceVectors: make(model.ConfidenceVectors, 0),
 						Projections:       make(map[model.MynahClassName][]int),
 					}
-					report.Points = append(report.Points, &model.MynahICDatasetReportPoint{
+					report.Points["class1"] = append(report.Points["class1"], &model.MynahICDatasetReportPoint{
 						FileId:         f.Uuid,
 						ImageVersionId: model.LatestVersionId,
 						X:              0,
 						Y:              0,
-						Class:          "class1",
 						OriginalClass:  "class1",
 					})
 				}

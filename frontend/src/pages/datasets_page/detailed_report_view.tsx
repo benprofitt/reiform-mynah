@@ -14,6 +14,7 @@ import {
   ValueType,
   NameType,
 } from 'recharts/src/component/DefaultTooltipContent';
+import { useLocation } from "wouter";
 
 function stringToColor (str: string): string {
   var hash = 0;
@@ -99,13 +100,22 @@ const CustomTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) =
 };
 
 export interface DetailedReportViewProps {
-  dataId: string;
-  close: () => void;
+  dataId: string | undefined;
+  basePath: string;
+  reportType: string;
 }
 
 export default function DetailedReportView(props: DetailedReportViewProps) {
-  const { dataId, close } = props;
+  const { dataId, basePath, reportType } = props;
 
+  const [_location, setLocation] = useLocation()
+
+  const close = () => setLocation(basePath)
+  
+  if (dataId === undefined) return <></>
+
+  // need to also check if that dataId is assosiated with an actual report that we have before displaying it
+  // but until i have actual reports to play with we'll have to bypass that
   return (
     <div className="w-screen h-screen bg-white z-10 fixed top-0 left-0 flex text-black">
       {/* sidebar */}

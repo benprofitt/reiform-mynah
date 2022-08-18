@@ -14,7 +14,7 @@ const queryClient = new QueryClient();
 function App(): JSX.Element {
   const cookies = new Cookies();
   const jwt: string = cookies.get(authCookieName);
-
+  console.log(jwt)
   return (
     <Router base="/mynah">
       {!Boolean(jwt) ? (
@@ -31,7 +31,7 @@ function App(): JSX.Element {
             <SideBar>
               <Switch>
                 <Route path="/home" component={DatasetsHomePage} />
-                <Route path="/dataset/ic/:uuid" component={DatasetPage} />
+                <Route path="/dataset/ic/:uuid/:tab?/:id?/:type?" component={DatasetPage} />
                 <Route
                   path="/account-settings"
                   component={AccountSettingsPage}

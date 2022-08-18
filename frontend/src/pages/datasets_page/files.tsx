@@ -1,32 +1,34 @@
 import { Dialog, Menu } from "@headlessui/react";
 import clsx from "clsx";
-import {
-  MynahFile,
-  MynahICDataset,
-  MynahICFile,
-} from "../../utils/types";
+import { MynahFile, MynahICDataset, MynahICFile } from "../../utils/types";
 import { useQuery } from "react-query";
 import makeRequest from "../../utils/apiFetch";
 import Image from "../../components/Image";
 import getDate from "../../utils/date";
-import { useState } from "react";
+import _ from "lodash";
+import { Link, useLocation } from "wouter";
+import { memo } from "react";
 
-const File = (props: {
+const File = memo((props: {
   version: string;
   fileId: string;
   file: MynahICFile;
   data: MynahFile;
-  onClick: () => void;
+  basePath: string;
 }): JSX.Element => {
-  const { version, fileId, file, data, onClick } = props;
+  const { version, fileId, file, data, basePath } = props;
   const { image_version_id } = file;
   const imgClass = "current_class" in file ? file.current_class : "OD class";
   if (!data) return <></>;
   const { date_created } = data;
+  
+  // using window.location instead of location hook to minimize rerenders.
+  // i could use datasetID to do the same thing and maybe i should, just
+  // didn't feel like prop drilling it but this is kinda gross
   return (
-    <div
+    <Link
       className="w-full hover:shadow-floating cursor-pointer bg-white border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative text-left h-[72px]"
-      onClick={onClick}
+      to={`${basePath}/${fileId}`}
     >
       <h6 className="w-[40%] font-black text-black flex items-center">
         <Image
@@ -69,34 +71,33 @@ const File = (props: {
           </>
         )}
       </Menu>
-    </div>
+    </Link>
   );
-};
+});
 
-export interface FilesProps { dataset: MynahICDataset }
+export interface FilesProps {
+  dataset: MynahICDataset;
+  basePath: string;
+  fileId: string | undefined;
+}
 
 export default function Files(props: FilesProps): JSX.Element {
-  const { dataset } = props;
-  const [selectedFile, setSelectedFile] = useState<number | null>(null);
-  const files = Object.entries(dataset.versions)
-    .reverse()
-    .map(([version, data]: [string, MynahICDataset['versions']['0']]) =>
-      Object.entries(data.files).map(
-        ([fileId, file]: [string, MynahICFile]) => ({
-          version,
-          fileId,
-          file,
-        })
-      )
-    )
-    .flat();
-  const numFiles = files.length;
+  const { dataset, basePath, fileId } = props;
+  const versionKeys = _.keys(dataset.versions);
+  const allIds: string[] = _.reduce<string, string[]>(
+    versionKeys,
+    (prev, curr) => [...prev, ..._.keys(dataset.versions[curr].files)],
+    []
+  );
+
+  console.log('all files')
+  // 'photo' now means 'unique file' in this count
+  const numFiles = allIds.length;
   const fileCount = numFiles === 1 ? "1 photo" : `${numFiles} photos`;
 
-  const ids = files.map(({ fileId }) => fileId);
-  const query = `/api/v1/file/list?fileid=${ids.join("&fileid=")}`;
+  const query = `/api/v1/file/list?fileid=${allIds.join("&fileid=")}`;
   const { error, isLoading, data } = useQuery("datasetFiles", () =>
-    makeRequest<Record<string, MynahFile>>("GET", query)
+    makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
   );
 
   if (error) return <div>error getting datasetFiles</div>;
@@ -115,25 +116,35 @@ export default function Files(props: FilesProps): JSX.Element {
         <h5 className="w-[20%]">Classes</h5>
         <h5 className="w-[20%]">Version</h5>
       </div>
-      {files.map((file, ix) => (
+      {/* all versions of files will show in the list now, likely exceeding the total photo count */}
+      {versionKeys.map((version) => {
+        const files = dataset.versions[version].files;
+        return _.keys(files).map((id, ix) => (
+          <File
+            key={ix}
+            version={version}
+            file={files[id]}
+            fileId={id}
+            data={data[id]}
+            basePath={basePath}
+          />
+        ));
+      })}
+      {/* for one version/list of ids (version#could be wrong): */}
+      {/* {ids.map((id, ix) => (
         <File
           key={ix}
-          {...file}
-          data={data[file.fileId]}
-          onClick={() => setSelectedFile(ix)}
+          version={String(highestVersion)}
+          file={files[id]}
+          fileId={id}
+          data={data[id]}
+          onClick={() => setSelectedFileId(id)}
         />
-      ))}
-      <DetailedFileView
-        files={files}
-        selected={selectedFile}
-        setSelected={setSelectedFile}
-        data={data}
-      />
+      ))} */}
+      <DetailedFileView versions={dataset.versions} data={data} fileId={fileId} basePath={basePath}/>
     </div>
   );
-};
-
-
+}
 
 const MetaDetail = (props: { title: string; value: string }): JSX.Element => {
   const { title, value } = props;
@@ -146,52 +157,56 @@ const MetaDetail = (props: { title: string; value: string }): JSX.Element => {
 };
 
 const DetailedFileView = (props: {
-  selected: number | null;
-  setSelected: (x: number | null) => void;
-  files: {
-    version: string;
-    fileId: string;
-    file: MynahICFile;
-  }[];
-  data: Record<string, MynahFile>;
+  versions: MynahICDataset["versions"];
+  data: { [fileId: string]: MynahFile };
+  fileId: string | undefined;
+  basePath: string;
 }) => {
-  const { selected, setSelected, files, data } = props;
-  const theFile = selected !== null ? files[selected] : null;
-  const fileData = theFile !== null ? data[theFile.fileId] : null;
+  const [_location, setLocation] = useLocation()
+  const { versions, data, fileId, basePath} = props;
+  if (fileId === undefined) return <></>
+  const fileData = data[fileId];
+  if (fileData === undefined) return <></>;
+  const close = () => setLocation(basePath);
 
-  if (theFile === null) return <></>;
   return (
     <Dialog
-      onClose={() => setSelected(null)}
-      open={selected !== null}
+      onClose={close}
+      open={fileData !== undefined}
       className="fixed inset-0 w-full h-full"
     >
       <Dialog.Overlay className="w-full h-full bg-black absolute top-0 left-0 opacity-20 z-0" />
       <main className="bg-white z-10 h-full w-fit right-0 top-0 absolute px-[24px] max-w-[calc(100%-30px)]">
         <button
           className="absolute top-[15px] right-[20px] text-[40px] leading-none"
-          onClick={() => setSelected(null)}
+          onClick={close}
         >
           x
         </button>
-        <h1 className="py-[24px] font-black text-[28px]">{fileData?.name}</h1>
-        <div className="flex border-grey1 border-2 h-[350px]">
-          <Image
-            src={`/api/v1/file/${theFile.fileId}/${theFile.file.image_version_id}`}
-            className="max-w-[min(60%,700px)] object-contain"
-          />
-          <div className="w-[376px]">
-            <h3 className="text-[20px] p-[24px]">Version: {theFile.version}</h3>
-            <div className="grid gap-[10px]">
-              <MetaDetail title="Class" value={theFile.file.current_class} />
-              <MetaDetail
-                title="Original Class"
-                value={theFile.file.original_class}
+        <h1 className="py-[24px] font-black text-[28px]">{fileData.name}</h1>
+        {_.keys(versions).map((version) => {
+          const file = versions[version].files[fileId];
+          if (file === undefined) return <></>;
+          return (
+            <div className="flex border-grey1 border-2 h-[350px]" key={version}>
+              <Image
+                src={`/api/v1/file/${fileId}/${file.image_version_id}`}
+                className="max-w-[min(60%,700px)] object-contain"
               />
+              <div className="w-[376px]">
+                <h3 className="text-[20px] p-[24px]">Version: {version}</h3>
+                <div className="grid gap-[10px]">
+                  <MetaDetail title="Class" value={file.current_class} />
+                  <MetaDetail
+                    title="Original Class"
+                    value={file.original_class}
+                  />
+                </div>
+                {/* {JSON.stringify({ ...theFile, fileData })} */}
+              </div>
             </div>
-            {/* {JSON.stringify({ ...theFile, fileData })} */}
-          </div>
-        </div>
+          );
+        })}
       </main>
     </Dialog>
   );

@@ -12,23 +12,26 @@ export interface CreateUserResponse {
 
 /*--------------ImageClassification-------------*/
 
+export interface CreateICDataset {
+  name: string;
+  files: Record<string, string>;
+}
 export interface MynahICFile {
   image_version_id: string;
   current_class: string;
   original_class: string;
   confidence_vectors: string[][];
-  projections: Record<string, number[]>;
+  projections: {
+    [value: string]: number[];
+  };
   mean: number[];
   std_dev: number[];
 }
 
-export interface CreateICDataset {
-  name: string;
-  files: Record<string, string>;
-}
-
 export interface MynahICVersion {
-  files: Record<string, MynahICFile>;
+  files: {
+    [fileId: string]: MynahICFile;
+  };
   mean: number[];
   std_dev: number[];
 }
@@ -44,7 +47,9 @@ export interface MynahICDataset {
   dataset_name: string;
   date_created: number;
   date_modified: number;
-  versions: { [versionID: string]: MynahICVersion };
+  versions: {
+    [versionID: string]: MynahICVersion;
+  };
   reports: {
     [versionID: string]: MynahICReport;
   };

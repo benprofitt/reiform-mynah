@@ -208,38 +208,38 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 							}
 
 							expected := model.MynahICDatasetReport{
-								Points: []*model.MynahICDatasetReportPoint{
-									{
-										FileId:         "fileuuid1",
-										ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-										X:              0,
-										Y:              0,
-										Class:          "class1",
-										OriginalClass:  "class1",
+								Points: map[model.MynahClassName][]*model.MynahICDatasetReportPoint{
+									"class1": {
+										{
+											FileId:         "fileuuid1",
+											ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+											X:              0,
+											Y:              0,
+											OriginalClass:  "class1",
+										},
+										{
+											FileId:         "fileuuid4",
+											ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+											X:              0,
+											Y:              0,
+											OriginalClass:  "class1",
+										},
 									},
-									{
-										FileId:         "fileuuid2",
-										ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-										X:              0,
-										Y:              0,
-										Class:          "class2",
-										OriginalClass:  "class1",
-									},
-									{
-										FileId:         "fileuuid3",
-										ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-										X:              0,
-										Y:              0,
-										Class:          "class2",
-										OriginalClass:  "class1",
-									},
-									{
-										FileId:         "fileuuid4",
-										ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
-										X:              0,
-										Y:              0,
-										Class:          "class1",
-										OriginalClass:  "class1",
+									"class2": {
+										{
+											FileId:         "fileuuid3",
+											ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+											X:              0,
+											Y:              0,
+											OriginalClass:  "class1",
+										},
+										{
+											FileId:         "fileuuid2",
+											ImageVersionId: "6410687e280fef2ae3ed75a1c3a99ec7bc72d08f",
+											X:              0,
+											Y:              0,
+											OriginalClass:  "class1",
+										},
 									},
 								},
 								Tasks: []*model.MynahICProcessTaskReportData{
@@ -269,7 +269,15 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								},
 							}
 
-							require.ElementsMatch(t, expected.Points, actual.Points)
+							for className, class := range expected.Points {
+								require.Contains(t, actual.Points, className)
+								require.ElementsMatch(t, class, actual.Points[className])
+							}
+
+							for className, _ := range actual.Points {
+								require.Contains(t, expected.Points, className)
+							}
+
 							require.ElementsMatch(t, expected.Tasks, actual.Tasks)
 
 							//check that the dataset was updated correctly

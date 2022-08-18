@@ -196,13 +196,11 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	//add all dataset files to the report (will have strict file versions)
 	//NOTE: this will add removed files to the report before they are deleted from the dataset
 	for fileId, fileData := range dataset.Files {
-		//add file data to report (will be updated by any completed tasks)
-		report.Points = append(report.Points, &model.MynahICDatasetReportPoint{
+		report.Points[fileData.CurrentClass] = append(report.Points[fileData.CurrentClass], &model.MynahICDatasetReportPoint{
 			FileId:         fileId,
 			ImageVersionId: fileData.ImageVersionId,
 			X:              0,
 			Y:              0,
-			Class:          fileData.CurrentClass,
 			OriginalClass:  fileData.OriginalClass,
 		})
 	}

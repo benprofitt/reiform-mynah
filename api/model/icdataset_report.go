@@ -74,15 +74,14 @@ type MynahICDatasetReportPoint struct {
 	//the x,y coordinates
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
-	//the current class assigned
-	Class MynahClassName `json:"class"`
 	//the original class given
 	OriginalClass MynahClassName `json:"original_class"`
 }
 
 // MynahICDatasetReport a mynah image classification report
 type MynahICDatasetReport struct {
-	Points []*MynahICDatasetReportPoint `json:"points"`
+	//map from class to points (images) in class
+	Points map[MynahClassName][]*MynahICDatasetReportPoint `json:"points"`
 	//report data about tasks that were run
 	Tasks []*MynahICProcessTaskReportData `json:"tasks"`
 }
@@ -90,7 +89,7 @@ type MynahICDatasetReport struct {
 // NewICDatasetReport creates a new report
 func NewICDatasetReport() *MynahICDatasetReport {
 	return &MynahICDatasetReport{
-		Points: make([]*MynahICDatasetReportPoint, 0),
+		Points: make(map[MynahClassName][]*MynahICDatasetReportPoint),
 		Tasks:  make([]*MynahICProcessTaskReportData, 0),
 	}
 }

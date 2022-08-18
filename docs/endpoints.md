@@ -177,24 +177,40 @@
 ### `MynahICDatasetReport`
   ```json
   {
-    "points" : [
+    "points" : {
+      "dog": [
         {
-            "fileid" : "<insert id here>", 
-            "image_version_id" : "<insert id here>",
-            "x" : 3.123,
-            "y" : 1.112,
-            "class" : "dog, but note that this will determine the color of the point plotted",
-            "original_class" : "cat"
+          "fileid" : "<insert id here>",
+          "image_version_id" : "<insert id here>",
+          "x" : 3.123,
+          "y" : 1.112,
+          "original_class" : "cat"
         },
         {
-            "fileId" : "<insert id here>", 
-            "image_version_id" : "<insert id here>",
-            "x" : 3.123,
-            "y" : 1.112,
-            "class" : "dog, but note that this will determine the color of the point plotted",
-            "original_class" : "cat"
+          "fileId" : "<insert id here>",
+          "image_version_id" : "<insert id here>",
+          "x" : 3.123,
+          "y" : 1.112,
+          "original_class" : "cat"
         }
-    ],
+      ],
+      "cat": [
+        {
+          "fileid" : "<insert id here>",
+          "image_version_id" : "<insert id here>",
+          "x" : 0,
+          "y" : 3,
+          "original_class" : "cat"
+        },
+        {
+          "fileId" : "<insert id here>",
+          "image_version_id" : "<insert id here>",
+          "x" : 0,
+          "y" : 3,
+          "original_class" : "cat"
+        }
+      ]
+    },
     "tasks": [
       MynahICProcessTaskReport,
       ...

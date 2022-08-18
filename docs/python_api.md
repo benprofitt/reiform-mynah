@@ -1,5 +1,18 @@
 # Python/Go Interface
 
+## General response format
+```json
+{
+  "status": 0,
+  "data": result | error msg
+}
+```
+
+## Error codes
+- A non-zero status indicates an error:
+- Note: on failure, `"data"` should contain the error reason
+- `1`: General error
+
 ## Functions
 
 ### Start Image Classification Model Inference Job
@@ -18,15 +31,17 @@
       "path_to_model" : "local/path/to/saved/model.pt"
     },
     "dataset": "Type::ReiformICDataset (see below)",
-
   }
   ```
 - `sock_addr`: The ipc socket address for sending websocket data
 - Output:
 ```json
-  {
+{
+  "status": 0,
+  "data" :   {
     "dataset": "Type::ReiformICDataset (see below)"
   }
+}
 ```
 
 
@@ -46,13 +61,14 @@
       "model_save_path" : "<local path>"
     },
     "dataset": "Type::ReiformICDataset (see below)",
-
   }
   ```
 - `sock_addr`: The ipc socket address for sending websocket data
 - Output:
 ```json
-  {
+{
+  "status": 0,
+  "data": {
     "results" : {
       "model_saved" : true,
       "config_params": {
@@ -88,63 +104,9 @@
     },
     "model_uuid" : "<uuid>"
   }
-```
+}
 
-### ReiformICDataset
-```json
-{
-      "uuid": "uuid_of_dataset",
-      "classes" : ["class1", "class2"],
-      "mean": [0.3, 0.4, 0.1],
-      "std_dev": [0.1, 0.12, 0.03],
-      "class_files" : {
-        "class1" : {
-          "/tmp/uuid1" : {
-            "uuid": "uuid1",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
-            "projections": {},
-            "confidence_vectors": [[1.0, 2.0]],
-            "mean": [0.3, 0.4, 0.1],
-            "std_dev": [0.1, 0.12, 0.03]
-          },
-          "/tmp/uuid2" : {
-            "uuid": "uuid2",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
-            "projections": {},
-            "confidence_vectors": [[1.0, 2.0]],
-            "mean": [0.3, 0.4, 0.1],
-            "std_dev": [0.1, 0.12, 0.03]
-          }
-        },
-        "class2" : {
-          "/tmp/uuid3" : {
-            "uuid": "uuid3",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
-            "projections": {},
-            "confidence_vectors": [[1.0, 2.0]],
-            "mean": [0.3, 0.4, 0.1],
-            "std_dev": [0.1, 0.12, 0.03]
-          },
-          "/tmp/uuid4" : {
-            "uuid": "uuid4",
-            "width": 32,
-            "height": 32,
-            "channels": 3,
-            "projections": {},
-            "confidence_vectors": [[1.0, 2.0]],
-            "mean": [0.3, 0.4, 0.1],
-            "std_dev": [0.1, 0.12, 0.03]
-          }
-        }
-      }
-    }
-    ```
+```
 
 ### Start Image Correction Processing Job
 - Name: `start_ic_processing_job(uuid: str, request: str, sock_addr: str)`
@@ -222,7 +184,9 @@
 - `sock_addr`: The ipc socket address for sending websocket data
 - Output:
 ```json
-  {
+{
+  "status": 0,
+  "data": {
     "dataset": {
       "uuid": "uuid_of_dataset",
       "classes" : ["class1", "class2"],
@@ -267,7 +231,7 @@
         }
       }
     },
-    "tasks": [ 
+    "tasks": [
       {
         "type" : MynahICProcessTaskType,
         "metadata": Metadata
@@ -278,6 +242,8 @@
       }
     ]
   }
+}
+  
   ```
 
 #### MynahICProcessTaskType
@@ -332,12 +298,15 @@
   ```
 - `sock_addr`: The ipc socket address for sending websocket data
 - Output:
-  ```json
-    {
+```json
+{
+  "status": 0,
+  "data": {
       "channels" : 3,
       "height" : 32,
       "width" : 64,
       "mean": [0.3, 0.4, 0.1],
       "std_dev": [0.1, 0.12, 0.03]
     }
-  ```
+}
+```

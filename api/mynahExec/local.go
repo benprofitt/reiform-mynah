@@ -43,7 +43,40 @@ func (l localResponse) GetAs(i interface{}) error {
 		return l.err
 	}
 
-	return json.Unmarshal(l.res, i)
+	//check the status
+	var objMap map[string]*json.RawMessage
+
+	if err := json.Unmarshal(l.res, &objMap); err != nil {
+		return fmt.Errorf("error deserializing mynah impl response: %w", err)
+	}
+
+	if _, hasStatusField := objMap["status"]; !hasStatusField {
+		return errors.New("mynah impl response does not contain status field")
+	}
+
+	var stat int
+
+	if err := json.Unmarshal(*objMap["status"], &stat); err != nil {
+		return fmt.Errorf("error deserializing mynah impl status value: %w", err)
+	}
+
+	if _, hasDataField := objMap["data"]; !hasDataField {
+		return errors.New("mynah impl response does not contain data field")
+	}
+
+	if stat > 0 {
+		//parse the data as an error message
+		var errMsg string
+
+		if err := json.Unmarshal(*objMap["data"], &errMsg); err != nil {
+			return fmt.Errorf("error deserializing mynah impl data response after encountering non zero status: %w", err)
+		}
+
+		return fmt.Errorf("mynah impl error: %s", errMsg)
+	}
+
+	//parse the data using the provided interface
+	return json.Unmarshal(*objMap["data"], i)
 }
 
 // create an error response

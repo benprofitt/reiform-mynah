@@ -26,7 +26,7 @@ logging.getLogger('PIL').setLevel(logging.WARNING)
 def get_impl_version(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Make sure that the module loads, returns version string'''
     logging.info("called get_impl_version()")
-    return "{\"version\": \"0.1.0\"}"
+    return "{\"status\":0,\"data\":{\"version\":\"0.1.0\"}}"
 
 
 def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
@@ -42,9 +42,12 @@ def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
 
     # response
     return json.dumps({
-                        "dataset_uuid": request["dataset_uuid"],
-                        "tasks": task_results
-                      })
+        "status": 0,
+        "data": {
+            "dataset_uuid": request["dataset_uuid"],
+            "tasks": task_results
+        }
+    })
 
 def start_ic_training_job(uuid : str, request_str : str, sock_addr: str) -> str:
     '''Start an IC training job. See docs/python_api.md'''
@@ -60,9 +63,12 @@ def start_ic_training_job(uuid : str, request_str : str, sock_addr: str) -> str:
 
     # response
     return json.dumps({
-                        "model_uuid": request["model_uuid"],
-                        "results": training_results
-                      })
+        "status": 0,
+        "data": {
+            "model_uuid": request["model_uuid"],
+            "results": training_results
+        }
+    })
 
 
 def start_ic_inference_job(uuid : str, request_str : str, sock_addr: str) -> str:
@@ -79,16 +85,22 @@ def start_ic_inference_job(uuid : str, request_str : str, sock_addr: str) -> str
 
     # response
     return json.dumps({
-                        "dataset_uuid": request["dataset_uuid"],
-                        "model_uuid": request["model_uuid"],
-                        "results": inference_results
-                      })
+        "status": 0,
+        "data": {
+            "dataset_uuid": request["dataset_uuid"],
+            "model_uuid": request["model_uuid"],
+            "results": inference_results
+        }
+    })
 
 def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''
     body = json.loads(request_str)
     path = body['path']
-    return json.dumps(image_utils.get_image_metadata(path))
+    return json.dumps({
+        "status": 0,
+        "data": image_utils.get_image_metadata(path)}
+    )
 
 
 if __name__ == '__main__':
@@ -100,4 +112,13 @@ if __name__ == '__main__':
 
     # TODO format logger
 
-    print(eval("{}({}, {}, {})".format(args.operation, args.uuid, json.loads(sys.stdin.read()), args.ipc_socket_path)))
+    #TODO catch exceptions
+
+    try:
+        print(eval("{}({}, {}, {})".format(args.operation, args.uuid, json.loads(sys.stdin.read()), args.ipc_socket_path)))
+    except:
+        print(json.dumps({
+            "status": 1,
+            "data": 'unknown exception while executing: ' + args.operation
+        }))
+

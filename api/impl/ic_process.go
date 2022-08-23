@@ -7,6 +7,7 @@ import (
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
 )
@@ -164,7 +165,8 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	report *model.MynahICDatasetReport,
 	user *model.MynahUser,
 	storageProvider storage.StorageProvider,
-	dbProvider db.DBProvider) error {
+	dbProvider db.DBProvider,
+	fileLocks mynahSync.MynahSyncLockSet) error {
 
 	//set the dataset level mean and stddev
 	dataset.Mean = d.Dataset.Mean
@@ -189,7 +191,7 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 
 	//freeze the fileids so that the "latest" versions aren't modified by a different dataset
 	//NOTE: we also version removed files because they are tracked by the report
-	if err := tools.FreezeICDatasetFileVersions(dataset, user, storageProvider, dbProvider); err != nil {
+	if err := tools.FreezeICDatasetFileVersions(dataset, user, storageProvider, dbProvider, fileLocks); err != nil {
 		return fmt.Errorf("failed to freeze file versions: %s", err)
 	}
 

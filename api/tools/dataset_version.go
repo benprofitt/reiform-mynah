@@ -7,6 +7,7 @@ import (
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/storage"
 	"strconv"
 )
@@ -51,11 +52,12 @@ func ICDatasetVersionIterateNewToOld(dataset *model.MynahICDataset, handler func
 	return nil
 }
 
-// FreezeICDatasetFileVersions freezes the ids of images in a dataset and report
+// FreezeICDatasetFileVersions freezes the ids of images in a dataset and report. Files are already locked.
 func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 	user *model.MynahUser,
 	storageProvider storage.StorageProvider,
-	dbProvider db.DBProvider) error {
+	dbProvider db.DBProvider,
+	fileLocks mynahSync.MynahSyncLockSet) error {
 	//map from fileid to the SHA1 version created
 	newImageSHAVersions := make(map[model.MynahUuid]model.MynahFileVersionId)
 
@@ -85,10 +87,19 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 					return fmt.Errorf("failed to version file from current latest version: %s", err)
 				}
 
+				//get the lock for this file
+				lock, exists := fileLocks[fileId]
+				if !exists {
+					return fmt.Errorf("no lock acquired for file %s", fileId)
+				}
+
 				//update the file in the database with the new version
-				if err := dbProvider.UpdateFile(file, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+				if err := dbProvider.UpdateFile(file, user, lock, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
 					return fmt.Errorf("failed to update file while freezing file version: %s", err)
 				}
+
+				// remove this lock from the set
+				fileLocks.Remove(fileId)
 			}
 
 			//set the new id (specific SHA1 version)

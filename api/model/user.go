@@ -4,8 +4,6 @@ package model
 
 import "github.com/google/uuid"
 
-type MynahUuid string
-
 // MynahUser Defines a mynah user
 type MynahUser struct {
 	//the id of the user

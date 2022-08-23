@@ -5,9 +5,11 @@ package impl
 import (
 	"encoding/json"
 	"fmt"
+	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/mynahExec"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
@@ -47,8 +49,34 @@ func (p *localImplProvider) GetMynahImplVersion() (*VersionResponse, error) {
 
 // ICProcessJob start a ic process job
 func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
-	dataset *model.MynahICDataset,
+	datasetId model.MynahUuid,
 	tasks []model.MynahICProcessTaskType) error {
+	//lock the dataset before making changes
+	lock, err := mynahSync.GetSyncProvider().Lock(datasetId)
+	if err != nil {
+		return fmt.Errorf("failed to aquire lock for dataset before processing: %w", err)
+	}
+
+	//get the dataset
+	dataset, err := p.dbProvider.GetICDataset(datasetId, user, db.NewMynahDBColumns())
+	if err != nil {
+		return fmt.Errorf("failed to get dataset for ic process job: %w", err)
+	}
+
+	//collect ids of files in dataset to acquire locks for
+	fileIdSet := containers.NewUniqueSet[model.MynahUuid]()
+	for fileId := range dataset.Versions[dataset.LatestVersion].Files {
+		fileIdSet.Union(fileId)
+	}
+
+	// lock the files in the dataset
+	fileLocks, err := mynahSync.GetSyncProvider().LockMany(fileIdSet.Vals())
+	if err != nil {
+		return fmt.Errorf("failed to acquire locks for files in dataset before processing: %s", err)
+	}
+	// Unlock remaining. Note: these locks _should_ be released when freezing the file versions
+	defer fileLocks.CheckUnlocked()
+
 	//create a new version of the dataset to operate on
 	newVersion, err := tools.MakeICDatasetVersion(dataset)
 	if err != nil {
@@ -74,7 +102,7 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		report := model.NewICDatasetReport()
 
 		//apply changes to dataset and report
-		if err = jobResponse.applyChanges(newVersion, report, user, p.storageProvider, p.dbProvider); err != nil {
+		if err = jobResponse.applyChanges(newVersion, report, user, p.storageProvider, p.dbProvider, fileLocks); err != nil {
 			return fmt.Errorf("ic process job failed when applying process changes to dataset and report: %s", err)
 		}
 
@@ -98,7 +126,13 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		DateCreated: time.Now().Unix(),
 		Tasks:       tasks,
 	}
-	return err
+
+	//update the results in the database (will overwrite any changes made to versions col since task started)
+	if err := p.dbProvider.UpdateICDataset(dataset, user, lock, db.NewMynahDBColumns(model.VersionsColName, model.ReportsColName)); err != nil {
+		return fmt.Errorf("ic process task for dataset failed when updating in database: %s", err)
+	}
+
+	return nil
 }
 
 // ImageMetadata get image metadata

@@ -11,7 +11,7 @@ type ImplProvider interface {
 	// GetMynahImplVersion get the current version
 	GetMynahImplVersion() (*VersionResponse, error)
 	// ICProcessJob start ic diagnosis on some dataset
-	ICProcessJob(*model.MynahUser, *model.MynahICDataset, []model.MynahICProcessTaskType) error
+	ICProcessJob(*model.MynahUser, model.MynahUuid, []model.MynahICProcessTaskType) error
 	// ImageMetadata get image metadata
 	ImageMetadata(*model.MynahUser, string, *model.MynahFile, *model.MynahFileVersion) error
 }

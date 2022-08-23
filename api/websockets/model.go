@@ -13,6 +13,6 @@ type WebSocketProvider interface {
 	ServerHandler() http.HandlerFunc
 	// Send accept data to send to a connected client
 	Send(uuid model.MynahUuid, msg []byte)
-	// Close close connections
+	// Close connections
 	Close()
 }

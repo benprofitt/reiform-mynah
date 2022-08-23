@@ -20,7 +20,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	dbProvider db.DBProvider,
 	authProvider auth.AuthProvider,
 	storageProvider storage.StorageProvider,
-	pyImplProvider impl.ImplProvider,
+	implProvider impl.ImplProvider,
 	wsProvider websockets.WebSocketProvider,
 	asyncProvider async.AsyncProvider,
 	extensionManager *extensions.ExtensionManager,
@@ -31,10 +31,10 @@ func RegisterRoutes(router *middleware.MynahRouter,
 
 	router.HandleHTTPRequest("GET", "file/list", handleListFileMetadata(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey), handleViewFile(dbProvider, storageProvider))
-	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider, pyImplProvider))
+	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider, implProvider))
 
 	//register the ic process job endpoint
-	router.HandleHTTPRequest("POST", "dataset/ic/process/start", icProcessJob(dbProvider, asyncProvider, pyImplProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/process/start", icProcessJob(dbProvider, asyncProvider, implProvider))
 
 	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 

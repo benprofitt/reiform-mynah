@@ -11,6 +11,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"xorm.io/xorm"
 )
@@ -447,7 +448,8 @@ func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*mode
 }
 
 // UpdateUser update a user in the database
-func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys MynahDBColumns) error {
+func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
+	defer lock.Unlock()
 	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -469,7 +471,8 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 }
 
 // UpdateICDataset update a dataset
-func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
+func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
+	defer lock.Unlock()
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -491,7 +494,8 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 }
 
 // UpdateODDataset update a dataset
-func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
+func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
+	defer lock.Unlock()
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -513,7 +517,8 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 }
 
 // UpdateFile updates a file
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys MynahDBColumns) error {
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
+	defer lock.Unlock()
 	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}

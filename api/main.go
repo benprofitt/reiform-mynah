@@ -16,6 +16,7 @@ import (
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/mynahExec"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -36,28 +37,33 @@ func main() {
 		log.Fatalf("failed to load settings: %s", settingsErr)
 	}
 
+	// configure synchronization (either global or local)
+	if err := mynahSync.ConfigureSync(mynahSettings); err != nil {
+		log.Fatalf("failed to configure synchronization: %s", err)
+	}
+
 	//initialize auth
 	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
 	if authErr != nil {
-		log.Fatalf("failed to initialize auth %s", authErr)
+		log.Fatalf("failed to initialize auth: %s", authErr)
 	}
 
 	//initialize the database connection
 	dbProvider, dbErr := db.NewDBProvider(mynahSettings, authProvider)
 	if dbErr != nil {
-		log.Fatalf("failed to initialize database connection %s", dbErr)
+		log.Fatalf("failed to initialize database connection: %s", dbErr)
 	}
 
 	//initialize storage
 	storageProvider, storageErr := storage.NewStorageProvider(mynahSettings)
 	if storageErr != nil {
-		log.Fatalf("failed to initialize storage %s", storageErr)
+		log.Fatalf("failed to initialize storage: %s", storageErr)
 	}
 
 	//initialize the executor
 	mynahExecutor, executorErr := mynahExec.NewLocalExecutor(mynahSettings)
 	if executorErr != nil {
-		log.Fatalf("failed to initialize execution environment %s", executorErr)
+		log.Fatalf("failed to initialize execution environment: %s", executorErr)
 	}
 
 	//create the python impl provider
@@ -72,7 +78,7 @@ func main() {
 	//initialize the python ipc server
 	ipcProvider, ipcErr := ipc.NewIPCServer(mynahSettings.IPCSettings.SocketAddr)
 	if ipcErr != nil {
-		log.Fatalf("failed to initialize ipc %s", ipcErr)
+		log.Fatalf("failed to initialize ipc: %s", ipcErr)
 	}
 
 	//start the ipc server
@@ -81,7 +87,7 @@ func main() {
 	//check that the mynah module can be loaded successfully
 	version, versionErr := implProvider.GetMynahImplVersion()
 	if versionErr != nil {
-		log.Fatalf("failed to initialize mynah python %s", versionErr)
+		log.Fatalf("failed to initialize mynah python: %s", versionErr)
 	}
 
 	log.Infof("mynah python version: %s", version.Version)
@@ -89,7 +95,7 @@ func main() {
 	//load extensions
 	extensionManager, extErr := extensions.NewExtensionManager(mynahSettings)
 	if extErr != nil {
-		log.Fatalf("failed to initialize extensions %s", extErr)
+		log.Fatalf("failed to initialize extensions: %s", extErr)
 	}
 
 	//create the router and middleware

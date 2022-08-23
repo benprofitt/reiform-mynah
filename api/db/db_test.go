@@ -8,6 +8,7 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"testing"
 )
@@ -57,6 +58,10 @@ func TestBasicDBActionsUser(t *testing.T) {
 		return nil
 	})
 
+	// get a lock for the new user
+	lock, err := mynahSync.GetSyncProvider().Lock(localUser.Uuid)
+	require.NoError(t, err)
+
 	//create the user in the database
 	require.NoError(t, err)
 
@@ -89,7 +94,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	localUser.NameFirst = "new_name_first"
 	localUser.NameLast = "new_name_last"
 
-	require.NoError(t, dbProvider.UpdateUser(localUser, &admin, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)))
+	require.NoError(t, dbProvider.UpdateUser(localUser, &admin, lock, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)))
 
 	dbUser, getErr = dbProvider.GetUser(localUser.Uuid, &admin)
 	require.NoError(t, getErr)
@@ -124,6 +129,10 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		return nil
 	})
 
+	// get a lock for the new dataset
+	lock, err := mynahSync.GetSyncProvider().Lock(icDataset.Uuid)
+	require.NoError(t, err)
+
 	require.NoError(t, err)
 	require.Equal(t, user.OrgId, icDataset.OrgId)
 
@@ -143,12 +152,16 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	//update some fields
 	icDataset.DatasetName = "new_icdataset_name"
 
-	require.NoError(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns(model.DatasetNameCol)))
+	require.NoError(t, dbProvider.UpdateICDataset(icDataset, &user, lock, NewMynahDBColumns(model.DatasetNameCol)))
 	dbDataset, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
 	require.NoError(t, getErr)
 	require.Equal(t, *dbDataset, *icDataset)
 
-	require.Error(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns("uuid")))
+	// get a new lock (previous lock has already been released)
+	lock, err = mynahSync.GetSyncProvider().Lock(icDataset.Uuid)
+	require.NoError(t, err)
+
+	require.Error(t, dbProvider.UpdateICDataset(icDataset, &user, lock, NewMynahDBColumns("uuid")))
 
 	require.NoError(t, dbProvider.DeleteICDataset(icDataset.Uuid, &user))
 

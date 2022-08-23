@@ -173,7 +173,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 
 				//handle user creation endpoint
 				c.Router.HandleHTTPRequest("POST", "dataset/ic/process/start",
-					icProcessJob(c.DBProvider, c.AsyncProvider, c.ImplProvider, c.StorageProvider))
+					icProcessJob(c.DBProvider, c.AsyncProvider, c.ImplProvider))
 				c.Router.HandleHTTPRequest("GET",
 					fmt.Sprintf("data/json/{%s}", idKey),
 					getDataJSON(c.DBProvider))

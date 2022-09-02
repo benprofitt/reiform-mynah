@@ -1,4 +1,4 @@
-#!/usr/bin/python3.7
+#!/usr/bin/python3.8
 #  Copyright (c) 2022 by Reiform. All Rights Reserved.
 import json
 import sys

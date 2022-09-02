@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3.8
 import json
 import logging
 import sys
@@ -8,7 +8,7 @@ import impl.services.modules.utils.image_utils as image_utils # type: ignore
 import impl.services.image_classification.dataset_processing as processing # type: ignore
 import impl.services.image_classification.model_training as training
 from impl.services.modules.utils.progress_logger import ReiformProgressLogger
-from python.impl.services.image_classification.inference import InferenceJob # type: ignore
+from impl.services.image_classification.inference import InferenceJob # type: ignore
 import argparse
 import fileinput
 
@@ -23,15 +23,15 @@ log.addHandler(stream)
 logging.getLogger('PIL').setLevel(logging.WARNING)
 
 
-def get_impl_version(uuid: str, request_str: str, sock_addr: str) -> str:
+def get_impl_version(uuid: str, sock_addr: str) -> str:
     '''Make sure that the module loads, returns version string'''
     logging.info("called get_impl_version()")
     return "{\"status\":0,\"data\":{\"version\":\"0.1.0\"}}"
 
 
-def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
+def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
     '''Start a processing job. See docs/python_api.md'''
-    request = json.loads(request_str)
+    request = json.loads(sys.stdin.read())
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("called start_processing_job()")
         # call impl
@@ -49,9 +49,9 @@ def start_ic_processing_job(uuid: str, request_str: str, sock_addr: str) -> str:
         }
     })
 
-def start_ic_training_job(uuid : str, request_str : str, sock_addr: str) -> str:
+def start_ic_training_job(uuid : str, sock_addr: str) -> str:
     '''Start an IC training job. See docs/python_api.md'''
-    request = json.loads(request_str)
+    request = json.loads(sys.stdin.read())
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("called start_training_job()")
     
@@ -71,9 +71,9 @@ def start_ic_training_job(uuid : str, request_str : str, sock_addr: str) -> str:
     })
 
 
-def start_ic_inference_job(uuid : str, request_str : str, sock_addr: str) -> str:
+def start_ic_inference_job(uuid : str, sock_addr: str) -> str:
     '''Start an IC inference job. See docs/python_api.md'''
-    request = json.loads(request_str)
+    request = json.loads(sys.stdin.read())
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("called start_inference_job()")
     
@@ -93,9 +93,9 @@ def start_ic_inference_job(uuid : str, request_str : str, sock_addr: str) -> str
         }
     })
 
-def get_image_metadata(uuid: str, request_str: str, sock_addr: str) -> str:
+def get_image_metadata(uuid: str, sock_addr: str) -> str:
     '''Retrieve the image width, height, and channels'''
-    body = json.loads(request_str)
+    body = json.loads(sys.stdin.read())
     path = body['path']
     return json.dumps({
         "status": 0,
@@ -115,10 +115,10 @@ if __name__ == '__main__':
     #TODO catch exceptions
 
     try:
-        print(eval("{}({}, {}, {})".format(args.operation, args.uuid, json.loads(sys.stdin.read()), args.ipc_socket_path)))
+        print(locals()[args.operation](args.uuid, args.ipc_socket_path))
     except:
         print(json.dumps({
             "status": 1,
-            "data": 'unknown exception while executing: ' + args.operation
+            "data": 'unknown exception while executing: {}'.format(args.operation)
         }))
 

@@ -134,7 +134,8 @@ func (s *ipcServer) ListenMany(handler func(userUuid model.MynahUuid, msg []byte
 			s.messages <- conn
 
 		} else {
-			log.Warnf("error listening to ipc socket %s: %s", s.addr, err)
+			log.Errorf("error listening to ipc socket %s: %s", s.addr, err)
+			return
 		}
 	}
 }

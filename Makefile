@@ -16,7 +16,7 @@ test:
 	cd api ; $(GO) test -count=1 -timeout 30s -v ./...
 	cd cli ; $(GO) test -count=1 -timeout 30s -v ./...
 data-test:
-	PYTHONPATH=$(PYTHONPATH):$(PWD)/python python3.7 python/impl/test/image_classification/mislabeled_tests.py
+	PYTHONPATH=$(PYTHONPATH):$(PWD)/python python3.8 python/impl/test/image_classification/mislabeled_tests.py
 lint:
 	cd api ; golangci-lint run || true
 	cd api ; gosec ./... || true

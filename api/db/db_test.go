@@ -57,6 +57,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 		user.IsAdmin = false
 		return nil
 	})
+	require.NoError(t, err)
 
 	// get a lock for the new user
 	lock, err := mynahSync.GetSyncProvider().Lock(localUser.Uuid)
@@ -128,6 +129,8 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 		icDataset.Versions["0"] = &model.MynahICDatasetVersion{}
 		return nil
 	})
+
+	require.NoError(t, err)
 
 	// get a lock for the new dataset
 	lock, err := mynahSync.GetSyncProvider().Lock(icDataset.Uuid)

@@ -19,25 +19,22 @@ Vagrant.configure("2") do |config|
 		sudo apt-get install -y make
 		apt-get install -y git
 		apt-get install -y curl wget
-		wget https://golang.org/dl/go1.17.6.linux-amd64.tar.gz
-		rm -rf /usr/local/go && tar -C /usr/local -xzf go1.17.6.linux-amd64.tar.gz
-		sudo apt-get install -y python3.7-dev
-		sudo apt-get install -y python3.7
-		sudo apt-get install -y pkg-config
-    sudo apt-get install -y python3-pip
-    python3.7 -m pip install Cython
-    echo 'python deps installation start'
-    pushd /vagrant
-    ./python/py_install.sh
-    popd
-    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-    sudo apt install -y nodejs
-    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /home/vagrant/go/bin v1.44.0
-    curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b /home/vagrant/go/bin v2.9.6
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/vagrant/.bashrc
-    echo 'export PATH=$PATH:/home/vagrant/go/bin' >> /home/vagrant/.bashrc
-    echo 'export PKG_CONFIG_PATH=/vagrant/python' >> /home/vagrant/.bashrc
-    echo 'source /usr/share/bash-completion/completions/git' >> /home/vagrant/.bashrc
+		wget https://golang.org/dl/go1.18.linux-amd64.tar.gz
+		rm -rf /usr/local/go && tar -C /usr/local -xzf go1.18.linux-amd64.tar.gz
+		sudo apt-get install -y python3.8
+        sudo apt-get install -y python3-pip
+        echo 'python deps installation start'
+        pushd /vagrant
+        ./python/py_install_cpu.sh
+        popd
+        curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+        sudo apt install -y nodejs
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /home/vagrant/go/bin v1.44.0
+        curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b /home/vagrant/go/bin v2.9.6
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> /home/vagrant/.bashrc
+        echo 'export PATH=$PATH:/home/vagrant/go/bin' >> /home/vagrant/.bashrc
+        echo 'export PKG_CONFIG_PATH=/vagrant/python' >> /home/vagrant/.bashrc
+        echo 'source /usr/share/bash-completion/completions/git' >> /home/vagrant/.bashrc
   SHELL
 
 end

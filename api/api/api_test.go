@@ -274,7 +274,7 @@ func TestAPIStartDiagnosisJobEndpoint(t *testing.T) {
 								require.ElementsMatch(t, class, actual.Points[className])
 							}
 
-							for className, _ := range actual.Points {
+							for className := range actual.Points {
 								require.Contains(t, expected.Points, className)
 							}
 

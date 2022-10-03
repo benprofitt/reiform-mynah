@@ -87,7 +87,7 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
 
         num = int(model_name.split("net")[-1])
         # This is just what fits in mem on the GPU. I'll make this global later
-        batch_size = 48
+        batch_size = BASE_EMBEDDING_MODEL_BATCH_SIZE
 
         return_nodes = {
             "features" : "embedding"

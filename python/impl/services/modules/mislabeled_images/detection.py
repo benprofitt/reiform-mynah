@@ -43,7 +43,7 @@ def find_outliers_loda(projected_data : ReiformICDataSet, label : str, cuts : in
             X.append(file.get_projection(label))
             files.append(file)
 
-        outlier_ratio : float = estimate_outlier_ratio(X)
+        outlier_ratio : float = max(estimate_outlier_ratio(X), 0.005)
         detector = LODA(outlier_ratio, "auto", cuts)
 
         detector.fit(X)

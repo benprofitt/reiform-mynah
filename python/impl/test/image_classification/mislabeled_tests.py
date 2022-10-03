@@ -64,14 +64,16 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
     random.seed(random_seed)
     torch.manual_seed(random_seed)
 
-    # These should be the actual dirs in git with the tests files
-    # data_path : str = "./python/impl/test/test_data_mnist"
-    if data_path is None:
-        data_path : str = "python/impl/test/xray/train_data_xray"
-    if results_path is None:
-        results_path : str = "python/impl/test/xray/test_results_xray"
-    if test_data_path is None:
-        test_data_path : str = "python/impl/test/xray/test_data_xray"
+    # These are examples of these paths, and should be available in git...
+    if data_path is None or results_path is None:
+        data_path : str = "impl/test/test_data_small"
+        results_path : str = "impl/test/temp_results"
+
+    if not (os.path.exists(data_path) and os.path.exists(results_path)):
+        raise Exception
+    
+    if (test_data_path is not None and not os.path.exists(test_data_path)):
+        raise Exception
 
     do_only_detection = False
     do_dataset_evaluation = True
@@ -124,9 +126,12 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
     if do_dataset_evaluation:
 
         train_ds : ReiformICDataSet = dataset.copy()
-        test_ds : ReiformICDataSet = dataset_from_path(test_data_path)
 
-        # train_ds, _ = train_ds.mislabel(5)
+        if test_data_path is None:
+            train_ds, test_ds = train_ds.split(0.9)
+            train_ds, _ = train_ds.mislabel(5)
+        else:
+            test_ds : ReiformICDataSet = dataset_from_path(test_data_path)
 
         ReiformInfo("Data split and mislabeled. Detection starting.")
         inliers, outliers = run_pretrained_detection(train_ds)
@@ -195,10 +200,13 @@ if __name__ == '__main__':
 
     data_path=None
     res_path=None
+    test_path=None
 
     if len(sys.argv) > 1:
         data_path=sys.argv[1]
     if len(sys.argv) > 2:
         res_path=sys.argv[2]
+    if len(sys.argv) > 3:
+        test_path=sys.argv[3]
 
-    run_tests(data_path, res_path)
+    run_tests(data_path, res_path, test_path)

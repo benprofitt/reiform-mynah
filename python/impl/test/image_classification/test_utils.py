@@ -46,7 +46,7 @@ def get_predictions_with_names(dataloader, model):
 
 def dataset_evaluation_resnet(train_ds : ReiformICDataSet, test_ds : ReiformICDataSet):
 
-    batch_size = 64
+    batch_size = BASE_RESNET_50_MODEL_BATCH_SIZE
     epochs = DATASET_EVAL_EPOCHS
     classes = len(train_ds.classes())
 

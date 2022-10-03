@@ -88,7 +88,6 @@ VAE_PROJECTION_TRAINING_EPOCHS = 200
 CORRECTION_MODEL_BATCH_SIZE = 512
 MAX_CORRECTION_MODEL_BATCH_SIZE = 1024
 
-BASE_EMBEDDING_MODEL_BATCH_SIZE = 22
 MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 RESNET_SIZE = 299
 
@@ -100,6 +99,9 @@ DATASET_EVAL_EPOCHS = 15
 
 device = ("cuda" if torch.cuda.is_available() else "cpu")
 # device = ("cpu") # Use this if you get obfuscated CUDA errors
+
+BASE_EMBEDDING_MODEL_BATCH_SIZE = int(22 if device == "cpu" else (torch.cuda.mem_get_info(0)[0] * 1.75) // (1024 ** 3))
+BASE_RESNET_50_MODEL_BATCH_SIZE = int(22 if device == "cpu" else (torch.cuda.mem_get_info(0)[0] * 2.5) // (1024 ** 3))
 
 def get_folder_contents(path: str) -> List[str]:
 

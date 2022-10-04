@@ -116,9 +116,9 @@ if __name__ == '__main__':
 
     try:
         print(locals()[args.operation](args.uuid, args.ipc_socket_path))
-    except:
+    except Exception as e:
         print(json.dumps({
             "status": 1,
-            "data": 'unknown exception while executing: {}'.format(args.operation)
+            "data": 'unknown exception while executing {}: {}'.format(args.operation, e)
         }))
 

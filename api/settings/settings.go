@@ -123,7 +123,7 @@ func DefaultSettings() *MynahSettings {
 			S3Storage:  true,
 			LocalPath:  `data/tmp`,
 			MaxUpload:  100 * 1024 * 1024 * 1024,
-			ModelsPath: "data/models", //TODO: default
+			ModelsPath: "python/models",
 		},
 		PythonSettings: MynahPythonSettings{
 			PythonExecutable: "./python/mynah.py",

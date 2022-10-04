@@ -5,19 +5,9 @@
       "task_type": "mynah::upload",
       "task_data": {
         "folder_paths" : [
-          "docs"
+          "python/impl/test/test_data_small"
         ],
-        "multithread" : true
-      }
-    },
-    {
-      "task_id": "upload_files2",
-      "task_type": "mynah::upload",
-      "task_data": {
-        "folder_paths" : [
-          "platform"
-        ],
-        "multithread" : true
+        "multithread" : false
       }
     },
     {
@@ -30,18 +20,6 @@
         ],
         "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
         "dataset_name": "test dataset 1"
-      }
-    },
-    {
-      "task_id": "create_ic_dataset2",
-      "task_type": "mynah::ic::dataset::create",
-      "task_data": {
-        "from_existing" : {},
-        "from_tasks" : [
-          "upload_files2"
-        ],
-        "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
-        "dataset_name": "test dataset 2"
       }
     },
     {

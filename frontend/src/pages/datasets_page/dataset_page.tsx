@@ -10,6 +10,7 @@ import { useState } from "react";
 import Files from "./files";
 import Reports from "./reports";
 import ProcessDataModal from "./process_data_modal";
+import BackButton from "../../components/back_button";
 
 export default function DatasetPage(
   props: RouteComponentProps<{
@@ -59,17 +60,8 @@ export default function DatasetPage(
       >
         <div className="w-full flex flex-col">
           <header className="w-full h-fit border-b border-grey1 pl-[32px] relative bg-white pt-[46px]">
+            <BackButton className="absolute left-[30px] top-[20px]" destination="/" />
             <h1 className="font-bold text-[28px]">{name}</h1>
-            <Link to="/">
-              <button className="flex items-center text-linkblue absolute left-[30px] top-[20px] font-bold">
-                <img
-                  src={BackArrowIcon}
-                  alt="back arrow"
-                  className="mr-[2px]"
-                />
-                Back
-              </button>
-            </Link>
             <div className="absolute right-[36px] top-[60px] space-x-[20px] text-[18px] h-[38px] flex items-center">
               <button className="text-linkblue h-full w-[134px] text-center font-medium">
                 Add More Data

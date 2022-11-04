@@ -19,6 +19,28 @@ type localStorage struct {
 	localPath string
 }
 
+type savedLocalFile struct {
+	// this version of the file
+	version *model.MynahFileVersion
+	// the path the file is stored at locally
+	path string
+}
+
+// FileVersion gets the associated file
+func (f *savedLocalFile) FileVersion() *model.MynahFileVersion {
+	return f.version
+}
+
+// Path gets the local path to the file
+func (f *savedLocalFile) Path() string {
+	return f.path
+}
+
+// Close will clean the file up locally if stored elsewhere
+func (f *savedLocalFile) Close() {
+	// noop, local files won't be deleted
+}
+
 // return a path for this file by version id
 func (s *localStorage) getVersionedPath(file *model.MynahFile, versionId model.MynahFileVersionId) string {
 	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", file.Uuid, versionId))
@@ -157,9 +179,9 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 }
 
 // GetStoredFile get the contents of a stored file
-func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(string) error) error {
-	if location, ok := file.Versions[versionId]; ok {
-		if !location.ExistsLocally {
+func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(MynahLocalFile) error) error {
+	if version, ok := file.Versions[versionId]; ok {
+		if !version.ExistsLocally {
 			return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", file.Uuid, versionId)
 		}
 
@@ -171,22 +193,15 @@ func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.Myna
 		if err != nil {
 			return err
 		}
-		return handler(fullPath)
+
+		return handler(&savedLocalFile{
+			version: version,
+			path:    fullPath,
+		})
+
 	} else {
 		return fmt.Errorf("invalid version id for file %s: %s", file.Uuid, versionId)
 	}
-}
-
-// GetTmpPath get the temporary path to a file
-func (s *localStorage) GetTmpPath(file *model.MynahFile, versionId model.MynahFileVersionId) (string, error) {
-	fullPath := s.getVersionedPath(file, versionId)
-
-	//verify that the file exists
-	_, err := os.Stat(fullPath)
-	if err != nil {
-		return "", err
-	}
-	return fullPath, nil
 }
 
 // GenerateSHA1Id takes the SHA1 of the latest version of the file

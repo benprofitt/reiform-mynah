@@ -22,9 +22,11 @@ type MetadataKey string
 
 const (
 	MetadataSize     MetadataKey = "size"
-	MetadataWidth    MetadataKey = "width"
-	MetadataHeight   MetadataKey = "height"
-	MetadataChannels MetadataKey = "channels"
+	MetadataWidth                = "width"
+	MetadataHeight               = "height"
+	MetadataChannels             = "channels"
+	MetadataMean                 = "mean"
+	MetadataStddev               = "stddev"
 )
 
 type FileMetadataValueType interface{}

@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
@@ -35,8 +34,7 @@ func validFiletype(filetype *string) bool {
 //accept a file upload, save the file using the storage provider, and reference as part of the dataset
 func handleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
-	storageProvider storage.StorageProvider,
-	pyImplProvider impl.ImplProvider) http.HandlerFunc {
+	storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user uploading the file
 		user := middleware.GetUserFromRequest(request)

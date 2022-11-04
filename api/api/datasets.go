@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
@@ -35,7 +36,7 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 }
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
+func icDatasetCreate(dbProvider db.DBProvider, implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -62,6 +63,11 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		// get the fils locally
+		//TODO
+
+		// perform a batch metadata request for the files
 
 		//create the dataset, set the name and the files
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {

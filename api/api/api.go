@@ -31,14 +31,14 @@ func RegisterRoutes(router *middleware.MynahRouter,
 
 	router.HandleHTTPRequest("GET", "file/list", handleListFileMetadata(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", fileKey, fileVersionIdKey), handleViewFile(dbProvider, storageProvider))
-	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider, implProvider))
+	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 
 	//register the ic process job endpoint
 	router.HandleHTTPRequest("POST", "dataset/ic/process/start", icProcessJob(dbProvider, asyncProvider, implProvider))
 
 	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 
-	router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(dbProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(dbProvider, implProvider))
 	router.HandleHTTPRequest("POST", fmt.Sprintf("dataset/ic/{%s}/export", datasetIdKey), icDatasetExport(dbProvider, storageProvider))
 	router.HandleHTTPRequest("GET", "dataset/ic/list", icDatasetList(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", datasetIdKey), icDatasetGet(dbProvider))

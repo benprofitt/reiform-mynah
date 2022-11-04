@@ -135,15 +135,15 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 	return nil
 }
 
-// ImageMetadata get image metadata
-func (p *localImplProvider) ImageMetadata(user *model.MynahUser, path string, file *model.MynahFile, version *model.MynahFileVersion) error {
+// BatchImageMetadata gets image metadata. Note: this will overwrite any metadata in the specified file version
+func (p *localImplProvider) BatchImageMetadata(user *model.MynahUser, files map[model.MynahUuid]storage.MynahLocalFile) error {
 	var response ImageMetadataResponse
-	err := p.mynahExecutor.Call(user, "get_image_metadata", p.NewImageMetadataRequest(path)).GetAs(&response)
+	err := p.mynahExecutor.Call(user, "get_metadata_for_images", p.NewBatchImageMetadataRequest(files)).GetAs(&response)
 
 	if err != nil {
 		return fmt.Errorf("failed to execute get_image_metadata: %s", err)
 	}
 
-	//modify the file
-	return response.apply(file, version)
+	//modify the file versions with the response
+	return response.apply(files)
 }

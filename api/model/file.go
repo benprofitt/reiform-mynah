@@ -52,12 +52,8 @@ type MynahFile struct {
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
 	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
-	//the http detected content type (original)
-	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
-	//the initial mean
-	InitialMean []float64 `json:"-" xorm:"TEXT 'initial_mean'"`
-	//the initial stddev
-	InitialStdDev []float64 `json:"-" xorm:"TEXT 'initial_std_dev'"`
+	// UploadMimeType is the mime type detected on upload as a string
+	UploadMimeType string `json:"uploaded_mime_type" xorm:"TEXT 'uploaded_mime_type'"`
 	//versions of the file
 	Versions map[MynahFileVersionId]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
@@ -99,16 +95,30 @@ func (m FileMetadata) GetDefaultFloatSlice(key MetadataKey, def []float64) []flo
 // NewFile creates a new file
 func NewFile(creator *MynahUser) *MynahFile {
 	f := MynahFile{
-		Uuid:                NewMynahUuid(),
-		OrgId:               creator.OrgId,
-		Permissions:         make(map[MynahUuid]Permissions),
-		Name:                "None",
-		DateCreated:         time.Now().Unix(),
-		DetectedContentType: "None",
-		Versions:            make(map[MynahFileVersionId]*MynahFileVersion),
+		Uuid:           NewMynahUuid(),
+		OrgId:          creator.OrgId,
+		Permissions:    make(map[MynahUuid]Permissions),
+		Name:           "None",
+		DateCreated:    time.Now().Unix(),
+		UploadMimeType: "None",
+		Versions:       make(map[MynahFileVersionId]*MynahFileVersion),
 	}
 	f.Permissions[creator.Uuid] = Owner
 	return &f
+}
+
+// IsImage returns true if the file appears to be an image
+func (p *MynahFile) IsImage() bool {
+	switch p.UploadMimeType {
+	case "image/png":
+		return true
+	case "image/jpeg":
+		return true
+	case "image/tiff":
+		return true
+	default:
+		return false
+	}
 }
 
 // GetPermissions Get the permissions that a user has on a given file

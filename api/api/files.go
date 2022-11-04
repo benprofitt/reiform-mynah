@@ -32,20 +32,6 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
-//check if this is an image mime type
-func isImageType(mType *mimetype.MIME) bool {
-	switch mType.String() {
-	case "image/png":
-		return true
-	case "image/jpeg":
-		return true
-	case "image/tiff":
-		return true
-	default:
-		return false
-	}
-}
-
 //accept a file upload, save the file using the storage provider, and reference as part of the dataset
 func handleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
@@ -119,14 +105,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 			return storageProvider.GetStoredFile(f, model.OriginalVersionId, func(path string) error {
 				//check the mime type for image metadata
 				if mimeType, err := mimetype.DetectFile(filepath.Clean(path)); err == nil {
-					if isImageType(mimeType) {
-						if err = pyImplProvider.ImageMetadata(user, path, f, f.Versions[model.OriginalVersionId]); err != nil {
-							log.Warnf("failed to get image metadata for %s: %s", f.Uuid, err)
-						}
-					} else {
-						log.Infof("skipping metadata read for non image file type: %s", mimeType.String())
-					}
-
+					f.UploadMimeType = mimeType.String()
 				} else {
 					log.Warnf("failed to read mime type for file %s: %s", f.Uuid, err)
 				}

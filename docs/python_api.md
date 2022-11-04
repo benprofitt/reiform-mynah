@@ -288,13 +288,17 @@
   ```
 
 ### Get Image Metadata
-- Name: `get_image_metadata(uuid: str, request: str, sock_addr: str)`
+- Name: `get_metadata_for_images(uuid: str, request: str, sock_addr: str)`
 - `uuid`: The uuid of the user starting the job
 - `request` :
   ```json
-  {
-    "path" : ""
-  }
+  [
+    {
+      "uuid": "some_image_id",
+      "path": "/path/to/file"
+    },
+    ...
+  ]
   ```
 - `sock_addr`: The ipc socket address for sending websocket data
 - Output:
@@ -302,11 +306,22 @@
 {
   "status": 0,
   "data": {
-      "channels" : 3,
-      "height" : 32,
-      "width" : 64,
-      "mean": [0.3, 0.4, 0.1],
-      "std_dev": [0.1, 0.12, 0.03]
-    }
+    "some_image_id": {
+      "channels": 3,
+      "height": 32,
+      "width": 64,
+      "mean": [
+        0.3,
+        0.4,
+        0.1
+      ],
+      "std_dev": [
+        0.1,
+        0.12,
+        0.03
+      ]
+    },
+    ...
+  }
 }
 ```

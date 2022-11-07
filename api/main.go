@@ -16,7 +16,6 @@ import (
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/mynahExec"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -35,11 +34,6 @@ func main() {
 	mynahSettings, settingsErr := settings.LoadSettings(settingsPtr)
 	if settingsErr != nil {
 		log.Fatalf("failed to load settings: %s", settingsErr)
-	}
-
-	// configure synchronization (either global or local)
-	if err := mynahSync.ConfigureSync(mynahSettings); err != nil {
-		log.Fatalf("failed to configure synchronization: %s", err)
 	}
 
 	//initialize auth

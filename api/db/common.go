@@ -140,6 +140,20 @@ func commonUpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys My
 	return fmt.Errorf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid)
 }
 
+//update a file metadata
+func commonUpdateFiles(files model.MynahFileSet, requestor *model.MynahUser, keys MynahDBColumns) error {
+	//check that keys are not restricted
+	if err := restrictedKeys(keys); err != nil {
+		return fmt.Errorf("file update failed: %s", err)
+	}
+	for _, file := range files {
+		if !requestor.IsAdmin && file.GetPermissions(requestor) < model.Edit {
+			return fmt.Errorf("user %s does not have permission to update file %s", requestor.Uuid, file.Uuid)
+		}
+	}
+	return nil
+}
+
 //check that the requestor has permission
 func commonDeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	if requestor.IsAdmin {

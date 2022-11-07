@@ -27,7 +27,7 @@ func (d ImageMetadataResponse) apply(files map[model.MynahUuid]storage.MynahLoca
 }
 
 // NewBatchImageMetadataRequest creates a new image metadata request
-func (p *localImplProvider) NewBatchImageMetadataRequest(files map[model.MynahUuid]storage.MynahLocalFile) *ImageMetadataRequest {
+func (p *localImplProvider) NewBatchImageMetadataRequest(files storage.MynahLocalFileSet) *ImageMetadataRequest {
 	imageData := make([]ImageMetadataRequestLocalFile, 0, len(files))
 
 	for id, file := range files {

@@ -11,7 +11,6 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"xorm.io/xorm"
 )
@@ -20,6 +19,33 @@ import (
 type localDB struct {
 	//the XORM engine
 	engine *xorm.Engine
+}
+
+// execute a transaction, rollback on error
+func (d *localDB) transactionWithRollback(handler func(*xorm.Session) error) error {
+	// create a new transaction
+	sess := d.engine.NewSession()
+	defer func(s *xorm.Session) {
+		if err := s.Close(); err != nil {
+			log.Errorf("Failed to close db session after transaction: %s", err)
+		}
+	}(sess)
+
+	// begin transaction
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := handler(sess); err != nil {
+		if rbErr := sess.Rollback(); rbErr != nil {
+			log.Errorf("failed to rollback transaction: %s", rbErr)
+		}
+
+		// return the original err
+		return err
+	}
+	// commit the transaction
+	return sess.Commit()
 }
 
 //create the database file if it doesn't exist return
@@ -174,10 +200,10 @@ func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*mo
 }
 
 // GetFiles get multiple files by id
-func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error) {
+func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) (model.MynahFileSet, error) {
 	var files []*model.MynahFile
 
-	res := make(map[model.MynahUuid]*model.MynahFile)
+	res := make(model.MynahFileSet)
 
 	//request a set of uuids within the org
 	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&files); err != nil {
@@ -448,8 +474,7 @@ func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*mode
 }
 
 // UpdateUser update a user in the database
-func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -471,8 +496,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 }
 
 // UpdateICDataset update a dataset
-func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -494,8 +518,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 }
 
 // UpdateODDataset update a dataset
-func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -517,8 +540,7 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 }
 
 // UpdateFile updates a file
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -537,6 +559,30 @@ func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, 
 		return fmt.Errorf("file %s not updated (no records affected)", file.Uuid)
 	}
 	return nil
+}
+
+// UpdateFiles updates a set of files.
+func (d *localDB) UpdateFiles(files model.MynahFileSet, requestor *model.MynahUser, keys MynahDBColumns) error {
+	if commonErr := commonUpdateFiles(files, requestor, keys); commonErr != nil {
+		return commonErr
+	}
+
+	//get the columns to update
+	cols, err := keys.cols()
+	if err != nil {
+		return fmt.Errorf("files not updated: %s", err)
+	}
+
+	return d.transactionWithRollback(func(sess *xorm.Session) error {
+		for _, file := range files {
+			_, err := sess.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(file)
+			if err != nil {
+				return fmt.Errorf("error updating file %s: %s", file.Uuid, err)
+			}
+		}
+
+		return nil
+	})
 }
 
 // DeleteUser delete a user in the database

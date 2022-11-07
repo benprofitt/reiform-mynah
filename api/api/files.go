@@ -100,9 +100,9 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 			}
 
 			//determine the dimensions, channels of the file (if applicable)
-			return storageProvider.GetStoredFile(f, model.OriginalVersionId, func(path string) error {
+			return storageProvider.GetStoredFile(f.Uuid, f.Versions[model.OriginalVersionId], func(localFile storage.MynahLocalFile) error {
 				//check the mime type for image metadata
-				if mimeType, err := mimetype.DetectFile(filepath.Clean(path)); err == nil {
+				if mimeType, err := mimetype.DetectFile(filepath.Clean(localFile.Path())); err == nil {
 					f.UploadMimeType = mimeType.String()
 				} else {
 					log.Warnf("failed to read mime type for file %s: %s", f.Uuid, err)
@@ -143,10 +143,17 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 
 			//load the file metadata
 			if file, fileErr := dbProvider.GetFile(model.MynahUuid(fileId), user); fileErr == nil {
+				// verify that this version of the file exists
+				fileVersion, err := file.GetFileVersion(fileVersionId)
+				if err != nil {
+					log.Warnf("unable to view file: %s", fileErr)
+					writer.WriteHeader(http.StatusNotFound)
+				}
+
 				//serve the file contents
-				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path string) error {
+				storeErr := storageProvider.GetStoredFile(file.Uuid, fileVersion, func(localFile storage.MynahLocalFile) error {
 					//open the file
-					osFile, osErr := os.Open(filepath.Clean(path))
+					osFile, osErr := os.Open(filepath.Clean(localFile.Path()))
 					if osErr != nil {
 						return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
 					}

@@ -158,7 +158,7 @@ func (t *TestContext) WithCreateFile(owner *model.MynahUser, contents string, ha
 	//pass to handler
 	err = handler(file)
 
-	if deleteErr := t.StorageProvider.DeleteFile(file); deleteErr != nil {
+	if deleteErr := t.StorageProvider.DeleteAllFileVersions(file); deleteErr != nil {
 		return fmt.Errorf("failed to delete file: %s", deleteErr)
 	}
 
@@ -196,7 +196,7 @@ func (t *TestContext) WithCreateFiles(owner *model.MynahUser, fileIds []model.My
 	err := handler(allFiles)
 
 	for _, file := range allFiles {
-		if deleteErr := t.StorageProvider.DeleteFile(file); deleteErr != nil {
+		if deleteErr := t.StorageProvider.DeleteAllFileVersions(file); deleteErr != nil {
 			return fmt.Errorf("failed to delete file: %s", deleteErr)
 		}
 
@@ -239,9 +239,9 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 
 		for _, f := range files {
 			//write an image to the file
-			if err := t.StorageProvider.GetStoredFile(f, model.LatestVersionId, func(path string) error {
+			if err := t.StorageProvider.GetStoredFile(f.Uuid, f.Versions[model.LatestVersionId], func(localFile storage.MynahLocalFile) error {
 				//remove the placeholder
-				if err := os.Remove(path); err != nil {
+				if err := os.Remove(localFile.Path()); err != nil {
 					return err
 				}
 
@@ -263,14 +263,14 @@ func (t *TestContext) WithCreateICDataset(owner *model.MynahUser, withFileIds []
 					}
 				}(source)
 
-				destination, err := os.Create(filepath.Clean(path))
+				destination, err := os.Create(filepath.Clean(localFile.Path()))
 				if err != nil {
-					return fmt.Errorf("failed to create target file %s: %s", path, err)
+					return fmt.Errorf("failed to create target file %s: %s", localFile.Path(), err)
 				}
 				defer func(destination *os.File) {
 					err := destination.Close()
 					if err != nil {
-						log.Warnf("failed to close test file %s: %s", path, err)
+						log.Warnf("failed to close test file %s: %s", localFile.Path(), err)
 					}
 				}(destination)
 
@@ -423,24 +423,29 @@ func (t *TestContext) AsyncTaskWaiter(user *model.MynahUser, taskId model.MynahU
 	}
 }
 
-// WithCreateFileFromPath loads a file from a path
-func (t *TestContext) WithCreateFileFromPath(owner *model.MynahUser, targetPath string, handler func(file *model.MynahFile) error) error {
-	//create a new file
-	file, err := t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
+// create a test file
+func (t *TestContext) createTestFile(owner *model.MynahUser, path string) (*model.MynahFile, error) {
+	return t.DBProvider.CreateFile(owner, func(mynahFile *model.MynahFile) error {
 		//create the file in storage
 		if err := t.StorageProvider.StoreFile(mynahFile, func(f *os.File) error { return nil }); err != nil {
 			return err
 		}
 		//write the contents
-		return t.StorageProvider.GetStoredFile(mynahFile, model.OriginalVersionId, func(filePath string) error {
-			input, err := ioutil.ReadFile(filepath.Clean(targetPath))
+		return t.StorageProvider.GetStoredFile(mynahFile.Uuid, mynahFile.Versions[model.OriginalVersionId], func(localFile storage.MynahLocalFile) error {
+			input, err := ioutil.ReadFile(filepath.Clean(path))
 			if err != nil {
 				return err
 			}
 
-			return ioutil.WriteFile(filepath.Clean(filePath), input, 0600)
+			return ioutil.WriteFile(filepath.Clean(localFile.Path()), input, 0600)
 		})
 	})
+}
+
+// WithCreateFileFromPath loads a file from a path
+func (t *TestContext) WithCreateFileFromPath(owner *model.MynahUser, targetPath string, handler func(file *model.MynahFile) error) error {
+	//create a new file
+	file, err := t.createTestFile(owner, targetPath)
 
 	if err != nil {
 		return fmt.Errorf("failed to create file in database: %s", err)
@@ -449,13 +454,41 @@ func (t *TestContext) WithCreateFileFromPath(owner *model.MynahUser, targetPath 
 	//pass to handler
 	err = handler(file)
 
-	if deleteErr := t.StorageProvider.DeleteFile(file); deleteErr != nil {
+	if deleteErr := t.StorageProvider.DeleteAllFileVersions(file); deleteErr != nil {
 		return fmt.Errorf("failed to delete file: %s", deleteErr)
 	}
 
 	//clean the file
 	if deleteErr := t.DBProvider.DeleteFile(file.Uuid, owner); deleteErr != nil {
 		return fmt.Errorf("failed to delete file: %s", deleteErr)
+	}
+
+	return err
+}
+
+// WithCreateFilesFromPath loads several files
+func (t *TestContext) WithCreateFilesFromPath(owner *model.MynahUser, paths []string, handler func(set model.MynahFileSet) error) error {
+	fileSet := make(model.MynahFileSet)
+	for _, path := range paths {
+		file, err := t.createTestFile(owner, path)
+		if err != nil {
+			return fmt.Errorf("failed to create file in database: %s", err)
+		}
+		fileSet[file.Uuid] = file
+	}
+
+	//pass to handler
+	err := handler(fileSet)
+
+	for _, file := range fileSet {
+		if deleteErr := t.StorageProvider.DeleteAllFileVersions(file); deleteErr != nil {
+			return fmt.Errorf("failed to delete file: %s", deleteErr)
+		}
+
+		//clean the file
+		if deleteErr := t.DBProvider.DeleteFile(file.Uuid, owner); deleteErr != nil {
+			return fmt.Errorf("failed to delete file: %s", deleteErr)
+		}
 	}
 
 	return err

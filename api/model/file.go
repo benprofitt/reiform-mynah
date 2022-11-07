@@ -3,6 +3,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -34,8 +35,16 @@ type FileMetadataValueType interface{}
 // FileMetadata metadata type
 type FileMetadata map[MetadataKey]FileMetadataValueType
 
+// MynahFileSet defines a set of files
+type MynahFileSet map[MynahUuid]*MynahFile
+
+// MynahVersionedFileSet defines a set of file versions
+type MynahVersionedFileSet map[MynahUuid]*MynahFileVersion
+
 // MynahFileVersion a version of the file
 type MynahFileVersion struct {
+	// the id of this file
+	VersionId MynahFileVersionId `json:"version_id"`
 	//whether the file version is available locally
 	ExistsLocally bool `json:"exists_locally"`
 	//file metadata
@@ -109,6 +118,23 @@ func NewFile(creator *MynahUser) *MynahFile {
 	return &f
 }
 
+// NewMynahFileVersion creates a new file version
+func NewMynahFileVersion(versionId MynahFileVersionId) *MynahFileVersion {
+	return &MynahFileVersion{
+		VersionId:     versionId,
+		Metadata:      make(FileMetadata),
+		ExistsLocally: false,
+	}
+}
+
+// GetFileVersion returns a given version of the file if it exists
+func (f *MynahFile) GetFileVersion(v MynahFileVersionId) (*MynahFileVersion, error) {
+	if version, ok := f.Versions[v]; ok {
+		return version, nil
+	}
+	return nil, fmt.Errorf("file %s does not have %s version", f.Uuid, v)
+}
+
 // IsImage returns true if the file appears to be an image
 func (p *MynahFile) IsImage() bool {
 	switch p.UploadMimeType {
@@ -130,4 +156,18 @@ func (p *MynahFile) GetPermissions(user *MynahUser) Permissions {
 	} else {
 		return None
 	}
+}
+
+// GetLatestVersions gets the latest version of each file in a set
+func (s MynahFileSet) GetLatestVersions() (MynahVersionedFileSet, error) {
+	res := make(MynahVersionedFileSet)
+	for fileId, file := range s {
+		if ver, err := file.GetFileVersion(LatestVersionId); err != nil {
+			res[fileId] = ver
+		} else {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }

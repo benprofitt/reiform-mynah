@@ -14,7 +14,7 @@ type ImplProvider interface {
 	// ICProcessJob start ic diagnosis on some dataset
 	ICProcessJob(*model.MynahUser, model.MynahUuid, []model.MynahICProcessTaskType) error
 	// BatchImageMetadata gets image metadata. Note: this will overwrite any metadata in the specified file version
-	BatchImageMetadata(*model.MynahUser, map[model.MynahUuid]storage.MynahLocalFile) error
+	BatchImageMetadata(*model.MynahUser, storage.MynahLocalFileSet) error
 }
 
 // VersionResponse mynah python version response

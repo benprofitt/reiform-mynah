@@ -4,7 +4,6 @@ package db
 
 import (
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/mynahSync"
 )
 
 // DBProvider Defines the interface that database clients must implement
@@ -16,7 +15,7 @@ type DBProvider interface {
 	// GetFile get a file from the database
 	GetFile(model.MynahUuid, *model.MynahUser) (*model.MynahFile, error)
 	// GetFiles get multiple files by id
-	GetFiles([]model.MynahUuid, *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error)
+	GetFiles([]model.MynahUuid, *model.MynahUser) (model.MynahFileSet, error)
 	// GetICDataset get a dataset from the database, optionally omit certain columns
 	GetICDataset(model.MynahUuid, *model.MynahUser, MynahDBColumns) (*model.MynahICDataset, error)
 	// GetODDataset get a dataset from the database
@@ -48,13 +47,15 @@ type DBProvider interface {
 	// UpdateUser update a user in the database. First arg is user to update, second is requestor, third is a lock
 	// on the user to prevent lost updates. Note: this lock must be acquired before GetUser. Final arg is the columns
 	// to update. Note: this call will release the lock
-	UpdateUser(*model.MynahUser, *model.MynahUser, mynahSync.MynahSyncLock, MynahDBColumns) error
+	UpdateUser(*model.MynahUser, *model.MynahUser, MynahDBColumns) error
 	// UpdateICDataset update a dataset. Note: this call will release the lock
-	UpdateICDataset(*model.MynahICDataset, *model.MynahUser, mynahSync.MynahSyncLock, MynahDBColumns) error
+	UpdateICDataset(*model.MynahICDataset, *model.MynahUser, MynahDBColumns) error
 	// UpdateODDataset update a dataset. Note: this call will release the lock
-	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, mynahSync.MynahSyncLock, MynahDBColumns) error
+	UpdateODDataset(*model.MynahODDataset, *model.MynahUser, MynahDBColumns) error
 	// UpdateFile updates a file. Note: this call will release the lock
-	UpdateFile(*model.MynahFile, *model.MynahUser, mynahSync.MynahSyncLock, MynahDBColumns) error
+	UpdateFile(*model.MynahFile, *model.MynahUser, MynahDBColumns) error
+	// UpdateFiles updates a set of files.
+	UpdateFiles(model.MynahFileSet, *model.MynahUser, MynahDBColumns) error
 	// DeleteUser delete a user in the database, second arg is requestor
 	DeleteUser(model.MynahUuid, *model.MynahUser) error
 	// DeleteFile delete a file in the database, second arg is requestor

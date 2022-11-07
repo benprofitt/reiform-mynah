@@ -36,7 +36,7 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 }
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider, implProvider impl.ImplProvider) http.HandlerFunc {
+func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -64,10 +64,31 @@ func icDatasetCreate(dbProvider db.DBProvider, implProvider impl.ImplProvider) h
 			return
 		}
 
-		// get the fils locally
-		//TODO
+		// get the latest version of each file
+		latestFiles, err := files.GetLatestVersions()
+		if err != nil {
+			log.Errorf("failed request files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-		// perform a batch metadata request for the files
+		// get the files locally
+		err = storageProvider.GetStoredFiles(latestFiles, func(localFiles storage.MynahLocalFileSet) error {
+			// extract metadata from the files
+			return implProvider.BatchImageMetadata(user, localFiles)
+		})
+		if err != nil {
+			log.Errorf("failed to record metadata for files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// commit the changes to the database
+		if err := dbProvider.UpdateFiles(files, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+			log.Errorf("failed to update files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		//create the dataset, set the name and the files
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
@@ -80,9 +101,15 @@ func icDatasetCreate(dbProvider db.DBProvider, implProvider impl.ImplProvider) h
 					initialVersion.Files[fileId].CurrentClass = className
 					initialVersion.Files[fileId].OriginalClass = className
 
+					// use the latest version metadata
 					if fileData, ok := files[fileId]; ok {
-						initialVersion.Files[fileId].Mean = fileData.InitialMean
-						initialVersion.Files[fileId].StdDev = fileData.InitialStdDev
+						// use the latest version of the file
+						latest, err := fileData.GetFileVersion(model.LatestVersionId)
+						if err != nil {
+							return err
+						}
+						initialVersion.Files[fileId].Mean = latest.Metadata.GetDefaultFloatSlice(model.MetadataMean, nil)
+						initialVersion.Files[fileId].StdDev = latest.Metadata.GetDefaultFloatSlice(model.MetadataStddev, nil)
 					} else {
 						return fmt.Errorf("failed to load file %s for dataset creation: %s", fileId, err)
 					}
@@ -502,17 +529,14 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		//write dataset files to archive
 		err = dataset.Format.Metadata.DatasetFileIterator(datasetVersion, filenames,
 			func(fileId model.MynahUuid, fileVersionId model.MynahFileVersionId, filePath string) error {
-				//get the file from the storage provider
-				localPath, err := storageProvider.GetTmpPath(files[fileId], fileVersionId)
+				fileVersion, err := files[fileId].GetFileVersion(fileVersionId)
 				if err != nil {
 					return err
 				}
-
-				// write to the zip archive
-				if err := tools.WriteToZip(zipWriter, localPath, filePath); err != nil {
-					return fmt.Errorf("failed to write file %s to zip archive: %s", fileId, err)
-				}
-				return nil
+				//get the file from the storage provider and write the contents to the zip archive
+				return storageProvider.GetStoredFile(fileId, fileVersion, func(localFile storage.MynahLocalFile) error {
+					return tools.WriteToZip(zipWriter, localFile.Path(), filePath)
+				})
 			})
 
 		if err != nil {

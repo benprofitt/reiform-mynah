@@ -13,27 +13,32 @@ type MynahLocalFile interface {
 	FileVersion() *model.MynahFileVersion
 	// Path gets the local path to the file
 	Path() string
-	// Close will clean the file up locally if stored elsewhere
-	Close()
 }
+
+// MynahLocalFileSet defines a set of files stored locally
+type MynahLocalFileSet map[model.MynahUuid]MynahLocalFile
 
 // StorageProvider Defines the interface the storage client must implement
 type StorageProvider interface {
 	// CopyFile copies a file from one version to another
-	CopyFile(*model.MynahFile, model.MynahFileVersionId, model.MynahFileVersionId) error
+	CopyFile(model.MynahUuid, *model.MynahFileVersion, *model.MynahFileVersion) error
 	// CreateTempFile creates a temp file. Note: must be cleaned up by the caller with DeleteTempFile()
 	CreateTempFile(string) (*os.File, error)
 	// DeleteTempFile cleans up a temp file
 	DeleteTempFile(string) error
-	// StoreFile Save a file to the storage target. Local path passed to function, once function completes
+	// StoreFile Save a _new_ file to the storage target. Local path passed to function, once function completes
 	//file is moved to storage target
 	StoreFile(*model.MynahFile, func(*os.File) error) error
 	// GetStoredFile get the contents of a stored file. File is mounted locally, local path passed to function
-	GetStoredFile(*model.MynahFile, model.MynahFileVersionId, func(MynahLocalFile) error) error
-	// GenerateSHA1Id takes the SHA1 of the latest version of the file
-	GenerateSHA1Id(*model.MynahFile) (model.MynahFileVersionId, error)
-	// DeleteFile delete a stored file
-	DeleteFile(*model.MynahFile) error
+	GetStoredFile(model.MynahUuid, *model.MynahFileVersion, func(MynahLocalFile) error) error
+	// GetStoredFiles get the contents of some set of files. Files are mounted locally, local paths passed to function
+	GetStoredFiles(model.MynahVersionedFileSet, func(MynahLocalFileSet) error) error
+	// GenerateSHA1Id takes the SHA1 of some version of the file
+	GenerateSHA1Id(model.MynahUuid, *model.MynahFileVersion) (model.MynahFileVersionId, error)
+	// DeleteFileVersion delete a stored file (by version)
+	DeleteFileVersion(model.MynahUuid, *model.MynahFileVersion) error
+	// DeleteAllFileVersions deletes all versions of a file
+	DeleteAllFileVersions(*model.MynahFile) error
 	// Close the provider
 	Close()
 }

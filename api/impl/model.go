@@ -135,5 +135,5 @@ type ImageMetadataResponseFileData struct {
 // ImageMetadataResponse response type for image metadata
 type ImageMetadataResponse struct {
 	// the images to batch process
-	Images map[model.MynahUuid]ImageMetadataResponseFileData
+	Images map[model.MynahUuid]ImageMetadataResponseFileData `json:"images"`
 }

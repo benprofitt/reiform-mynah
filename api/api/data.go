@@ -13,8 +13,8 @@ import (
 
 const idKey = "id"
 
-// GetDataJSON get data as json
-func GetDataJSON(dbProvider db.DBProvider) http.HandlerFunc {
+// getDataJSON get data as json
+func getDataJSON(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)

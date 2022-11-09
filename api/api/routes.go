@@ -27,29 +27,29 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	//register the websocket endpoint
 	router.HandleHTTPRequest("GET", "websocket", wsProvider.ServerHandler())
 
-	router.HandleHTTPRequest("GET", "file/list", HandleListFileMetadata(dbProvider))
-	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", FileKey, FileVersionIdKey), HandleViewFile(dbProvider, storageProvider))
-	router.HandleHTTPRequest("POST", "upload", HandleFileUpload(settings, dbProvider, storageProvider))
+	router.HandleHTTPRequest("GET", "file/list", handleListFileMetadata(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("file/{%s}/{%s}", FileKey, FileVersionIdKey), handleViewFile(dbProvider, storageProvider))
+	router.HandleHTTPRequest("POST", "upload", handleFileUpload(settings, dbProvider, storageProvider))
 
 	//register the ic process job endpoint
-	router.HandleHTTPRequest("POST", "dataset/ic/process/start", IcProcessJob(dbProvider, asyncProvider, implProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/process/start", icProcessJob(dbProvider, asyncProvider, implProvider))
 
-	router.HandleHTTPRequest("GET", "dataset/list", AllDatasetList(dbProvider))
+	router.HandleHTTPRequest("GET", "dataset/list", allDatasetList(dbProvider))
 
-	router.HandleHTTPRequest("POST", "dataset/ic/create", IcDatasetCreate(dbProvider, storageProvider, implProvider))
-	router.HandleHTTPRequest("POST", fmt.Sprintf("dataset/ic/{%s}/export", DatasetIdKey), IcDatasetExport(dbProvider, storageProvider))
-	router.HandleHTTPRequest("GET", "dataset/ic/list", IcDatasetList(dbProvider))
-	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", DatasetIdKey), IcDatasetGet(dbProvider))
+	router.HandleHTTPRequest("POST", "dataset/ic/create", icDatasetCreate(dbProvider, storageProvider, implProvider))
+	router.HandleHTTPRequest("POST", fmt.Sprintf("dataset/ic/{%s}/export", DatasetIdKey), icDatasetExport(dbProvider, storageProvider))
+	router.HandleHTTPRequest("GET", "dataset/ic/list", icDatasetList(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", DatasetIdKey), icDatasetGet(dbProvider))
 
-	router.HandleHTTPRequest("GET", fmt.Sprintf("data/json/{%s}", DatasetIdKey), GetDataJSON(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("data/json/{%s}", DatasetIdKey), getDataJSON(dbProvider))
 
 	//router.HandleHTTPRequest("POST", "dataset/od/create", ocDatasetCreate(dbProvider))
-	router.HandleHTTPRequest("GET", "dataset/od/list", OdDatasetList(dbProvider))
-	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/od/{%s}", DatasetIdKey), OdDatasetGet(dbProvider))
+	router.HandleHTTPRequest("GET", "dataset/od/list", odDatasetList(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/od/{%s}", DatasetIdKey), odDatasetGet(dbProvider))
 
-	router.HandleAdminRequest("POST", "user/create", AdminCreateUser(dbProvider, authProvider))
+	router.HandleAdminRequest("POST", "user/create", adminCreateUser(dbProvider, authProvider))
 
-	router.HandleHTTPRequest("GET", "task/list", ListAsyncTasks(asyncProvider))
-	router.HandleHTTPRequest("GET", fmt.Sprintf("task/status/{%s}", TaskIdKey), GetAsyncTaskStatus(asyncProvider))
+	router.HandleHTTPRequest("GET", "task/list", listAsyncTasks(asyncProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("task/status/{%s}", TaskIdKey), getAsyncTaskStatus(asyncProvider))
 	return nil
 }

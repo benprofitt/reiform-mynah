@@ -35,8 +35,8 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 	}
 }
 
-// IcDatasetCreate creates a new dataset in the database
-func IcDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
+// icDatasetCreate creates a new dataset in the database
+func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -242,8 +242,8 @@ func odDatasetFilterVersion(dataset *model.MynahODDataset, fromVersionParam, toV
 	}
 }
 
-// IcDatasetGet gets an ic dataset by id. By default, returns the latest version only
-func IcDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
+// icDatasetGet gets an ic dataset by id. By default, returns the latest version only
+func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -285,8 +285,8 @@ func IcDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// OdDatasetGet gets an od dataset by id. By default, returns the latest version only
-func OdDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
+// odDatasetGet gets an od dataset by id. By default, returns the latest version only
+func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -326,8 +326,8 @@ func OdDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// IcDatasetList lists ic datasets
-func IcDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// icDatasetList lists ic datasets
+func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -360,8 +360,8 @@ func IcDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// OdDatasetList lists od datasets
-func OdDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// odDatasetList lists od datasets
+func odDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -392,8 +392,8 @@ func OdDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// AllDatasetList lists datasets of all types
-func AllDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// allDatasetList lists datasets of all types
+func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -450,8 +450,8 @@ func AllDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// IcDatasetExport export a dataset
-func IcDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+// icDatasetExport export a dataset
+func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)

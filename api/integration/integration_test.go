@@ -80,33 +80,6 @@ func TestCreateUser(t *testing.T) {
 }
 
 //
-////Test admin endpoints
-//func TestAPIAdminEndpoints(t *testing.T) {
-//	mynahSettings := settings.DefaultSettings()
-//	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"
-//
-//	//load the testing context
-//	err := integration.WithTestContext(mynahSettings, func(c *integration.TestContext) error {
-//		//handle user creation endpoint
-//		c.Router.HandleAdminRequest("POST", "user/create", adminCreateUser(c.DBProvider, c.AuthProvider))
-//
-//		//create as admin
-//		err := c.WithCreateUser(true, func(user *model.MynahUser, jwt string) error {
-//			return makeCreateUserReq(user, jwt, c)
-//		})
-//		require.NoError(t, err)
-//
-//		//create as non-admin
-//		err = c.WithCreateUser(false, func(user *model.MynahUser, jwt string) error {
-//			return makeCreateUserReq(user, jwt, c)
-//		})
-//
-//		require.NotNil(t, err, "create user as non admin did not produce error as expected")
-//		return nil
-//	})
-//	require.NoErrorf(t, err, "Should not cause error")
-//}
-//
 //func TestFileGetEndpoint(t *testing.T) {
 //	mynahSettings := settings.DefaultSettings()
 //	mynahSettings.PythonSettings.PythonExecutable = "../../python/mynah.py"

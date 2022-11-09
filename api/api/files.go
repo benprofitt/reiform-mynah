@@ -31,8 +31,8 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
-// HandleFileUpload accepts a file upload, save the file using the storage provider, and reference as part of the dataset
-func HandleFileUpload(mynahSettings *settings.MynahSettings,
+// handleFileUpload accepts a file upload, save the file using the storage provider, and reference as part of the dataset
+func handleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
 	storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -127,8 +127,8 @@ func HandleFileUpload(mynahSettings *settings.MynahSettings,
 	})
 }
 
-// HandleViewFile that loads a file and serves the contents
-func HandleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+// handleViewFile that loads a file and serves the contents
+func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
@@ -188,8 +188,8 @@ func HandleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 	}
 }
 
-// HandleListFileMetadata  gets metadata for a list of files
-func HandleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
+// handleListFileMetadata  gets metadata for a list of files
+func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)

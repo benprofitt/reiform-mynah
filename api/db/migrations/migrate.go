@@ -9,6 +9,7 @@ import (
 	"xorm.io/xorm"
 )
 
+// Migration defines a migration to the database and is uniquely identified and sortable
 type Migration interface {
 	// Migrate performs the migration
 	Migrate(*xorm.Session) error
@@ -16,6 +17,7 @@ type Migration interface {
 	Id() model.MynahUuid
 }
 
+// MigrationRecord records a migration that has already been applied
 type MigrationRecord struct {
 	Id          int64           `xorm:"pk autoincr"`
 	MigrationId model.MynahUuid `xorm:"INDEX UNIQUE"`
@@ -92,6 +94,7 @@ func Migrate(engine *xorm.Engine) error {
 		}
 	}
 
+	log.Infof("database has %d migrations applied", len(sortedMigrations))
 	return nil
 }
 

@@ -13,8 +13,8 @@ import (
 
 const TaskIdKey = "taskid"
 
-// GetAsyncTaskStatus get the status of a task
-func GetAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
+// getAsyncTaskStatus get the status of a task
+func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
@@ -42,8 +42,8 @@ func GetAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	})
 }
 
-// ListAsyncTasks async tasks owned by the user
-func ListAsyncTasks(asyncProvider async.AsyncProvider) http.HandlerFunc {
+// listAsyncTasks async tasks owned by the user
+func listAsyncTasks(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)

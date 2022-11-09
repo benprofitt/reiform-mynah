@@ -8,6 +8,8 @@ import (
 
 // DBProvider Defines the interface that database clients must implement
 type DBProvider interface {
+	// Transaction creates a new transaction limited to the execution of the handler
+	Transaction(func(DBProvider) error) error
 	// GetUserForAuth Get a user by uuid or return an error
 	GetUserForAuth(model.MynahUuid) (*model.MynahUser, error)
 	// GetUser Get a user other than self (must be admin -- second argument)

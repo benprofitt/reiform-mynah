@@ -5,19 +5,9 @@
       "task_type": "mynah::upload",
       "task_data": {
         "folder_paths" : [
-          "docs"
+          "python/impl/test/test_data_small"
         ],
-        "multithread" : true
-      }
-    },
-    {
-      "task_id": "upload_files2",
-      "task_type": "mynah::upload",
-      "task_data": {
-        "folder_paths" : [
-          "platform"
-        ],
-        "multithread" : true
+        "multithread" : false
       }
     },
     {
@@ -33,23 +23,11 @@
       }
     },
     {
-      "task_id": "create_ic_dataset2",
-      "task_type": "mynah::ic::dataset::create",
-      "task_data": {
-        "from_existing" : {},
-        "from_tasks" : [
-          "upload_files2"
-        ],
-        "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
-        "dataset_name": "test dataset 2"
-      }
-    },
-    {
       "task_id": "diagnose_clean",
       "task_type": "mynah::ic::process",
       "task_data": {
         "from_existing" : "",
-        "from_task" : "create_ic_dataset2",
+        "from_task" : "create_ic_dataset1",
         "tasks": [
           "ic::diagnose::mislabeled_images"
         ],

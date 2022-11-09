@@ -14,6 +14,6 @@ type AuthProvider interface {
 	// IsAuthReq Takes an http request and checks whether the request is correctly
 	//authenticated
 	IsAuthReq(*http.Request) (model.MynahUuid, error)
-	// Close close the auth provider
+	// Close the auth provider
 	Close()
 }

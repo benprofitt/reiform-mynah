@@ -19,11 +19,11 @@ import (
 	"time"
 )
 
-const fileKey string = "file"
-const fileVersionIdKey string = "version_id"
+const FileKey string = "file"
+const FileVersionIdKey string = "version_id"
 const MultipartFormFileKey = "file"
 const MultipartFormNameKey = "name"
-const fileIdKey string = "fileid"
+const FileIdKey string = "fileid"
 
 //check if a file is of a valid type
 func validFiletype(filetype *string) bool {
@@ -31,8 +31,8 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
-//accept a file upload, save the file using the storage provider, and reference as part of the dataset
-func handleFileUpload(mynahSettings *settings.MynahSettings,
+// HandleFileUpload accepts a file upload, save the file using the storage provider, and reference as part of the dataset
+func HandleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
 	storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -99,7 +99,7 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 				return err
 			}
 
-			//determine the dimensions, channels of the file (if applicable)
+			//determine the mime type
 			return storageProvider.GetStoredFile(f.Uuid, f.Versions[model.OriginalVersionId], func(localFile storage.MynahLocalFile) error {
 				//check the mime type for image metadata
 				if mimeType, err := mimetype.DetectFile(filepath.Clean(localFile.Path())); err == nil {
@@ -127,17 +127,17 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 	})
 }
 
-//handler that loads a file and serves the contents
-func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+// HandleViewFile that loads a file and serves the contents
+func HandleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
 
 		//get the file id
-		if fileId, ok := mux.Vars(request)[fileKey]; ok {
+		if fileId, ok := mux.Vars(request)[FileKey]; ok {
 			fileVersionId := model.LatestVersionId
 			//check for the file version id
-			if versionIdStr, ok := mux.Vars(request)[fileVersionIdKey]; ok {
+			if versionIdStr, ok := mux.Vars(request)[FileVersionIdKey]; ok {
 				fileVersionId = model.MynahFileVersionId(versionIdStr)
 			}
 
@@ -182,14 +182,14 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 			}
 
 		} else {
-			log.Errorf("file request path missing '%s'", fileKey)
+			log.Errorf("file request path missing '%s'", FileKey)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	}
 }
 
-//handler that gets metadata for a list of files
-func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
+// HandleListFileMetadata  gets metadata for a list of files
+func HandleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
@@ -200,7 +200,7 @@ func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		if ids, ok := request.Form[fileIdKey]; ok {
+		if ids, ok := request.Form[FileIdKey]; ok {
 			fileIds := make([]model.MynahUuid, len(ids))
 			for i := 0; i < len(ids); i++ {
 				fileIds[i] = model.MynahUuid(ids[i])
@@ -220,7 +220,7 @@ func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 			}
 
 		} else {
-			log.Errorf("list file metadata missing ids given with key '%s'", fileIdKey)
+			log.Errorf("list file metadata missing ids given with key '%s'", FileIdKey)
 			writer.WriteHeader(http.StatusBadRequest)
 		}
 	}

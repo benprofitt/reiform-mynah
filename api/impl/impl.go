@@ -126,7 +126,7 @@ func (p *localImplProvider) BatchImageMetadata(user *model.MynahUser, files stor
 	err := p.mynahExecutor.Call(user, "get_metadata_for_images", p.NewBatchImageMetadataRequest(files)).GetAs(&response)
 
 	if err != nil {
-		return fmt.Errorf("failed to execute get_image_metadata: %s", err)
+		return fmt.Errorf("failed to execute get_metadata_for_images: %s", err)
 	}
 
 	//modify the file versions with the response

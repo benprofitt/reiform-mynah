@@ -11,8 +11,8 @@ import (
 	"reiform.com/mynah/model"
 )
 
-//Create a new user
-func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) http.HandlerFunc {
+// AdminCreateUser creates a new user
+func AdminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the admin user from context
 		admin := middleware.GetUserFromRequest(request)

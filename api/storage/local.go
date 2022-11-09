@@ -117,8 +117,10 @@ func (s *localStorage) DeleteTempFile(name string) error {
 // StoreFile Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
 	// set original and latest versions
-	file.Versions[model.OriginalVersionId] = model.NewMynahFileVersion(model.LatestVersionId)
+	file.Versions[model.OriginalVersionId] = model.NewMynahFileVersion(model.OriginalVersionId)
 	file.Versions[model.LatestVersionId] = model.NewMynahFileVersion(model.LatestVersionId)
+	file.Versions[model.OriginalVersionId].ExistsLocally = true
+	file.Versions[model.LatestVersionId].ExistsLocally = true
 
 	//create a local storage path for the file
 	fullPath := s.getVersionedPath(file.Uuid, model.OriginalVersionId)
@@ -149,7 +151,7 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 		return err
 	}
 
-	//copy the file
+	//copy the file to the latest version
 	return s.CopyFile(file.Uuid, file.Versions[model.OriginalVersionId], file.Versions[model.LatestVersionId])
 }
 

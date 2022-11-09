@@ -20,10 +20,10 @@ import (
 	"time"
 )
 
-const datasetIdKey = "datasetid"
-const datasetVersionKey = "version"
-const datasetVersionStartKey = "from_version"
-const datasetVersionEndKey = "to_version"
+const DatasetIdKey = "datasetid"
+const DatasetVersionKey = "version"
+const DatasetVersionStartKey = "from_version"
+const DatasetVersionEndKey = "to_version"
 
 // sanitizeICDataset removes fields that are not consumed by the api
 func sanitizeICDataset(dataset *model.MynahICDataset) {
@@ -35,8 +35,8 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 	}
 }
 
-// icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
+// IcDatasetCreate creates a new dataset in the database
+func IcDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -242,13 +242,13 @@ func odDatasetFilterVersion(dataset *model.MynahODDataset, fromVersionParam, toV
 	}
 }
 
-// icDatasetGet gets an ic dataset by id. By default, returns the latest version only
-func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
+// IcDatasetGet gets an ic dataset by id. By default, returns the latest version only
+func IcDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("ic dataset request path missing %s key", datasetId)
@@ -265,8 +265,8 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
-		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
+		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := icDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
@@ -285,13 +285,13 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// odDatasetGet gets an od dataset by id. By default, returns the latest version only
-func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
+// OdDatasetGet gets an od dataset by id. By default, returns the latest version only
+func OdDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("od dataset request path missing %s key", datasetId)
@@ -308,8 +308,8 @@ func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
-		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
+		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := odDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
@@ -326,8 +326,8 @@ func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// icDatasetList lists ic datasets
-func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// IcDatasetList lists ic datasets
+func IcDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -360,8 +360,8 @@ func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// odDatasetList lists od datasets
-func odDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// OdDatasetList lists od datasets
+func OdDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -392,8 +392,8 @@ func odDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// allDatasetList lists datasets of all types
-func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
+// AllDatasetList lists datasets of all types
+func AllDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
@@ -450,13 +450,13 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// export a dataset
-func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
+// IcDatasetExport export a dataset
+func IcDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("ic dataset export request path missing %s key", datasetId)
@@ -472,7 +472,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			return
 		}
 
-		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(datasetVersionKey))
+		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(DatasetVersionKey))
 		if datasetVersionId == "" {
 			//if no specific version provided, default to latest version
 			datasetVersionId = dataset.LatestVersion

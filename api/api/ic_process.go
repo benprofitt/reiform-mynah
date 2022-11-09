@@ -13,8 +13,8 @@ import (
 	"reiform.com/mynah/model"
 )
 
-// icProcessJob handle request to start a new async job
-func icProcessJob(dbProvider db.DBProvider,
+// IcProcessJob handle request to start a new async job
+func IcProcessJob(dbProvider db.DBProvider,
 	asyncProvider async.AsyncProvider,
 	implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

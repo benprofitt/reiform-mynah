@@ -52,7 +52,7 @@ def test_suite(dataset_path : str):
         "loss_epsilon" : 0.001,
         "batch_size" : 64,
         "train_test_split" : 0.9,
-        "model_save_path" : "impl/test/temp_results/test_model.pt"
+        "model_save_path" : "impl/integration/temp_results/test_model.pt"
         },
         "dataset": dataset.to_json()
     }

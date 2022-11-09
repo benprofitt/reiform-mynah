@@ -157,7 +157,7 @@ func TestWSServerE2E(t *testing.T) {
 	router := middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider)
 
 	//register the websocket endpoint
-	router.HandleHTTPRequest("GET", "test", wsProvider.ServerHandler())
+	router.HandleHTTPRequest("GET", "integration", wsProvider.ServerHandler())
 
 	//start the websocket server in a goroutine
 	go func() {
@@ -168,8 +168,8 @@ func TestWSServerE2E(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	//execute the tests on the server
-	require.NoError(t, testHarnessE2E("/api/v1/test", jwt, user.Uuid, mynahSettings, wsProvider))
+	require.NoError(t, testHarnessE2E("/api/v1/integration", jwt, user.Uuid, mynahSettings, wsProvider))
 
-	//shut the test server down
+	//shut the integration server down
 	router.Close()
 }

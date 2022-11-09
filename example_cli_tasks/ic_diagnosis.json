@@ -7,7 +7,7 @@
         "folder_paths" : [
           "python/impl/test/test_data_small"
         ],
-        "multithread" : false
+        "multithread" : true
       }
     },
     {

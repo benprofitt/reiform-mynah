@@ -11,7 +11,6 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/extensions"
 	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/middleware"
@@ -121,12 +120,6 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		Router:            middleware.NewRouter(mynahSettings, authProvider, dbProvider, storageProvider),
 	}
 
-	//load extensions
-	extensionManager, extErr := extensions.NewExtensionManager(mynahSettings)
-	if extErr != nil {
-		return extErr
-	}
-
 	//register routes
 	routesErr := api.RegisterRoutes(c.Router,
 		c.DBProvider,
@@ -135,7 +128,6 @@ func WithTestContext(mynahSettings *settings.MynahSettings,
 		c.ImplProvider,
 		c.WebSocketProvider,
 		c.AsyncProvider,
-		extensionManager,
 		c.Settings)
 
 	if routesErr != nil {

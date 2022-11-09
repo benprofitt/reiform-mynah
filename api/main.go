@@ -10,7 +10,6 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/extensions"
 	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
@@ -86,12 +85,6 @@ func main() {
 
 	log.Infof("mynah python version: %s", version.Version)
 
-	//load extensions
-	extensionManager, extErr := extensions.NewExtensionManager(mynahSettings)
-	if extErr != nil {
-		log.Fatalf("failed to initialize extensions: %s", extErr)
-	}
-
 	//create the router and middleware
 	router := middleware.NewRouter(mynahSettings,
 		authProvider,
@@ -106,7 +99,6 @@ func main() {
 		implProvider,
 		wsProvider,
 		asyncProvider,
-		extensionManager,
 		mynahSettings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}

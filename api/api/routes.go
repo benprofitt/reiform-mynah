@@ -7,7 +7,6 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/extensions"
 	"reiform.com/mynah/impl"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/settings"
@@ -23,7 +22,6 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	implProvider impl.ImplProvider,
 	wsProvider websockets.WebSocketProvider,
 	asyncProvider async.AsyncProvider,
-	extensionManager *extensions.ExtensionManager,
 	settings *settings.MynahSettings) error {
 
 	//register the websocket endpoint

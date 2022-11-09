@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/log"
+	"reiform.com/mynah/migrations"
 	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"xorm.io/xorm"
@@ -145,7 +146,8 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 		log.Warnf("created local database %s", mynahSettings.DBSettings.LocalPath)
 	}
 
-	return &db, nil
+	// apply migrations
+	return &db, migrations.Migrate(engine)
 }
 
 // GetUserForAuth Get a user by uuid or return an error

@@ -27,7 +27,7 @@
       "task_type": "mynah::ic::process",
       "task_data": {
         "from_existing" : "",
-        "from_task" : "create_ic_dataset2",
+        "from_task" : "create_ic_dataset1",
         "tasks": [
           "ic::diagnose::mislabeled_images"
         ],

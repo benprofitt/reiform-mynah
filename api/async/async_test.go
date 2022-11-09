@@ -69,7 +69,7 @@ func TestAsync(t *testing.T) {
 	}
 }
 
-//test the status function
+//integration the status function
 func TestAsyncStatus(t *testing.T) {
 	mynahSettings := settings.DefaultSettings()
 

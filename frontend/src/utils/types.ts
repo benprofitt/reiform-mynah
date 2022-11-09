@@ -60,7 +60,6 @@ export interface MynahICPoint {
   image_version_id: string;
   x: number;
   y: number;
-  class: string;
   original_class: string;
 }
 
@@ -117,7 +116,9 @@ export interface MynahICTaskReport {
 }
 
 export interface MynahICDatasetReport {
-  points: MynahICPoint[];
+  points: {
+    [className: string]: MynahICPoint[];
+  };
   tasks: MynahICTaskReport[];
 }
 

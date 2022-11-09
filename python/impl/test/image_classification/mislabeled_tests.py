@@ -66,8 +66,8 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
 
     # These are examples of these paths, and should be available in git...
     if data_path is None or results_path is None:
-        data_path : str = "impl/test/test_data_small"
-        results_path : str = "impl/test/temp_results"
+        data_path : str = "impl/integration/test_data_small"
+        results_path : str = "impl/integration/temp_results"
 
     if not (os.path.exists(data_path) and os.path.exists(results_path)):
         raise Exception

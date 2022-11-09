@@ -44,7 +44,7 @@ const DotMenuItem = (props: DotMenuItemProps): JSX.Element => {
           {src && (
             <img
               src={src}
-              alt="delete"
+              alt={text}
               className={clsx(
                 "mr-[10px] h-[20px] aspect-square",
                 active && "invert"

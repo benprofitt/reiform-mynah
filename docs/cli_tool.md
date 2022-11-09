@@ -72,7 +72,7 @@ Usage of ./mynah-cli:
           "upload_files"
         ],
         "local_path_classname_regex" : "([^\\/]+)\\/[^\\/]+$",
-        "dataset_name": "test dataset 1"
+        "dataset_name": "integration dataset 1"
       }
     },
     {

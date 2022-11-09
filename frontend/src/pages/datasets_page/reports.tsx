@@ -8,9 +8,17 @@ import getDate from "../../utils/date";
 import {
   AsyncTaskData,
   MynahICDataset,
+  MynahICProcessTaskType,
   MynahICReport,
 } from "../../utils/types";
-import DetailedReportView from "./detailed_report_view";
+import DetailedReportView from "./detailedreportview/detailed_report_view";
+
+export const reportToString: Record<MynahICProcessTaskType, string> = {
+  "ic::diagnose::mislabeled_images": "Labeling Diagnosis Report",
+  "ic::correct::mislabeled_images": "Labeling Correction Report",
+  "ic::diagnose::class_splitting": "Variance Diagnosis Report",
+  "ic::correct::class_splitting": "Variance Correction Report",
+};
 
 function ReportDropDown(props: {
   version: string;
@@ -43,7 +51,7 @@ function ReportDropDown(props: {
             className="hover:font-bold h-[55px] flex items-center cursor-pointer"
             to={`${basePath}/${data_id}/${task}`}
           >
-            <h6>{task}</h6>
+            <h6>{reportToString[task]}</h6>
             <button className="ml-auto text-linkblue font-bold">View</button>
           </Link>
         ))}
@@ -56,23 +64,28 @@ export interface ReportsProps {
   pendingReports: string[] | null;
   basePath: string;
   reportId: string;
-  reportType: string;
+  reportType: MynahICProcessTaskType;
 }
-
-export default function Reports(props: ReportsProps) {
-  const { dataset, pendingReports, basePath, reportId, reportType } = props;
-
-  // temporary hard coded report
+// temporary hard coded reports
   const reports: MynahICDataset["reports"] = {
     "0": {
       data_id: "901dj012931iu3091",
       date_created: 12341212,
-      tasks: ["ic::correct::class_splitting"],
+      tasks: ["ic::correct::class_splitting", "ic::diagnose::class_splitting"],
+    },
+    "1": {
+      data_id: "901dj012931iu3092",
+      date_created: 12341212,
+      tasks: ["ic::diagnose::mislabeled_images", "ic::correct::mislabeled_images"],
     },
   };
+export default function Reports(props: ReportsProps) {
+  const { dataset, pendingReports, basePath, reportId, reportType } = props;
+
   // i will show all completed tasks properly,
   // things that are pending and failed will show pending / failed
   // but will NOT show the task types as indicated in figma
+
   const {
     data: tasks,
     error,
@@ -81,18 +94,26 @@ export default function Reports(props: ReportsProps) {
     makeRequest<AsyncTaskData[]>("GET", "/api/v1/task/list")
   );
   // const versionKeys = _.keys(dataset.reports);
-  const versionKeysHard = ['0']
+  const versionKeysHard = _.keys(reports);
   const numCompleted = versionKeysHard.length;
   const completedPhrase = `${numCompleted} completed report${
     numCompleted !== 1 ? "s" : ""
   }`;
+  const curSelectedVersion = Object.entries(reports).filter(([,{data_id}]) => data_id === reportId)[0]?.[0]
   if (error) return <div>error getting datasetFiles</div>;
   if (isLoading || !tasks)
     return (
       <div className="animate-spin aspect-square border-l border-r border-b border-sidebarSelected border-6 rounded-full w-[20px]" />
     );
-  return (
-    <div className="text-grey2 relative">
+  return Boolean(reportId) ? (
+    <DetailedReportView
+      dataId={reportId}
+      basePath={basePath}
+      reportType={reportType}
+      version={curSelectedVersion}
+    />
+  ) : (
+    <div className="text-grey2">
       <div className="flex">
         <h3>{completedPhrase}</h3>
       </div>
@@ -110,7 +131,6 @@ export default function Reports(props: ReportsProps) {
           basePath={basePath}
         />
       ))}
-      <DetailedReportView dataId={reportId} basePath={basePath} reportType={reportType} />
     </div>
   );
 }

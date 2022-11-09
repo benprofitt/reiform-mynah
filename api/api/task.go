@@ -11,15 +11,15 @@ import (
 	"reiform.com/mynah/model"
 )
 
-const taskIdKey = "taskid"
+const TaskIdKey = "taskid"
 
-//get the status of a task
+// getAsyncTaskStatus get the status of a task
 func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
 
-		taskId, ok := mux.Vars(request)[taskIdKey]
+		taskId, ok := mux.Vars(request)[TaskIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("task status request path missing %s key", taskId)
@@ -42,10 +42,10 @@ func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	})
 }
 
-// list async tasks owned by the user
+// listAsyncTasks async tasks owned by the user
 func listAsyncTasks(asyncProvider async.AsyncProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//get the user user from context
+		//get the user from context
 		user := middleware.GetUserFromRequest(request)
 
 		//list tasks and write response

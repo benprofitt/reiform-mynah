@@ -7,7 +7,6 @@ import (
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/storage"
 	"strconv"
 )
@@ -56,8 +55,7 @@ func ICDatasetVersionIterateNewToOld(dataset *model.MynahICDataset, handler func
 func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 	user *model.MynahUser,
 	storageProvider storage.StorageProvider,
-	dbProvider db.DBProvider,
-	fileLocks mynahSync.MynahSyncLockSet) error {
+	dbProvider db.DBProvider) error {
 	//map from fileid to the SHA1 version created
 	newImageSHAVersions := make(map[model.MynahUuid]model.MynahFileVersionId)
 
@@ -74,32 +72,31 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 	//version the files in the current "latest" so they won't be modified
 	for fileId, fileData := range version.Files {
 		if file, ok := files[fileId]; ok {
-			//generate a new sha1
-			newId, err := storageProvider.GenerateSHA1Id(file)
+			// get the latest version of the file
+			latestVersion, err := file.GetFileVersion(model.LatestVersionId)
+			if err != nil {
+				return err
+			}
+
+			//generate a new sha1 based on the latest version
+			newId, err := storageProvider.GenerateSHA1Id(file.Uuid, latestVersion)
 			if err != nil {
 				return fmt.Errorf("failed to generate new version id for file: %s", err)
 			}
 
 			//only copy the file to the new version id if the id does not already exist (idempotent)
 			if _, ok := file.Versions[newId]; !ok {
+				// create a new version
+				file.Versions[newId] = model.NewMynahFileVersion(newId)
 				//copy the latest version of the file to an explicit SHA1 version
-				if err := storageProvider.CopyFile(file, model.LatestVersionId, newId); err != nil {
+				if err := storageProvider.CopyFile(file.Uuid, latestVersion, file.Versions[newId]); err != nil {
 					return fmt.Errorf("failed to version file from current latest version: %s", err)
 				}
 
-				//get the lock for this file
-				lock, exists := fileLocks[fileId]
-				if !exists {
-					return fmt.Errorf("no lock acquired for file %s", fileId)
-				}
-
 				//update the file in the database with the new version
-				if err := dbProvider.UpdateFile(file, user, lock, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+				if err := dbProvider.UpdateFile(file, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
 					return fmt.Errorf("failed to update file while freezing file version: %s", err)
 				}
-
-				// remove this lock from the set
-				fileLocks.Remove(fileId)
 			}
 
 			//set the new id (specific SHA1 version)
@@ -111,6 +108,8 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 			return fmt.Errorf("failed to get file %s when freezing version", fileId)
 		}
 	}
+
+	// update each file
 
 	return nil
 }

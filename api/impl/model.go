@@ -4,6 +4,7 @@ package impl
 
 import (
 	"reiform.com/mynah/model"
+	"reiform.com/mynah/storage"
 )
 
 // ImplProvider provider interface
@@ -12,8 +13,8 @@ type ImplProvider interface {
 	GetMynahImplVersion() (*VersionResponse, error)
 	// ICProcessJob start ic diagnosis on some dataset
 	ICProcessJob(*model.MynahUser, model.MynahUuid, []model.MynahICProcessTaskType) error
-	// ImageMetadata get image metadata
-	ImageMetadata(*model.MynahUser, string, *model.MynahFile, *model.MynahFileVersion) error
+	// BatchImageMetadata gets image metadata. Note: this will overwrite any metadata in the specified file version
+	BatchImageMetadata(*model.MynahUser, storage.MynahLocalFileSet) error
 }
 
 // VersionResponse mynah python version response
@@ -103,14 +104,22 @@ type ICProcessJobResponse struct {
 	Tasks []model.MynahICProcessTaskData `json:"tasks"`
 }
 
-// ImageMetadataRequest request type for image metadata
-type ImageMetadataRequest struct {
-	//the path to the image
+// ImageMetadataRequestLocalFile defines a file that is part of the batch
+type ImageMetadataRequestLocalFile struct {
+	// the uuid of the file
+	Uuid model.MynahUuid `json:"uuid"`
+	// the path to the file locally
 	Path string `json:"path"`
 }
 
-// ImageMetadataResponse response type for image metadata
-type ImageMetadataResponse struct {
+// ImageMetadataRequest request type for image metadata
+type ImageMetadataRequest struct {
+	// the images to process
+	Images []ImageMetadataRequestLocalFile `json:"images"`
+}
+
+// ImageMetadataResponseFileData defines the metadata for a single file
+type ImageMetadataResponseFileData struct {
 	//the number of channels in an image
 	Channels int `json:"channels"`
 	//the height of the image
@@ -121,4 +130,10 @@ type ImageMetadataResponse struct {
 	Mean []float64 `json:"mean"`
 	//the stdev of the channels
 	StdDev []float64 `json:"std_dev"`
+}
+
+// ImageMetadataResponse response type for image metadata
+type ImageMetadataResponse struct {
+	// the images to batch process
+	Images map[model.MynahUuid]ImageMetadataResponseFileData `json:"images"`
 }

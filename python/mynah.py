@@ -11,6 +11,7 @@ from impl.services.modules.utils.progress_logger import ReiformProgressLogger
 from impl.services.image_classification.inference import InferenceJob # type: ignore
 import argparse
 import fileinput
+from multiprocessing import Pool
 
 log = logging.getLogger()
 log.setLevel(logging.DEBUG)
@@ -54,7 +55,7 @@ def start_ic_training_job(uuid : str, sock_addr: str) -> str:
     request = json.loads(sys.stdin.read())
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("called start_training_job()")
-    
+
         # call impl
         training_job : training.TrainingJob = training.TrainingJob(request)
         rlogger : ReiformProgressLogger = plogger
@@ -76,7 +77,7 @@ def start_ic_inference_job(uuid : str, sock_addr: str) -> str:
     request = json.loads(sys.stdin.read())
     with ProgressLogger(uuid, sock_addr) as plogger:
         logging.info("called start_inference_job()")
-    
+
         # call impl
         inference_job : InferenceJob = InferenceJob()
         rlogger : ReiformProgressLogger = plogger
@@ -93,15 +94,28 @@ def start_ic_inference_job(uuid : str, sock_addr: str) -> str:
         }
     })
 
-def get_image_metadata(uuid: str, sock_addr: str) -> str:
-    '''Retrieve the image width, height, and channels'''
+def get_metadata_for_images(uuid: str, sock_addr: str) -> str:
+    '''Get image width, height, channels, mean, std for all images in batch'''
+
     body = json.loads(sys.stdin.read())
-    path = body['path']
+    data = body["images"]
+
+    def gather_data(obj):
+        path = obj["path"]
+        return (obj["uuid"], image_utils.get_image_metadata(path))
+
+
+    with Pool(8) as p:
+        metadatas = p.map(gather_data, data)
+
+    results = {}
+    for uuid, metadata in metadatas:
+        results[uuid] = metadata
+
     return json.dumps({
         "status": 0,
-        "data": image_utils.get_image_metadata(path)}
-    )
-
+        "data": { "images" : results }
+    })
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -113,6 +127,10 @@ if __name__ == '__main__':
     # TODO format logger
 
     #TODO catch exceptions
+    with open("/home/ben/Code/com.reiform.mynah/log_errors.txt", 'w') as fh:
+        # fh.write(str(sys.stdin.read()))
+        fh.write(args.operation)
+
 
     try:
         print(locals()[args.operation](args.uuid, args.ipc_socket_path))
@@ -121,4 +139,3 @@ if __name__ == '__main__':
             "status": 1,
             "data": 'unknown exception while executing {}: {}'.format(args.operation, e)
         }))
-

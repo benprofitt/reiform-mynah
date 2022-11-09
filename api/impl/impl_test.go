@@ -19,26 +19,26 @@ import (
 func withPyImplProvider(mynahSettings *settings.MynahSettings, handler func(provider ImplProvider) error) error {
 	storageProvider, storagePErr := storage.NewStorageProvider(mynahSettings)
 	if storagePErr != nil {
-		return fmt.Errorf("failed to create storage provider for test %s", storagePErr)
+		return fmt.Errorf("failed to create storage provider for integration %s", storagePErr)
 	}
 	defer storageProvider.Close()
 
 	authProvider, authErr := auth.NewAuthProvider(mynahSettings)
 	if authErr != nil {
-		return fmt.Errorf("failed to create auth provider for test %s", authErr)
+		return fmt.Errorf("failed to create auth provider for integration %s", authErr)
 	}
 	defer authProvider.Close()
 
 	//initialize the database connection
 	dbProvider, dbErr := db.NewDBProvider(mynahSettings, authProvider)
 	if dbErr != nil {
-		return fmt.Errorf("failed to create db provider for test %s", authErr)
+		return fmt.Errorf("failed to create db provider for integration %s", authErr)
 	}
 	defer dbProvider.Close()
 
 	executor, err := mynahExec.NewLocalExecutor(mynahSettings)
 	if err != nil {
-		return fmt.Errorf("failed to create executor for test %s", authErr)
+		return fmt.Errorf("failed to create executor for integration %s", authErr)
 	}
 	defer executor.Close()
 

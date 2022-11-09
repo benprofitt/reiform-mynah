@@ -9,17 +9,17 @@ import (
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/auth"
+	"reiform.com/mynah/db/engine"
+	"reiform.com/mynah/db/migrations"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"xorm.io/xorm"
 )
 
 //local database client implements DBProvider
 type localDB struct {
-	//the XORM engine
-	engine *xorm.Engine
+	engine.Engine
 }
 
 //create the database file if it doesn't exist return
@@ -76,18 +76,18 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 	}
 
 	//create the gorm engine
-	engine, engineErr := xorm.NewEngine("sqlite3", mynahSettings.DBSettings.LocalPath)
+	xormEngine, engineErr := xorm.NewEngine("sqlite3", mynahSettings.DBSettings.LocalPath)
 	if engineErr != nil {
 		return nil, engineErr
 	}
 
 	db := localDB{
-		engine: engine,
+		engine.NewEngine(xormEngine),
 	}
 
 	if !exists {
 		//create tables and initial orgs
-		tableErr := engine.CreateTables(&model.MynahUser{},
+		tableErr := xormEngine.CreateTables(&model.MynahUser{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
@@ -98,7 +98,7 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 			return nil, tableErr
 		}
 
-		syncErr := engine.Sync2(&model.MynahUser{},
+		syncErr := xormEngine.Sync2(&model.MynahUser{},
 			&model.MynahFile{},
 			&model.MynahICDataset{},
 			&model.MynahODDataset{},
@@ -119,7 +119,18 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 		log.Warnf("created local database %s", mynahSettings.DBSettings.LocalPath)
 	}
 
-	return &db, nil
+	// apply migrations
+	return &db, migrations.Migrate(xormEngine)
+}
+
+// Transaction creates a new transaction limited to the execution of the handler
+func (d *localDB) Transaction(handler func(DBProvider) error) error {
+	return d.NewTransaction(func(e engine.Engine) error {
+		// create a new provider using this transaction
+		return handler(&localDB{
+			e,
+		})
+	})
 }
 
 // GetUserForAuth Get a user by uuid or return an error
@@ -128,7 +139,7 @@ func (d *localDB) GetUserForAuth(uuid model.MynahUuid) (*model.MynahUser, error)
 		Uuid: uuid,
 	}
 
-	found, err := d.engine.Get(&user)
+	found, err := d.GetEngine().Get(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +168,7 @@ func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*mo
 		Uuid: uuid,
 	}
 
-	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&file)
+	found, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Get(&file)
 	if err != nil {
 		return nil, err
 	}
@@ -174,13 +185,13 @@ func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*mo
 }
 
 // GetFiles get multiple files by id
-func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) (map[model.MynahUuid]*model.MynahFile, error) {
+func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) (model.MynahFileSet, error) {
 	var files []*model.MynahFile
 
-	res := make(map[model.MynahUuid]*model.MynahFile)
+	res := make(model.MynahFileSet)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&files); err != nil {
+	if err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&files); err != nil {
 		return nil, err
 	}
 
@@ -211,7 +222,7 @@ func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser,
 		return nil, err
 	}
 
-	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Omit(cols...).Get(&dataset)
+	found, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Omit(cols...).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +246,7 @@ func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser)
 		},
 	}
 
-	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&dataset)
+	found, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +268,7 @@ func (d *localDB) GetBinObject(uuid model.MynahUuid, requestor *model.MynahUser)
 		Uuid: uuid,
 	}
 
-	found, err := d.engine.Where(orgIdCondition, requestor.OrgId).Get(&obj)
+	found, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Get(&obj)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +286,7 @@ func (d *localDB) GetICDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	res := make(map[model.MynahUuid]*model.MynahICDataset)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
+	if err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
 		return nil, err
 	}
 
@@ -299,7 +310,7 @@ func (d *localDB) GetODDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	res := make(map[model.MynahUuid]*model.MynahODDataset)
 
 	//request a set of uuids within the org
-	if err := d.engine.Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
+	if err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).In(string(model.UuidColName), uuids).Find(&datasets); err != nil {
 		return nil, err
 	}
 
@@ -323,14 +334,14 @@ func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUse
 	}
 
 	//list users
-	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&users)
+	err = d.GetEngine().Where(orgIdCondition, requestor.OrgId).Find(&users)
 	return users, err
 }
 
 // ListFiles list all files, arg is requestor
 func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFile, err error) {
 	//list files
-	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&files)
+	err = d.GetEngine().Where(orgIdCondition, requestor.OrgId).Find(&files)
 	//filter for the files that this user can view
 	return commonListFiles(files, requestor), err
 }
@@ -338,7 +349,7 @@ func (d *localDB) ListFiles(requestor *model.MynahUser) (files []*model.MynahFil
 // ListICDatasets list all datasets, arg is requestor
 func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.MynahICDataset, err error) {
 	//list datasets
-	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&datasets)
+	err = d.GetEngine().Where(orgIdCondition, requestor.OrgId).Find(&datasets)
 	//filter for the datasets that this user can view
 	return commonListICDatasets(datasets, requestor), err
 }
@@ -346,7 +357,7 @@ func (d *localDB) ListICDatasets(requestor *model.MynahUser) (datasets []*model.
 // ListODDatasets list all datasets, arg is requestor
 func (d *localDB) ListODDatasets(requestor *model.MynahUser) (datasets []*model.MynahODDataset, err error) {
 	//list datasets
-	err = d.engine.Where(orgIdCondition, requestor.OrgId).Find(&datasets)
+	err = d.GetEngine().Where(orgIdCondition, requestor.OrgId).Find(&datasets)
 	//filter for the datasets that this user can view
 	return commonListODDatasets(datasets, requestor), err
 }
@@ -364,7 +375,7 @@ func (d *localDB) CreateUser(creator *model.MynahUser, precommit func(*model.Myn
 		return nil, err
 	}
 
-	affected, err := d.engine.Insert(user)
+	affected, err := d.GetEngine().Insert(user)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +394,7 @@ func (d *localDB) CreateFile(creator *model.MynahUser, precommit func(*model.Myn
 		return nil, err
 	}
 
-	affected, err := d.engine.Insert(file)
+	affected, err := d.GetEngine().Insert(file)
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +412,7 @@ func (d *localDB) CreateICDataset(creator *model.MynahUser, precommit func(*mode
 		return nil, err
 	}
 
-	affected, err := d.engine.Insert(dataset)
+	affected, err := d.GetEngine().Insert(dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -419,7 +430,7 @@ func (d *localDB) CreateODDataset(creator *model.MynahUser, precommit func(*mode
 		return nil, err
 	}
 
-	affected, err := d.engine.Insert(dataset)
+	affected, err := d.GetEngine().Insert(dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +448,7 @@ func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*mode
 		return nil, err
 	}
 
-	affected, err := d.engine.Insert(obj)
+	affected, err := d.GetEngine().Insert(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -448,8 +459,7 @@ func (d *localDB) CreateBinObject(creator *model.MynahUser, precommit func(*mode
 }
 
 // UpdateUser update a user in the database
-func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateUser(user, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -460,7 +470,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 		return fmt.Errorf("user %s not updated: %s", user.Uuid, err)
 	}
 
-	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(user)
+	affected, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(user)
 	if err != nil {
 		return err
 	}
@@ -471,8 +481,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 }
 
 // UpdateICDataset update a dataset
-func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -483,7 +492,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 		return fmt.Errorf("icdataset %s not updated: %s", dataset.Uuid, err)
 	}
 
-	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
+	affected, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -494,8 +503,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 }
 
 // UpdateODDataset update a dataset
-func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateDataset(dataset, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -506,7 +514,7 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 		return fmt.Errorf("oddataset %s not updated: %s", dataset.Uuid, err)
 	}
 
-	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
+	affected, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -517,8 +525,7 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 }
 
 // UpdateFile updates a file
-func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, lock mynahSync.MynahSyncLock, keys MynahDBColumns) error {
-	defer lock.Unlock()
+func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, keys MynahDBColumns) error {
 	if commonErr := commonUpdateFile(file, requestor, keys); commonErr != nil {
 		return commonErr
 	}
@@ -529,7 +536,7 @@ func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, 
 		return fmt.Errorf("file %s not updated: %s", file.Uuid, err)
 	}
 
-	affected, err := d.engine.Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(file)
+	affected, err := d.GetEngine().Where(orgIdCondition, requestor.OrgId).Cols(cols...).Update(file)
 	if err != nil {
 		return err
 	}
@@ -539,12 +546,26 @@ func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, 
 	return nil
 }
 
+// UpdateFiles updates a set of files.
+func (d *localDB) UpdateFiles(files model.MynahFileSet, requestor *model.MynahUser, keys MynahDBColumns) error {
+	return d.Transaction(func(db DBProvider) error {
+		for _, file := range files {
+			err := db.UpdateFile(file, requestor, keys)
+			if err != nil {
+				return fmt.Errorf("error updating file %s: %s", file.Uuid, err)
+			}
+		}
+
+		return nil
+	})
+}
+
 // DeleteUser delete a user in the database
 func (d *localDB) DeleteUser(uuid model.MynahUuid, requestor *model.MynahUser) error {
 	if commonErr := commonDeleteUser(uuid, requestor); commonErr != nil {
 		return commonErr
 	}
-	affected, err := d.engine.Delete(&model.MynahUser{Uuid: uuid})
+	affected, err := d.GetEngine().Delete(&model.MynahUser{Uuid: uuid})
 	if err != nil {
 		return err
 	}
@@ -565,7 +586,7 @@ func (d *localDB) DeleteFile(uuid model.MynahUuid, requestor *model.MynahUser) e
 		return commonErr
 	}
 
-	affected, err := d.engine.Delete(file)
+	affected, err := d.GetEngine().Delete(file)
 	if err != nil {
 		return err
 	}
@@ -588,7 +609,7 @@ func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUs
 
 	//delete referenced reports
 	for _, reportMetadata := range dataset.Reports {
-		affected, err := d.engine.Delete(&model.MynahBinObject{
+		affected, err := d.GetEngine().Delete(&model.MynahBinObject{
 			Uuid: reportMetadata.DataId,
 		})
 		if err != nil {
@@ -599,7 +620,7 @@ func (d *localDB) DeleteICDataset(uuid model.MynahUuid, requestor *model.MynahUs
 		}
 	}
 
-	affected, err := d.engine.Delete(dataset)
+	affected, err := d.GetEngine().Delete(dataset)
 	if err != nil {
 		return err
 	}
@@ -620,7 +641,7 @@ func (d *localDB) DeleteODDataset(uuid model.MynahUuid, requestor *model.MynahUs
 		return commonErr
 	}
 
-	affected, err := d.engine.Delete(dataset)
+	affected, err := d.GetEngine().Delete(dataset)
 	if err != nil {
 		return err
 	}
@@ -630,11 +651,10 @@ func (d *localDB) DeleteODDataset(uuid model.MynahUuid, requestor *model.MynahUs
 	return nil
 }
 
-// Close close the client connection on shutdown
+// Close the client connection on shutdown
 func (d *localDB) Close() {
 	log.Infof("local database engine shutdown")
-	err := d.engine.Close()
-	if err != nil {
-		log.Warnf("error closing database engine: %s", err)
+	if err := d.CloseEngine(); err != nil {
+		log.Warnf("error closing database: %s", err)
 	}
 }

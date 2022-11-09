@@ -2,21 +2,42 @@
 
 package impl
 
-import "reiform.com/mynah/model"
+import (
+	"fmt"
+	"reiform.com/mynah/model"
+	"reiform.com/mynah/storage"
+)
 
 // Apply the file metadata changes
-func (d ImageMetadataResponse) apply(file *model.MynahFile, version *model.MynahFileVersion) error {
-	version.Metadata[model.MetadataWidth] = d.Width
-	version.Metadata[model.MetadataHeight] = d.Height
-	version.Metadata[model.MetadataChannels] = d.Channels
-	file.InitialMean = d.Mean
-	file.InitialStdDev = d.StdDev
+func (d ImageMetadataResponse) apply(files map[model.MynahUuid]storage.MynahLocalFile) error {
+	for fileId, data := range d.Images {
+		// make sure the file exists, update
+		if localFile, exists := files[fileId]; exists {
+			version := localFile.FileVersion()
+			version.Metadata[model.MetadataWidth] = data.Width
+			version.Metadata[model.MetadataHeight] = data.Height
+			version.Metadata[model.MetadataChannels] = data.Channels
+			version.Metadata[model.MetadataMean] = data.Mean
+			version.Metadata[model.MetadataStddev] = data.StdDev
+		} else {
+			return fmt.Errorf("get_metadata_for_images() returned data for an unknown file: %s", fileId)
+		}
+	}
 	return nil
 }
 
-// NewImageMetadataRequest creates a new image metadata request
-func (p *localImplProvider) NewImageMetadataRequest(path string) *ImageMetadataRequest {
+// NewBatchImageMetadataRequest creates a new image metadata request
+func (p *localImplProvider) NewBatchImageMetadataRequest(files storage.MynahLocalFileSet) *ImageMetadataRequest {
+	imageData := make([]ImageMetadataRequestLocalFile, 0, len(files))
+
+	for id, file := range files {
+		imageData = append(imageData, ImageMetadataRequestLocalFile{
+			Uuid: id,
+			Path: file.Path(),
+		})
+	}
+
 	return &ImageMetadataRequest{
-		Path: path,
+		Images: imageData,
 	}
 }

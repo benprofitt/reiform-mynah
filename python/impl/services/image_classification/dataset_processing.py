@@ -17,12 +17,10 @@ class DatasetProcessingJob(Processing_Job):
         self.config : Dict[str, Any] = job_json["config_params"]
 
         # Outgoing data
-        self.result_dataset : ReiformICDataSet = ReiformICDataSet()
         self.results : Dict[str, Dict[str, Any]] = {}
 
     def make_result(self):
-        body : Dict[str, Any] = {"dataset" : self.result_dataset.serialize(), "tasks" : []}
-
+        body : Dict[str, Any] = {"dataset" : self.dataset.serialize(), "tasks" : []}
         task_packages : list[dict] = []
 
         for task in self.tasks_requested:
@@ -115,7 +113,7 @@ class DatasetProcessingJob(Processing_Job):
                         valid_embeddings = True
                     _, outliers = find_outlier_consensus(self.dataset)
                     self.results[task] = {"outliers" : [f.get_name() for f in outliers.all_files()]}
-                    self.previous_results[task] = self.previous_results[task]
+                    self.previous_results[task] = self.results[task]
 
                 if name == "class_splitting":
                     if not valid_embeddings:

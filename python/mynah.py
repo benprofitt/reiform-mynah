@@ -40,13 +40,12 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
 
         # Pass in logger to relay progress
         task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
-
     # response
     return json.dumps({
         "status": 0,
         "data": {
-            "dataset_uuid": request["dataset_uuid"],
-            "tasks": task_results
+            "dataset": request["dataset"],
+            "tasks": task_results["tasks"]
         }
     })
 

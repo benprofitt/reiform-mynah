@@ -127,10 +127,6 @@ if __name__ == '__main__':
     # TODO format logger
 
     #TODO catch exceptions
-    with open("/home/ben/Code/com.reiform.mynah/log_errors.txt", 'w') as fh:
-        # fh.write(str(sys.stdin.read()))
-        fh.write(args.operation)
-
 
     try:
         print(locals()[args.operation](args.uuid, args.ipc_socket_path))

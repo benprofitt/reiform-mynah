@@ -3,7 +3,7 @@ import BackArrowIcon from "../../images/BackArrowIcon.svg";
 import { Link, Redirect, RouteComponentProps, useLocation } from "wouter";
 import { Tab } from "@headlessui/react";
 import clsx from "clsx";
-import { MynahICDataset } from "../../utils/types";
+import { MynahICDataset, MynahICProcessTaskCorrectClassSplittingReport, MynahICProcessTaskType } from "../../utils/types";
 import { useQuery } from "react-query";
 import makeRequest from "../../utils/apiFetch";
 import { useState } from "react";
@@ -117,7 +117,7 @@ export default function DatasetPage(
                   pendingReports={pendingReports}
                   basePath={`${basePath}/reports`}
                   reportId={id}
-                  reportType={type}
+                  reportType={type as MynahICProcessTaskType}
                 />
               </Tab.Panel>
             </Tab.Panels>

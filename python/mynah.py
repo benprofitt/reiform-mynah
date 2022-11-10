@@ -133,5 +133,5 @@ if __name__ == '__main__':
     except Exception as e:
         print(json.dumps({
             "status": 1,
-            "data": 'unknown exception while executing {}: {}'.format(args.operation, e)
+            "data": 'unknown exception while executing: {}: {}'.format(args.operation, e)
         }))

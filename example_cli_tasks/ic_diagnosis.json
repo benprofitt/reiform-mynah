@@ -33,6 +33,18 @@
         ],
         "poll_frequency": 5
       }
+    },
+    {
+      "task_id": "correct_clean",
+      "task_type": "mynah::ic::process",
+      "task_data": {
+        "from_existing" : "",
+        "from_task" : "create_ic_dataset1",
+        "tasks": [
+          "ic::correct::mislabeled_images"
+        ],
+        "poll_frequency": 5
+      }
     }
   ]
 }

@@ -14,6 +14,7 @@ class ReiformICFile(ReiformImageFile):
         self.confidence_vectors : List[NDArray] = []
 
     def from_json(self, body: Dict[str, Any]):
+        ReiformInfo("body: {}".format(body))
         for attrib in ["uuid", "width", "height", "channels", "current_class", "original_class", "mean", "std_dev"]:
             if attrib in body:
                 setattr(self, attrib, body[attrib])
@@ -211,12 +212,24 @@ class ReiformICDataSet(ReiformImageDataset):
         side_a : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
         side_b : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
 
-        for _, files in self.files.items():
+        X = []
+        y = []
+
+        for c, files in self.files.items():
             for _, file in files.items():
-                if random.uniform(0, 1) < ratio:
-                    side_a.add_file(file)
-                else:
-                    side_b.add_file(file)
+                X.append(file)
+                y.append(c)
+
+        X_1, X_2, y1, y2 = sklearn.model_selection.train_test_split(X, y, test_size=1-ratio, shuffle=False)
+
+        # ReiformInfo("Y1: {}".format(y1))
+        # ReiformInfo("Y2: {}".format(y2))
+
+        for file in X_1:
+            side_a.add_file(file)
+
+        for file in X_2:
+            side_b.add_file(file)
 
         return side_a, side_b
 
@@ -392,7 +405,9 @@ class ReiformICDataSet(ReiformImageDataset):
         for k, val in attr_dict.items():
             if k not in extra_keys:
                 results[k] = val
-            
+
+        ReiformInfo("serialized classes {}".format(results))
+
         self._serialize_files(attr_dict, results)
 
         return results
@@ -431,9 +446,13 @@ class ReiformICDataSet(ReiformImageDataset):
 
             nf = ReiformICFile("temp", f1.current_class)
 
+            ReiformInfo("F1: {}, F2: {}".format(f1.mean, f2.mean))
+
             m1 = f1.mean
             m2 = f2.mean
             nf.mean = [m1[i] + m2[i] for i in range(len(m1))]
+
+            ReiformInfo("F1: {}, F2: {}".format(f1.std, f2.std))
 
             m1 = f1.std_dev
             m2 = f2.std_dev

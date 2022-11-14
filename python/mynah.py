@@ -39,6 +39,7 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
         processing_job : processing.DatasetProcessingJob = processing.DatasetProcessingJob(request)
         
         # Pass in logger to relay progress
+        logging.info("OUTER DESERIALE: {}".format(processing_job.dataset.class_list))
         task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
     # response
     return json.dumps({
@@ -105,13 +106,14 @@ def get_metadata_for_images(uuid: str, sock_addr: str) -> str:
         path = obj["path"]
         return (obj["uuid"], image_utils.get_image_metadata(path))
 
-
     with Pool(8) as p:
         metadatas = p.map(gather_data, data)
 
     results = {}
     for uuid, metadata in metadatas:
         results[uuid] = metadata
+
+    logging.info("Image_Data: {}".format(body))
 
     return json.dumps({
         "status": 0,

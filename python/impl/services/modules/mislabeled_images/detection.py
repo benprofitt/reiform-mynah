@@ -59,7 +59,6 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
                                                                  ReiformICDataSet]:
     # Quick "guess"
     clf = KNeighborsClassifier(n_neighbors=min(150, inliers.file_count()//100))
-    ReiformInfo("1Made it here")
 
     X_known = []
     y_known = []
@@ -74,7 +73,6 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
             y_known.append(i)
 
     clf.fit(X_known, y_known)
-    ReiformInfo("2Made it here")
     for i, c in enumerate(outliers.classes()):
         for name, file in outliers.get_items(c):
             X_unknown.append(file.get_projection(PROJECTION_LABEL_REDUCED_EMBEDDING))
@@ -82,10 +80,8 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
             name_unknown.append(name)
 
     preds = clf.predict(X_unknown)
-    ReiformInfo("3Made it here")
 
     prob_preds = clf.predict_proba(X_unknown)
-    ReiformInfo("4Made it here")
     
     for name, p_class, c_probs, o_class in zip(name_unknown, preds, prob_preds, y_unknown):
         
@@ -112,8 +108,6 @@ def find_outlier_consensus(dataset : ReiformICDataSet):
     for c in dataset.classes():
         votes[c] = {}
 
-    ReiformInfo("Made it here")
-
     for i, proj in enumerate(projections):
         # This is used to increase the weight of the "better" embeddings. Still gives a good sample
         weight = 5 - i
@@ -131,8 +125,6 @@ def find_outlier_consensus(dataset : ReiformICDataSet):
     inlier_results : ReiformICDataSet = ReiformICDataSet(dataset.classes())
     outlier_results: ReiformICDataSet = ReiformICDataSet(dataset.classes())
 
-    ReiformInfo("Made it here")
-
     for c, names in votes.items():
         for name, count in names.items():
             if count > (total_possible * (1/2)):
@@ -144,8 +136,10 @@ def find_outlier_consensus(dataset : ReiformICDataSet):
             if filename not in names:
                 inlier_results.add_file(file)
     
-    datasets = predict_outlier_labels(inlier_results, outlier_results)
-
-    ReiformInfo("Made it here")
+    if outlier_results.empty():
+        ReiformInfo("No Outliers")
+        return inlier_results, outlier_results
+    else:
+        datasets = predict_outlier_labels(inlier_results, outlier_results)
 
     return datasets

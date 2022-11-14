@@ -37,7 +37,7 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
         logging.info("called start_processing_job()")
         # call impl
         processing_job : processing.DatasetProcessingJob = processing.DatasetProcessingJob(request)
-
+        
         # Pass in logger to relay progress
         task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
     # response
@@ -48,6 +48,8 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
             "tasks": task_results["tasks"]
         }
     })
+
+
 
 def start_ic_training_job(uuid : str, sock_addr: str) -> str:
     '''Start an IC training job. See docs/python_api.md'''

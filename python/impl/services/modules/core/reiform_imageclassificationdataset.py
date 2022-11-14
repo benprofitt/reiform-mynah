@@ -480,6 +480,8 @@ class ReiformICDataSet(ReiformImageDataset):
         for id in uuids:
             new_dataset.add_file(self.get_file_by_uuid(id))
 
+        return new_dataset
+
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None, shuffle = True) -> torch.utils.data.DataLoader:
         
         image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)

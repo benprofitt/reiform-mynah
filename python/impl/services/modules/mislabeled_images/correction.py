@@ -13,6 +13,7 @@ def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : An
             y_known.append(i)
             X_known.append(file.get_projection(label))
 
+    ReiformInfo("Y: {}".formet(set(y_known)))
     classifier.fit(X_known, y_known)
 
     return classifier

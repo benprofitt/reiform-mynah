@@ -98,25 +98,6 @@ def start_ic_inference_job(uuid : str, sock_addr: str) -> str:
 
 def get_metadata_for_images(uuid: str, sock_addr: str) -> str:
     '''Get image width, height, channels, mean, std for all images in batch'''
-<<<<<<< HEAD
-
-    body = json.loads(sys.stdin.read())
-    data = body["images"]
-
-    def gather_data(obj):
-        path = obj["path"]
-        return (obj["uuid"], image_utils.get_image_metadata(path))
-
-    with Pool(8) as p:
-        metadatas = p.map(gather_data, data)
-
-    results = {}
-    for uuid, metadata in metadatas:
-        results[uuid] = metadata
-
-    logging.info("Image_Data: {}".format(body))
-
-=======
 
     body = json.loads(sys.stdin.read())
     data = body["images"]
@@ -133,7 +114,6 @@ def get_metadata_for_images(uuid: str, sock_addr: str) -> str:
     for uuid, metadata in metadatas:
         results[uuid] = metadata
 
->>>>>>> develop
     return json.dumps({
         "status": 0,
         "data": { "images" : results }

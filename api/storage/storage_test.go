@@ -58,20 +58,20 @@ func TestBasicStorageActions(t *testing.T) {
 	expectedPath := fmt.Sprintf("data/tmp/%s_%s", file.Uuid, model.LatestVersionId)
 
 	//get the stored file
-	require.NoError(t, storageProvider.GetStoredFile(&file, model.LatestVersionId, func(p string) error {
-		if p != expectedPath {
-			return errors.New("test file does not exist")
+	require.NoError(t, storageProvider.GetStoredFile(file.Uuid, file.Versions[model.LatestVersionId], func(lf MynahLocalFile) error {
+		if lf.Path() != expectedPath {
+			return errors.New("integration file does not exist")
 		}
 		//check that the file exists
-		_, err := os.Stat(p)
+		_, err := os.Stat(lf.Path())
 		return err
 	}))
 
-	require.NoError(t, storageProvider.DeleteFile(&file))
+	require.NoError(t, storageProvider.DeleteAllFileVersions(&file))
 
 	_, err := os.Stat(expectedPath)
 	require.Error(t, err)
 
-	require.Error(t, storageProvider.GetStoredFile(&file, model.LatestVersionId, func(p string) error { return nil }))
-	require.Error(t, storageProvider.DeleteFile(&file))
+	require.Error(t, storageProvider.GetStoredFile(file.Uuid, file.Versions[model.LatestVersionId], func(MynahLocalFile) error { return nil }))
+	require.Error(t, storageProvider.DeleteAllFileVersions(&file))
 }

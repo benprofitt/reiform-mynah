@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
+	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
@@ -19,10 +20,10 @@ import (
 	"time"
 )
 
-const datasetIdKey = "datasetid"
-const datasetVersionKey = "version"
-const datasetVersionStartKey = "from_version"
-const datasetVersionEndKey = "to_version"
+const DatasetIdKey = "datasetid"
+const DatasetVersionKey = "version"
+const DatasetVersionStartKey = "from_version"
+const DatasetVersionEndKey = "to_version"
 
 // sanitizeICDataset removes fields that are not consumed by the api
 func sanitizeICDataset(dataset *model.MynahICDataset) {
@@ -35,7 +36,7 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 }
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
+func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request (will be the owner)
 		user := middleware.GetUserFromRequest(request)
@@ -63,6 +64,32 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
+		// get the latest version of each file
+		latestFiles, err := files.GetLatestVersions()
+		if err != nil {
+			log.Errorf("failed request files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// get the files locally
+		err = storageProvider.GetStoredFiles(latestFiles, func(localFiles storage.MynahLocalFileSet) error {
+			// extract metadata from the files
+			return implProvider.BatchImageMetadata(user, localFiles)
+		})
+		if err != nil {
+			log.Errorf("failed to record metadata for files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// commit the changes to the database
+		if err := dbProvider.UpdateFiles(files, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+			log.Errorf("failed to update files for ic dataset creation: %s", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		//create the dataset, set the name and the files
 		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
@@ -74,9 +101,15 @@ func icDatasetCreate(dbProvider db.DBProvider) http.HandlerFunc {
 					initialVersion.Files[fileId].CurrentClass = className
 					initialVersion.Files[fileId].OriginalClass = className
 
+					// use the latest version metadata
 					if fileData, ok := files[fileId]; ok {
-						initialVersion.Files[fileId].Mean = fileData.InitialMean
-						initialVersion.Files[fileId].StdDev = fileData.InitialStdDev
+						// use the latest version of the file
+						latest, err := fileData.GetFileVersion(model.LatestVersionId)
+						if err != nil {
+							return err
+						}
+						initialVersion.Files[fileId].Mean = latest.Metadata.GetDefaultFloatSlice(model.MetadataMean, nil)
+						initialVersion.Files[fileId].StdDev = latest.Metadata.GetDefaultFloatSlice(model.MetadataStddev, nil)
 					} else {
 						return fmt.Errorf("failed to load file %s for dataset creation: %s", fileId, err)
 					}
@@ -215,7 +248,7 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("ic dataset request path missing %s key", datasetId)
@@ -232,8 +265,8 @@ func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
-		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
+		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := icDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
@@ -258,7 +291,7 @@ func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("od dataset request path missing %s key", datasetId)
@@ -275,8 +308,8 @@ func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(datasetVersionStartKey)
-		datasetToVersion := request.Form.Get(datasetVersionEndKey)
+		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
+		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := odDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
@@ -417,13 +450,13 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 	})
 }
 
-// export a dataset
+// icDatasetExport export a dataset
 func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request
 		user := middleware.GetUserFromRequest(request)
 
-		datasetId, ok := mux.Vars(request)[datasetIdKey]
+		datasetId, ok := mux.Vars(request)[DatasetIdKey]
 		//get request params
 		if !ok {
 			log.Errorf("ic dataset export request path missing %s key", datasetId)
@@ -439,7 +472,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			return
 		}
 
-		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(datasetVersionKey))
+		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(DatasetVersionKey))
 		if datasetVersionId == "" {
 			//if no specific version provided, default to latest version
 			datasetVersionId = dataset.LatestVersion
@@ -496,17 +529,14 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		//write dataset files to archive
 		err = dataset.Format.Metadata.DatasetFileIterator(datasetVersion, filenames,
 			func(fileId model.MynahUuid, fileVersionId model.MynahFileVersionId, filePath string) error {
-				//get the file from the storage provider
-				localPath, err := storageProvider.GetTmpPath(files[fileId], fileVersionId)
+				fileVersion, err := files[fileId].GetFileVersion(fileVersionId)
 				if err != nil {
 					return err
 				}
-
-				// write to the zip archive
-				if err := tools.WriteToZip(zipWriter, localPath, filePath); err != nil {
-					return fmt.Errorf("failed to write file %s to zip archive: %s", fileId, err)
-				}
-				return nil
+				//get the file from the storage provider and write the contents to the zip archive
+				return storageProvider.GetStoredFile(fileId, fileVersion, func(localFile storage.MynahLocalFile) error {
+					return tools.WriteToZip(zipWriter, localFile.Path(), filePath)
+				})
 			})
 
 		if err != nil {

@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/impl"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
@@ -20,11 +19,11 @@ import (
 	"time"
 )
 
-const fileKey string = "file"
-const fileVersionIdKey string = "version_id"
+const FileKey string = "file"
+const FileVersionIdKey string = "version_id"
 const MultipartFormFileKey = "file"
 const MultipartFormNameKey = "name"
-const fileIdKey string = "fileid"
+const FileIdKey string = "fileid"
 
 //check if a file is of a valid type
 func validFiletype(filetype *string) bool {
@@ -32,25 +31,10 @@ func validFiletype(filetype *string) bool {
 	return true
 }
 
-//check if this is an image mime type
-func isImageType(mType *mimetype.MIME) bool {
-	switch mType.String() {
-	case "image/png":
-		return true
-	case "image/jpeg":
-		return true
-	case "image/tiff":
-		return true
-	default:
-		return false
-	}
-}
-
-//accept a file upload, save the file using the storage provider, and reference as part of the dataset
+// handleFileUpload accepts a file upload, save the file using the storage provider, and reference as part of the dataset
 func handleFileUpload(mynahSettings *settings.MynahSettings,
 	dbProvider db.DBProvider,
-	storageProvider storage.StorageProvider,
-	pyImplProvider impl.ImplProvider) http.HandlerFunc {
+	storageProvider storage.StorageProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//get the user uploading the file
 		user := middleware.GetUserFromRequest(request)
@@ -115,18 +99,11 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 				return err
 			}
 
-			//determine the dimensions, channels of the file (if applicable)
-			return storageProvider.GetStoredFile(f, model.OriginalVersionId, func(path string) error {
+			//determine the mime type
+			return storageProvider.GetStoredFile(f.Uuid, f.Versions[model.OriginalVersionId], func(localFile storage.MynahLocalFile) error {
 				//check the mime type for image metadata
-				if mimeType, err := mimetype.DetectFile(filepath.Clean(path)); err == nil {
-					if isImageType(mimeType) {
-						if err = pyImplProvider.ImageMetadata(user, path, f, f.Versions[model.OriginalVersionId]); err != nil {
-							log.Warnf("failed to get image metadata for %s: %s", f.Uuid, err)
-						}
-					} else {
-						log.Infof("skipping metadata read for non image file type: %s", mimeType.String())
-					}
-
+				if mimeType, err := mimetype.DetectFile(filepath.Clean(localFile.Path())); err == nil {
+					f.UploadMimeType = mimeType.String()
 				} else {
 					log.Warnf("failed to read mime type for file %s: %s", f.Uuid, err)
 				}
@@ -150,26 +127,33 @@ func handleFileUpload(mynahSettings *settings.MynahSettings,
 	})
 }
 
-//handler that loads a file and serves the contents
+// handleViewFile that loads a file and serves the contents
 func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
 		user := middleware.GetUserFromRequest(request)
 
 		//get the file id
-		if fileId, ok := mux.Vars(request)[fileKey]; ok {
+		if fileId, ok := mux.Vars(request)[FileKey]; ok {
 			fileVersionId := model.LatestVersionId
 			//check for the file version id
-			if versionIdStr, ok := mux.Vars(request)[fileVersionIdKey]; ok {
+			if versionIdStr, ok := mux.Vars(request)[FileVersionIdKey]; ok {
 				fileVersionId = model.MynahFileVersionId(versionIdStr)
 			}
 
 			//load the file metadata
 			if file, fileErr := dbProvider.GetFile(model.MynahUuid(fileId), user); fileErr == nil {
+				// verify that this version of the file exists
+				fileVersion, err := file.GetFileVersion(fileVersionId)
+				if err != nil {
+					log.Warnf("unable to view file: %s", fileErr)
+					writer.WriteHeader(http.StatusNotFound)
+				}
+
 				//serve the file contents
-				storeErr := storageProvider.GetStoredFile(file, fileVersionId, func(path string) error {
+				storeErr := storageProvider.GetStoredFile(file.Uuid, fileVersion, func(localFile storage.MynahLocalFile) error {
 					//open the file
-					osFile, osErr := os.Open(filepath.Clean(path))
+					osFile, osErr := os.Open(filepath.Clean(localFile.Path()))
 					if osErr != nil {
 						return fmt.Errorf("failed to open file %s: %s", file.Uuid, osErr)
 					}
@@ -198,13 +182,13 @@ func handleViewFile(dbProvider db.DBProvider, storageProvider storage.StoragePro
 			}
 
 		} else {
-			log.Errorf("file request path missing '%s'", fileKey)
+			log.Errorf("file request path missing '%s'", FileKey)
 			writer.WriteHeader(http.StatusInternalServerError)
 		}
 	}
 }
 
-//handler that gets metadata for a list of files
+// handleListFileMetadata  gets metadata for a list of files
 func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
 		//get the user from context
@@ -216,7 +200,7 @@ func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 			return
 		}
 
-		if ids, ok := request.Form[fileIdKey]; ok {
+		if ids, ok := request.Form[FileIdKey]; ok {
 			fileIds := make([]model.MynahUuid, len(ids))
 			for i := 0; i < len(ids); i++ {
 				fileIds[i] = model.MynahUuid(ids[i])
@@ -236,7 +220,7 @@ func handleListFileMetadata(dbProvider db.DBProvider) http.HandlerFunc {
 			}
 
 		} else {
-			log.Errorf("list file metadata missing ids given with key '%s'", fileIdKey)
+			log.Errorf("list file metadata missing ids given with key '%s'", FileIdKey)
 			writer.WriteHeader(http.StatusBadRequest)
 		}
 	}

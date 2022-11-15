@@ -10,13 +10,11 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/extensions"
 	"reiform.com/mynah/impl"
 	"reiform.com/mynah/ipc"
 	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/mynahExec"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/websockets"
@@ -35,11 +33,6 @@ func main() {
 	mynahSettings, settingsErr := settings.LoadSettings(settingsPtr)
 	if settingsErr != nil {
 		log.Fatalf("failed to load settings: %s", settingsErr)
-	}
-
-	// configure synchronization (either global or local)
-	if err := mynahSync.ConfigureSync(mynahSettings); err != nil {
-		log.Fatalf("failed to configure synchronization: %s", err)
 	}
 
 	//initialize auth
@@ -92,12 +85,6 @@ func main() {
 
 	log.Infof("mynah python version: %s", version.Version)
 
-	//load extensions
-	extensionManager, extErr := extensions.NewExtensionManager(mynahSettings)
-	if extErr != nil {
-		log.Fatalf("failed to initialize extensions: %s", extErr)
-	}
-
 	//create the router and middleware
 	router := middleware.NewRouter(mynahSettings,
 		authProvider,
@@ -112,7 +99,6 @@ func main() {
 		implProvider,
 		wsProvider,
 		asyncProvider,
-		extensionManager,
 		mynahSettings); err != nil {
 		log.Fatalf("failed to initialize api routes: %s", err)
 	}

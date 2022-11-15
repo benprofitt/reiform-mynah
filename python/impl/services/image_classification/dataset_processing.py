@@ -26,6 +26,9 @@ class DatasetProcessingJob(Processing_Job):
         body : Dict[str, Any] = {"dataset" : self.dataset.serialize(), "tasks" : []}
         task_packages : list[dict] = []
 
+        ReiformInfo("tasks: {}".format(self.tasks_requested))
+        ReiformInfo("tasks: {}".format(self.results.keys()))
+
         for task in self.tasks_requested:
             package = {"type" : task, 
                        "metadata" : self.results[task]}
@@ -33,7 +36,7 @@ class DatasetProcessingJob(Processing_Job):
 
         body["tasks"] = task_packages
 
-        ReiformInfo("Classes in RESULTS: {}".format(body["dataset"]["files"][0]))
+        ReiformInfo("Classes in RESULTS: {}".format((body["dataset"]["files"]['0'].keys())))
 
         return body
 

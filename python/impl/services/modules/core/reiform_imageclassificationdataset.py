@@ -395,6 +395,7 @@ class ReiformICDataSet(ReiformImageDataset):
             results["files"][c] = {}
             for name, file in attr_dict["files"][c].items():
                 results["files"][c][name] = file.to_json()
+        ReiformInfo("serialize_files")
 
     def serialize(self) -> Dict[str, Any]:
         

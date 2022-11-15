@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"reiform.com/mynah-cli/utils"
 )
 
 // NewRequest creates a new request for the mynah server
@@ -53,7 +54,7 @@ func (s MynahClient) ExecutePostJsonRequest(path string, requestBody interface{}
 
 	response, err := s.MakeRequest(request)
 	if err != nil {
-		return fmt.Errorf("failed to create mynah server request: %s", err)
+		return fmt.Errorf("failed to execute mynah server request: %s", err)
 	}
 
 	//parse the response
@@ -74,7 +75,7 @@ func (s MynahClient) ExecuteGetRequest(path string, responseBody interface{}) er
 
 	response, err := s.MakeRequest(request)
 	if err != nil {
-		return fmt.Errorf("failed to create mynah server request: %s", err)
+		return fmt.Errorf("failed to execute mynah server request: %s", err)
 	}
 
 	//parse the response
@@ -83,4 +84,33 @@ func (s MynahClient) ExecuteGetRequest(path string, responseBody interface{}) er
 	}
 
 	return nil
+}
+
+// UploadFile uploads a file to a given endpoint
+func (s MynahClient) UploadFile(path string, filePath string, responseBody interface{}) error {
+	//create a multipart form
+	formBuff, formContent, err := utils.CreateMultipartForm(filePath)
+	if err != nil {
+		return err
+	}
+
+	//add the form to a post request to the mynah server
+	req, err := s.NewRequest("POST", path, &formBuff)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", formContent)
+
+	//make the request
+	response, err := s.MakeRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("file upload failed with status: %s", response.Status)
+	}
+
+	return RequestParseJson(response, responseBody)
 }

@@ -377,6 +377,7 @@ class ReiformICDataSet(ReiformImageDataset):
         return results
 
     def _serialize_files(self, attr_dict, results):
+        results["files"] = {}
         for c in self.class_list:
             results["files"][c] = {}
             for name, file in attr_dict["files"][c].items():
@@ -387,8 +388,9 @@ class ReiformICDataSet(ReiformImageDataset):
         attr_dict : Dict[str, Any] = self.__dict__
         results : Dict[str, Any] = {}
 
+        extra_keys = ["files", "max_width", "max_height", "max_channels"]
         for k, val in attr_dict.items():
-            if k not in ["files", "max_width", "max_height", "max_channels"]:
+            if k not in extra_keys:
                 results[k] = val
             
         self._serialize_files(attr_dict, results)

@@ -19,9 +19,26 @@ type localStorage struct {
 	localPath string
 }
 
+type savedLocalFile struct {
+	// this version of the file
+	version *model.MynahFileVersion
+	// the path the file is stored at locally
+	path string
+}
+
+// FileVersion gets the associated file
+func (f *savedLocalFile) FileVersion() *model.MynahFileVersion {
+	return f.version
+}
+
+// Path gets the local path to the file
+func (f *savedLocalFile) Path() string {
+	return f.path
+}
+
 // return a path for this file by version id
-func (s *localStorage) getVersionedPath(file *model.MynahFile, versionId model.MynahFileVersionId) string {
-	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", file.Uuid, versionId))
+func (s *localStorage) getVersionedPath(id model.MynahUuid, versionId model.MynahFileVersionId) string {
+	return filepath.Join(s.localPath, fmt.Sprintf("%s_%s", id, versionId))
 }
 
 //create a new local storage provider
@@ -36,25 +53,17 @@ func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, erro
 }
 
 // CopyFile copy the contents of a file to another with a different version id. Note: creates the new version id
-func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersionId, dest model.MynahFileVersionId) error {
-	//check that the source version id exists locally
-	if version, ok := file.Versions[src]; !ok {
-		return fmt.Errorf("source version id for file copy doesn't exist")
-	} else if !version.ExistsLocally {
-		return fmt.Errorf("source for file copy doesn't exist locally")
-	}
-
-	file.Versions[dest] = &model.MynahFileVersion{
-		ExistsLocally: true,
-		Metadata:      make(model.FileMetadata),
-	}
+func (s *localStorage) CopyFile(fileId model.MynahUuid, src, dest *model.MynahFileVersion) error {
+	// note that the file exists locally
+	dest.ExistsLocally = true
+	dest.Metadata = make(model.FileMetadata)
 
 	//copy metadata
-	for k, v := range file.Versions[src].Metadata {
-		file.Versions[dest].Metadata[k] = v
+	for k, v := range src.Metadata {
+		dest.Metadata[k] = v
 	}
 
-	srcPath := s.getVersionedPath(file, src)
+	srcPath := s.getVersionedPath(fileId, src.VersionId)
 
 	//verify that the source file exists
 	sourceFileStat, err := os.Stat(filepath.Clean(srcPath))
@@ -64,7 +73,7 @@ func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersio
 
 	//check the mode
 	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("source file %s with version id %s is not a regular file", file.Uuid, src)
+		return fmt.Errorf("source file %s with version id %s is not a regular file", fileId, src.VersionId)
 	}
 
 	source, err := os.Open(filepath.Clean(srcPath))
@@ -78,7 +87,7 @@ func (s *localStorage) CopyFile(file *model.MynahFile, src model.MynahFileVersio
 		}
 	}(source)
 
-	destPath := s.getVersionedPath(file, dest)
+	destPath := s.getVersionedPath(fileId, dest.VersionId)
 
 	destination, err := os.Create(filepath.Clean(destPath))
 	if err != nil {
@@ -107,16 +116,14 @@ func (s *localStorage) DeleteTempFile(name string) error {
 
 // StoreFile Save a file to the storage target
 func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) error) error {
-	//insert the default version id if not found
-	if _, ok := file.Versions[model.OriginalVersionId]; !ok {
-		file.Versions[model.OriginalVersionId] = &model.MynahFileVersion{
-			ExistsLocally: true,
-			Metadata:      make(model.FileMetadata),
-		}
-	}
+	// set original and latest versions
+	file.Versions[model.OriginalVersionId] = model.NewMynahFileVersion(model.OriginalVersionId)
+	file.Versions[model.LatestVersionId] = model.NewMynahFileVersion(model.LatestVersionId)
+	file.Versions[model.OriginalVersionId].ExistsLocally = true
+	file.Versions[model.LatestVersionId].ExistsLocally = true
 
 	//create a local storage path for the file
-	fullPath := s.getVersionedPath(file, model.OriginalVersionId)
+	fullPath := s.getVersionedPath(file.Uuid, model.OriginalVersionId)
 
 	//create the local file to write to
 	if localFile, err := os.Create(filepath.Clean(fullPath)); err == nil {
@@ -144,54 +151,61 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 		return err
 	}
 
-	//add the "latest" version id if not found
-	if _, ok := file.Versions[model.LatestVersionId]; !ok {
-		//copy the file
-		return s.CopyFile(file, model.OriginalVersionId, model.LatestVersionId)
-
-	} else {
-		log.Infof("found latest version id when storing file, will not duplicate (if this is a new file, this is a bug)")
-	}
-
-	return nil
+	//copy the file to the latest version
+	return s.CopyFile(file.Uuid, file.Versions[model.OriginalVersionId], file.Versions[model.LatestVersionId])
 }
 
 // GetStoredFile get the contents of a stored file
-func (s *localStorage) GetStoredFile(file *model.MynahFile, versionId model.MynahFileVersionId, handler func(string) error) error {
-	if location, ok := file.Versions[versionId]; ok {
-		if !location.ExistsLocally {
-			return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", file.Uuid, versionId)
+func (s *localStorage) GetStoredFile(fileId model.MynahUuid, version *model.MynahFileVersion, handler func(MynahLocalFile) error) error {
+	if !version.ExistsLocally {
+		return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", fileId, version.VersionId)
+	}
+
+	//create the full temp path
+	fullPath := s.getVersionedPath(fileId, version.VersionId)
+
+	//verify that the file exists
+	_, err := os.Stat(fullPath)
+	if err != nil {
+		return err
+	}
+
+	return handler(&savedLocalFile{
+		version: version,
+		path:    fullPath,
+	})
+}
+
+// GetStoredFiles get the contents of some set of files. Files are mounted locally, local paths passed to function
+func (s *localStorage) GetStoredFiles(fileVersions model.MynahVersionedFileSet, handler func(MynahLocalFileSet) error) error {
+	localFiles := make(MynahLocalFileSet)
+
+	for fileId, version := range fileVersions {
+		if !version.ExistsLocally {
+			return fmt.Errorf("file %s had a valid version id (%s) but is not available locally", fileId, version.VersionId)
 		}
 
 		//create the full temp path
-		fullPath := s.getVersionedPath(file, versionId)
+		fullPath := s.getVersionedPath(fileId, version.VersionId)
 
 		//verify that the file exists
 		_, err := os.Stat(fullPath)
 		if err != nil {
 			return err
 		}
-		return handler(fullPath)
-	} else {
-		return fmt.Errorf("invalid version id for file %s: %s", file.Uuid, versionId)
+
+		localFiles[fileId] = &savedLocalFile{
+			version: version,
+			path:    fullPath,
+		}
 	}
+
+	return handler(localFiles)
 }
 
-// GetTmpPath get the temporary path to a file
-func (s *localStorage) GetTmpPath(file *model.MynahFile, versionId model.MynahFileVersionId) (string, error) {
-	fullPath := s.getVersionedPath(file, versionId)
-
-	//verify that the file exists
-	_, err := os.Stat(fullPath)
-	if err != nil {
-		return "", err
-	}
-	return fullPath, nil
-}
-
-// GenerateSHA1Id takes the SHA1 of the latest version of the file
-func (s *localStorage) GenerateSHA1Id(file *model.MynahFile) (model.MynahFileVersionId, error) {
-	fullPath := s.getVersionedPath(file, model.LatestVersionId)
+// GenerateSHA1Id takes the SHA1 of some version of the file
+func (s *localStorage) GenerateSHA1Id(fileId model.MynahUuid, version *model.MynahFileVersion) (model.MynahFileVersionId, error) {
+	fullPath := s.getVersionedPath(fileId, version.VersionId)
 
 	//verify that the file exists
 	_, err := os.Stat(fullPath)
@@ -214,14 +228,22 @@ func (s *localStorage) GenerateSHA1Id(file *model.MynahFile) (model.MynahFileVer
 	return model.MynahFileVersionId(fmt.Sprintf("%x", sum)), nil
 }
 
-// DeleteFile delete a stored file
-func (s *localStorage) DeleteFile(file *model.MynahFile) error {
-	for versionId, version := range file.Versions {
-		if version.ExistsLocally {
-			if err := os.Remove(s.getVersionedPath(file, versionId)); err != nil {
-				return fmt.Errorf("failed to delete file %s with versionId %s locally: %s",
-					file.Uuid, versionId, err)
-			}
+// DeleteFileVersion delete a stored file
+func (s *localStorage) DeleteFileVersion(fileId model.MynahUuid, version *model.MynahFileVersion) error {
+	if version.ExistsLocally {
+		if err := os.Remove(s.getVersionedPath(fileId, version.VersionId)); err != nil {
+			return fmt.Errorf("failed to delete file %s with versionId %s locally: %s",
+				fileId, version.VersionId, err)
+		}
+	}
+	return nil
+}
+
+// DeleteAllFileVersions deletes all versions of a file
+func (s *localStorage) DeleteAllFileVersions(file *model.MynahFile) error {
+	for _, version := range file.Versions {
+		if err := s.DeleteFileVersion(file.Uuid, version); err != nil {
+			return err
 		}
 	}
 	return nil

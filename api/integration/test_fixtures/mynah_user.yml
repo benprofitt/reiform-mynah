@@ -1,0 +1,20 @@
+- uuid: "1"
+  org_id: "1"
+  name_first: jack
+  name_last: hay
+  is_admin: true
+  created_by: "0"
+
+- uuid: "2"
+  org_id: "1"
+  name_first: ben
+  name_last: parfitt
+  is_admin: false
+  created_by: "1"
+
+- uuid: "3"
+  org_id: "1"
+  name_first: jake
+  name_last: lanning
+  is_admin: false
+  created_by: "1"

@@ -3,6 +3,7 @@
 package model
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -22,9 +23,11 @@ type MetadataKey string
 
 const (
 	MetadataSize     MetadataKey = "size"
-	MetadataWidth    MetadataKey = "width"
-	MetadataHeight   MetadataKey = "height"
-	MetadataChannels MetadataKey = "channels"
+	MetadataWidth                = "width"
+	MetadataHeight               = "height"
+	MetadataChannels             = "channels"
+	MetadataMean                 = "mean"
+	MetadataStddev               = "stddev"
 )
 
 type FileMetadataValueType interface{}
@@ -32,8 +35,16 @@ type FileMetadataValueType interface{}
 // FileMetadata metadata type
 type FileMetadata map[MetadataKey]FileMetadataValueType
 
+// MynahFileSet defines a set of files
+type MynahFileSet map[MynahUuid]*MynahFile
+
+// MynahVersionedFileSet defines a set of file versions
+type MynahVersionedFileSet map[MynahUuid]*MynahFileVersion
+
 // MynahFileVersion a version of the file
 type MynahFileVersion struct {
+	// the id of this file
+	VersionId MynahFileVersionId `json:"version_id"`
 	//whether the file version is available locally
 	ExistsLocally bool `json:"exists_locally"`
 	//file metadata
@@ -52,12 +63,8 @@ type MynahFile struct {
 	Name string `json:"name" xorm:"TEXT 'name'"`
 	//the time the file was uploaded
 	DateCreated int64 `json:"date_created" xorm:"INTEGER 'date_created'"`
-	//the http detected content type (original)
-	DetectedContentType string `json:"-" xorm:"TEXT 'detected_content_type'"`
-	//the initial mean
-	InitialMean []float64 `json:"-" xorm:"TEXT 'initial_mean'"`
-	//the initial stddev
-	InitialStdDev []float64 `json:"-" xorm:"TEXT 'initial_std_dev'"`
+	// UploadMimeType is the mime type detected on upload as a string
+	UploadMimeType string `json:"uploaded_mime_type" xorm:"TEXT 'uploaded_mime_type'"`
 	//versions of the file
 	Versions map[MynahFileVersionId]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
@@ -99,16 +106,47 @@ func (m FileMetadata) GetDefaultFloatSlice(key MetadataKey, def []float64) []flo
 // NewFile creates a new file
 func NewFile(creator *MynahUser) *MynahFile {
 	f := MynahFile{
-		Uuid:                NewMynahUuid(),
-		OrgId:               creator.OrgId,
-		Permissions:         make(map[MynahUuid]Permissions),
-		Name:                "None",
-		DateCreated:         time.Now().Unix(),
-		DetectedContentType: "None",
-		Versions:            make(map[MynahFileVersionId]*MynahFileVersion),
+		Uuid:           NewMynahUuid(),
+		OrgId:          creator.OrgId,
+		Permissions:    make(map[MynahUuid]Permissions),
+		Name:           "None",
+		DateCreated:    time.Now().Unix(),
+		UploadMimeType: "None",
+		Versions:       make(map[MynahFileVersionId]*MynahFileVersion),
 	}
 	f.Permissions[creator.Uuid] = Owner
 	return &f
+}
+
+// NewMynahFileVersion creates a new file version
+func NewMynahFileVersion(versionId MynahFileVersionId) *MynahFileVersion {
+	return &MynahFileVersion{
+		VersionId:     versionId,
+		Metadata:      make(FileMetadata),
+		ExistsLocally: false,
+	}
+}
+
+// GetFileVersion returns a given version of the file if it exists
+func (f *MynahFile) GetFileVersion(v MynahFileVersionId) (*MynahFileVersion, error) {
+	if version, ok := f.Versions[v]; ok {
+		return version, nil
+	}
+	return nil, fmt.Errorf("file %s does not have %s version", f.Uuid, v)
+}
+
+// IsImage returns true if the file appears to be an image
+func (p *MynahFile) IsImage() bool {
+	switch p.UploadMimeType {
+	case "image/png":
+		return true
+	case "image/jpeg":
+		return true
+	case "image/tiff":
+		return true
+	default:
+		return false
+	}
 }
 
 // GetPermissions Get the permissions that a user has on a given file
@@ -118,4 +156,18 @@ func (p *MynahFile) GetPermissions(user *MynahUser) Permissions {
 	} else {
 		return None
 	}
+}
+
+// GetLatestVersions gets the latest version of each file in a set
+func (s MynahFileSet) GetLatestVersions() (MynahVersionedFileSet, error) {
+	res := make(MynahVersionedFileSet)
+	for fileId, file := range s {
+		if ver, err := file.GetFileVersion(LatestVersionId); err == nil {
+			res[fileId] = ver
+		} else {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }

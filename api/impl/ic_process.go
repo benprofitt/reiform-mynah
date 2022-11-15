@@ -7,7 +7,6 @@ import (
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/model"
-	"reiform.com/mynah/mynahSync"
 	"reiform.com/mynah/storage"
 	"reiform.com/mynah/tools"
 )
@@ -83,7 +82,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	req.Dataset.DatasetUuid = dataset.Uuid
 	req.Dataset.Mean = newDatasetVersion.Mean
 	req.Dataset.StdDev = newDatasetVersion.StdDev
-	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]ICProcessJobRequestFile)
+	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]*ICProcessJobRequestFile)
 
 	//accumulate the file uuids in this dataset
 	fileUuidSet := containers.NewUniqueSet[model.MynahUuid]()
@@ -108,10 +107,16 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 		var tmpPath string
 
 		if f, ok := files[fileId]; ok {
+			latestV, err := f.GetFileVersion(model.LatestVersionId)
+			if err != nil {
+				return nil, err
+			}
 			//get a path to this file, only use latest version id: other versions of file are immutable
-			if path, err := p.storageProvider.GetTmpPath(f, model.LatestVersionId); err == nil {
-				tmpPath = path
-			} else {
+			err = p.storageProvider.GetStoredFile(f.Uuid, latestV, func(localFile storage.MynahLocalFile) error {
+				tmpPath = localFile.Path()
+				return nil
+			})
+			if err != nil {
 				return nil, fmt.Errorf("failed to get temporary path to file %s: %s", fileId, err)
 			}
 		} else {
@@ -140,11 +145,11 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 
 		//create a mapping for this class if one doesn't exist
 		if _, ok := req.Dataset.ClassFiles[classInfo.CurrentClass]; !ok {
-			req.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]ICProcessJobRequestFile)
+			req.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]*ICProcessJobRequestFile)
 		}
 
 		//add the class -> tmp file -> data mapping
-		req.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = ICProcessJobRequestFile{
+		req.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = &ICProcessJobRequestFile{
 			Uuid:     fileId,
 			Width:    width,
 			Height:   height,
@@ -165,8 +170,7 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	report *model.MynahICDatasetReport,
 	user *model.MynahUser,
 	storageProvider storage.StorageProvider,
-	dbProvider db.DBProvider,
-	fileLocks mynahSync.MynahSyncLockSet) error {
+	dbProvider db.DBProvider) error {
 
 	//set the dataset level mean and stddev
 	dataset.Mean = d.Dataset.Mean
@@ -191,7 +195,7 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 
 	//freeze the fileids so that the "latest" versions aren't modified by a different dataset
 	//NOTE: we also version removed files because they are tracked by the report
-	if err := tools.FreezeICDatasetFileVersions(dataset, user, storageProvider, dbProvider, fileLocks); err != nil {
+	if err := tools.FreezeICDatasetFileVersions(dataset, user, storageProvider, dbProvider); err != nil {
 		return fmt.Errorf("failed to freeze file versions: %s", err)
 	}
 

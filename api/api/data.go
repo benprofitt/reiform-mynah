@@ -13,7 +13,7 @@ import (
 
 const idKey = "id"
 
-// get data as json
+// getDataJSON get data as json
 func getDataJSON(dbProvider db.DBProvider) http.HandlerFunc {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		//the user making the request

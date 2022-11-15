@@ -82,7 +82,7 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 	req.Dataset.DatasetUuid = dataset.Uuid
 	req.Dataset.Mean = newDatasetVersion.Mean
 	req.Dataset.StdDev = newDatasetVersion.StdDev
-	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]ICProcessJobRequestFile)
+	req.Dataset.ClassFiles = make(map[model.MynahClassName]map[string]*ICProcessJobRequestFile)
 
 	//accumulate the file uuids in this dataset
 	fileUuidSet := containers.NewUniqueSet[model.MynahUuid]()
@@ -145,11 +145,11 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 
 		//create a mapping for this class if one doesn't exist
 		if _, ok := req.Dataset.ClassFiles[classInfo.CurrentClass]; !ok {
-			req.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]ICProcessJobRequestFile)
+			req.Dataset.ClassFiles[classInfo.CurrentClass] = make(map[string]*ICProcessJobRequestFile)
 		}
 
 		//add the class -> tmp file -> data mapping
-		req.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = ICProcessJobRequestFile{
+		req.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = &ICProcessJobRequestFile{
 			Uuid:     fileId,
 			Width:    width,
 			Height:   height,

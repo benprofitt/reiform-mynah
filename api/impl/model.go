@@ -61,7 +61,7 @@ type ICProcessJobRequest struct {
 		//the stddev of the channels of images in the dataset
 		StdDev []float64 `json:"std_dev"`
 		//map by class to map by temp path
-		ClassFiles map[model.MynahClassName]map[string]ICProcessJobRequestFile `json:"class_files"`
+		ClassFiles map[model.MynahClassName]map[string]*ICProcessJobRequestFile `json:"class_files"`
 	} `json:"dataset"`
 	//tasks to perform
 	Tasks []ICProcessJobRequestTask `json:"tasks"`
@@ -98,7 +98,7 @@ type ICProcessJobResponse struct {
 		//the stddev of the channels of images in the dataset
 		StdDev []float64 `json:"std_dev"`
 		//map by class to map by temp path
-		ClassFiles map[model.MynahClassName]map[string]ICProcessJobResponseFile `json:"class_files"`
+		ClassFiles map[model.MynahClassName]map[string]*ICProcessJobResponseFile `json:"class_files"`
 	} `json:"dataset"`
 	//the tasks in the dataset
 	Tasks []model.MynahICProcessTaskData `json:"tasks"`
@@ -115,7 +115,11 @@ type ImageMetadataRequestLocalFile struct {
 // ImageMetadataRequest request type for image metadata
 type ImageMetadataRequest struct {
 	// the images to process
+<<<<<<< HEAD
 	Images []ImageMetadataRequestLocalFile `json:"images"`
+=======
+	Images []*ImageMetadataRequestLocalFile `json:"images"`
+>>>>>>> develop
 }
 
 // ImageMetadataResponseFileData defines the metadata for a single file
@@ -135,5 +139,9 @@ type ImageMetadataResponseFileData struct {
 // ImageMetadataResponse response type for image metadata
 type ImageMetadataResponse struct {
 	// the images to batch process
+<<<<<<< HEAD
 	Images map[model.MynahUuid]ImageMetadataResponseFileData `json:"images"`
+=======
+	Images map[model.MynahUuid]*ImageMetadataResponseFileData `json:"images"`
+>>>>>>> develop
 }

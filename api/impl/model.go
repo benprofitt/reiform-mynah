@@ -115,11 +115,7 @@ type ImageMetadataRequestLocalFile struct {
 // ImageMetadataRequest request type for image metadata
 type ImageMetadataRequest struct {
 	// the images to process
-<<<<<<< HEAD
-	Images []ImageMetadataRequestLocalFile `json:"images"`
-=======
 	Images []*ImageMetadataRequestLocalFile `json:"images"`
->>>>>>> develop
 }
 
 // ImageMetadataResponseFileData defines the metadata for a single file
@@ -139,9 +135,5 @@ type ImageMetadataResponseFileData struct {
 // ImageMetadataResponse response type for image metadata
 type ImageMetadataResponse struct {
 	// the images to batch process
-<<<<<<< HEAD
-	Images map[model.MynahUuid]ImageMetadataResponseFileData `json:"images"`
-=======
 	Images map[model.MynahUuid]*ImageMetadataResponseFileData `json:"images"`
->>>>>>> develop
 }

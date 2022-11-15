@@ -162,11 +162,7 @@ func (p *MynahFile) GetPermissions(user *MynahUser) Permissions {
 func (s MynahFileSet) GetLatestVersions() (MynahVersionedFileSet, error) {
 	res := make(MynahVersionedFileSet)
 	for fileId, file := range s {
-<<<<<<< HEAD
-		if ver, err := file.GetFileVersion(LatestVersionId); err != nil {
-=======
 		if ver, err := file.GetFileVersion(LatestVersionId); err == nil {
->>>>>>> develop
 			res[fileId] = ver
 		} else {
 			return nil, err

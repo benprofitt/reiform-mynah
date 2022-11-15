@@ -28,17 +28,10 @@ func (d ImageMetadataResponse) apply(files map[model.MynahUuid]storage.MynahLoca
 
 // NewBatchImageMetadataRequest creates a new image metadata request
 func (p *localImplProvider) NewBatchImageMetadataRequest(files storage.MynahLocalFileSet) *ImageMetadataRequest {
-<<<<<<< HEAD
-	imageData := make([]ImageMetadataRequestLocalFile, 0, len(files))
-
-	for id, file := range files {
-		imageData = append(imageData, ImageMetadataRequestLocalFile{
-=======
 	imageData := make([]*ImageMetadataRequestLocalFile, 0, len(files))
 
 	for id, file := range files {
 		imageData = append(imageData, &ImageMetadataRequestLocalFile{
->>>>>>> develop
 			Uuid: id,
 			Path: file.Path(),
 		})

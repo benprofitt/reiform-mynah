@@ -8,7 +8,6 @@ import (
 	"reiform.com/mynah/async"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/impl"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 )
@@ -16,23 +15,20 @@ import (
 // icProcessJob handle request to start a new async job
 func icProcessJob(dbProvider db.DBProvider,
 	asyncProvider async.AsyncProvider,
-	implProvider impl.ImplProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		user := middleware.GetUserFromRequest(request)
-
+	implProvider impl.ImplProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 		var req ICProcessJobRequest
 
 		//attempt to parse the request body
-		if err := requestParseJson(writer, request, &req); err != nil {
-			log.Warnf("failed to parse json for ic process job: %s", err)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+		if err := ctx.ReadJson(&req); err != nil {
+			ctx.Error(http.StatusBadRequest, "failed to parse json for ic process job: %s", err)
 			return
 		}
 
 		//kick off async job
-		taskId := asyncProvider.StartAsyncTask(user, func(model.MynahUuid) ([]byte, error) {
+		taskId := asyncProvider.StartAsyncTask(ctx.User, func(model.MynahUuid) ([]byte, error) {
 			//start the python task
-			err := implProvider.ICProcessJob(user, req.DatasetUuid, req.Tasks)
+			err := implProvider.ICProcessJob(ctx.User, req.DatasetUuid, req.Tasks)
 			if err != nil {
 				return nil, fmt.Errorf("ic process task for dataset %s failed: %s", req.DatasetUuid, err)
 			}
@@ -46,9 +42,9 @@ func icProcessJob(dbProvider db.DBProvider,
 		}
 
 		//write the response
-		if err := responseWriteJson(writer, &response); err != nil {
-			log.Warnf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(&response); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }

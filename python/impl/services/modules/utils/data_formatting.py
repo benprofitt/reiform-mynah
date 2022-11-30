@@ -51,7 +51,7 @@ def read_csv_file(path, files_path, save_path):
     for name, info in images.items():
         packages.append((names[name], info[1]))
     
-    with Pool(16) as p:
+    with Pool(AVAILABLE_THREADS) as p:
         files = p.map(make_file_with_RGB, packages)
 
     for file in files:

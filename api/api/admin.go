@@ -6,28 +6,23 @@ import (
 	"net/http"
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 )
 
 // adminCreateUser creates a new user
-func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//get the admin user from context
-		admin := middleware.GetUserFromRequest(request)
-
+func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 		var req AdminCreateUserRequest
 
 		//attempt to parse the request body
-		if err := requestParseJson(writer, request, &req); err != nil {
-			log.Warnf("failed to parse json: %s", err)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+		if err := ctx.ReadJson(&req); err != nil {
+			ctx.Error(http.StatusBadRequest, "failed to parse json: %s", err)
 			return
 		}
 
 		//try to create the user
-		user, err := dbProvider.CreateUser(admin, func(user *model.MynahUser) error {
+		user, err := dbProvider.CreateUser(ctx.User, func(user *model.MynahUser) error {
 			//update attributes
 			user.NameFirst = req.NameFirst
 			user.NameLast = req.NameLast
@@ -35,8 +30,7 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 		})
 
 		if err != nil {
-			log.Errorf("failed to add new user to database %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "failed to add new user to database %s", err)
 			return
 		}
 
@@ -49,15 +43,14 @@ func adminCreateUser(dbProvider db.DBProvider, authProvider auth.AuthProvider) h
 			}
 
 			//write the response
-			if err := responseWriteJson(writer, &res); err != nil {
-				log.Warnf("failed to write response as json: %s", err)
-				writer.WriteHeader(http.StatusInternalServerError)
+			if err := ctx.WriteJson(&res); err != nil {
+				ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+				return
 			}
 
 		} else {
-			log.Errorf("failed to create jwt for user %s: %s", user.Uuid, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to create jwt for user %s: %s", err)
 			return
 		}
-	})
+	}
 }

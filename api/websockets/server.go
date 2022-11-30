@@ -123,7 +123,7 @@ func (c *connectedClient) clientWrite() {
 }
 
 // ServerHandler return a handler used in a rest endpoint
-func (w *webSocketServer) ServerHandler() http.HandlerFunc {
+func (w *webSocketServer) ServerHandler() middleware.HandlerFunc {
 	//listen for new client data to distribute
 	go func() {
 		for {
@@ -159,24 +159,20 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 	upgrader := websocket.Upgrader{}
 
 	//return the http handler
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	return func(ctx *middleware.Context) {
 		//upgrade the http client request
-		clientConn, upgradeErr := upgrader.Upgrade(writer, request, nil)
+		clientConn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 
-		if upgradeErr != nil {
-			log.Errorf("failed to upgrade http client: ", upgradeErr)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to upgrade http client: %s", err)
 			return
 		}
-
-		//the authenticated user
-		user := middleware.GetUserFromRequest(request)
 
 		//create a client
 		client := connectedClient{
 			conn:        clientConn,
 			outgoing:    make(chan []byte, 256),
-			uuid:        user.Uuid,
+			uuid:        ctx.User.Uuid,
 			connManager: w,
 		}
 
@@ -185,7 +181,7 @@ func (w *webSocketServer) ServerHandler() http.HandlerFunc {
 
 		//start the client writer goroutine (ensures synchronized writes)
 		go client.clientWrite()
-	})
+	}
 }
 
 // Send accept data to send to a connected client

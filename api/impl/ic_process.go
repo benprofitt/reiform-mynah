@@ -123,24 +123,17 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 			return nil, fmt.Errorf("failed to get file %s: %s", fileId, err)
 		}
 
-		//extract file metadata
-		var channels int64
-		var width int64
-		var height int64
-
 		//check for metadata
-		if fileData, found := files[fileId]; found {
-			//assume the latest version of the metadata
-			if version, found := fileData.Versions[model.LatestVersionId]; found {
-				channels = version.Metadata.GetDefaultInt(model.MetadataChannels, 0)
-				width = version.Metadata.GetDefaultInt(model.MetadataWidth, 0)
-				height = version.Metadata.GetDefaultInt(model.MetadataHeight, 0)
-			} else {
-				return nil, fmt.Errorf("unable to find file %s metadata using version id: %s", fileId, model.LatestVersionId)
-			}
-		} else {
+		fileData, found := files[fileId]
+		if !found {
 			// (File may have been requested but this user may not have permission)
 			return nil, fmt.Errorf("dataset file %s not found in files set for dataset (does user have permission?): %s", fileId, dataset.Uuid)
+		}
+
+		//assume the latest version of the metadata
+		version, err := fileData.GetFileVersion(model.LatestVersionId)
+		if err != nil {
+			return nil, fmt.Errorf("unable to find file %s metadata version: %s", fileId, err)
 		}
 
 		//create a mapping for this class if one doesn't exist
@@ -151,11 +144,11 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 		//add the class -> tmp file -> data mapping
 		req.Dataset.ClassFiles[classInfo.CurrentClass][tmpPath] = &ICProcessJobRequestFile{
 			Uuid:     fileId,
-			Width:    width,
-			Height:   height,
-			Channels: channels,
-			Mean:     classInfo.Mean,
-			StdDev:   classInfo.StdDev,
+			Width:    version.Metadata.Width,
+			Height:   version.Metadata.Height,
+			Channels: version.Metadata.Channels,
+			Mean:     append([]float64(nil), version.Metadata.Mean...),
+			StdDev:   append([]float64(nil), version.Metadata.StdDev...),
 		}
 	}
 

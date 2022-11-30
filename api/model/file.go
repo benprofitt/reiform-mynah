@@ -21,25 +21,21 @@ const (
 // MetadataKey a key into file metadata
 type MetadataKey string
 
-const (
-	MetadataSize     MetadataKey = "size"
-	MetadataWidth                = "width"
-	MetadataHeight               = "height"
-	MetadataChannels             = "channels"
-	MetadataMean                 = "mean"
-	MetadataStddev               = "stddev"
-)
-
-type FileMetadataValueType interface{}
-
-// FileMetadata metadata type
-type FileMetadata map[MetadataKey]FileMetadataValueType
-
 // MynahFileSet defines a set of files
 type MynahFileSet map[MynahUuid]*MynahFile
 
 // MynahVersionedFileSet defines a set of file versions
 type MynahVersionedFileSet map[MynahUuid]*MynahFileVersion
+
+// MynahFileMetadata defines the metadata a file may have
+type MynahFileMetadata struct {
+	Size     int64     `json:"size"`
+	Width    int64     `json:"width"`
+	Height   int64     `json:"height"`
+	Channels int64     `json:"channels"`
+	Mean     []float64 `json:"mean"`
+	StdDev   []float64 `json:"stddev"`
+}
 
 // MynahFileVersion a version of the file
 type MynahFileVersion struct {
@@ -48,7 +44,7 @@ type MynahFileVersion struct {
 	//whether the file version is available locally
 	ExistsLocally bool `json:"exists_locally"`
 	//file metadata
-	Metadata FileMetadata `json:"metadata"`
+	Metadata *MynahFileMetadata `json:"metadata"`
 }
 
 // MynahFile Defines a file managed by Mynah
@@ -69,40 +65,6 @@ type MynahFile struct {
 	Versions map[MynahFileVersionId]*MynahFileVersion `json:"versions" xorm:"TEXT 'versions'"`
 }
 
-// GetDefaultInt returns a value if the key is found or the default value provided
-func (m FileMetadata) GetDefaultInt(key MetadataKey, def int64) int64 {
-	if val, found := m[key]; found {
-		switch v := val.(type) {
-		case int64:
-			return v
-		case int:
-			return int64(v)
-		default:
-			return def
-		}
-	}
-	return def
-}
-
-// GetDefaultFloatSlice returns a value if the key is found or the default value provided
-func (m FileMetadata) GetDefaultFloatSlice(key MetadataKey, def []float64) []float64 {
-	if val, found := m[key]; found {
-		switch v := val.(type) {
-		case []float64:
-			return v
-		case []float32:
-			res := make([]float64, len(v))
-			for i := 0; i < len(v); i++ {
-				res[i] = float64(v[i])
-			}
-			return res
-		default:
-			return def
-		}
-	}
-	return def
-}
-
 // NewFile creates a new file
 func NewFile(creator *MynahUser) *MynahFile {
 	f := MynahFile{
@@ -118,11 +80,29 @@ func NewFile(creator *MynahUser) *MynahFile {
 	return &f
 }
 
+// CopyTo copies file version data
+func (src *MynahFileVersion) CopyTo(dest *MynahFileVersion) {
+	dest.ExistsLocally = src.ExistsLocally
+	dest.Metadata.Size = src.Metadata.Size
+	dest.Metadata.Width = src.Metadata.Width
+	dest.Metadata.Height = src.Metadata.Height
+	dest.Metadata.Channels = src.Metadata.Channels
+	dest.Metadata.Mean = append([]float64(nil), src.Metadata.Mean...)
+	dest.Metadata.StdDev = append([]float64(nil), src.Metadata.StdDev...)
+}
+
 // NewMynahFileVersion creates a new file version
 func NewMynahFileVersion(versionId MynahFileVersionId) *MynahFileVersion {
 	return &MynahFileVersion{
-		VersionId:     versionId,
-		Metadata:      make(FileMetadata),
+		VersionId: versionId,
+		Metadata: &MynahFileMetadata{
+			Size:     0,
+			Width:    0,
+			Height:   0,
+			Channels: 0,
+			Mean:     make([]float64, 0),
+			StdDev:   make([]float64, 0),
+		},
 		ExistsLocally: false,
 	}
 }

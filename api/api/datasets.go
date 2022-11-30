@@ -6,7 +6,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"reiform.com/mynah/containers"
 	"reiform.com/mynah/db"
@@ -36,17 +35,13 @@ func sanitizeICDataset(dataset *model.MynahICDataset) {
 }
 
 // icDatasetCreate creates a new dataset in the database
-func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request (will be the owner)
-		user := middleware.GetUserFromRequest(request)
-
+func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StorageProvider, implProvider impl.ImplProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 		var req CreateICDatasetRequest
 
 		//attempt to parse the request body
-		if err := requestParseJson(writer, request, &req); err != nil {
-			log.Warnf("failed to parse json: %s", err)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+		if err := ctx.ReadJson(&req); err != nil {
+			ctx.Error(http.StatusBadRequest, "failed to parse json: %s", err)
 			return
 		}
 
@@ -57,41 +52,37 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		}
 
 		//request all files
-		files, err := dbProvider.GetFiles(fileIdSet.Vals(), user)
+		files, err := dbProvider.GetFiles(fileIdSet.Vals(), ctx.User)
 		if err != nil {
-			log.Errorf("failed request files for ic dataset creation: %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "failed request files for ic dataset creation: %s", err)
 			return
 		}
 
 		// get the latest version of each file
 		latestFiles, err := files.GetLatestVersions()
 		if err != nil {
-			log.Errorf("failed request files for ic dataset creation: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed request files for ic dataset creation: %s", err)
 			return
 		}
 
 		// get the files locally
 		err = storageProvider.GetStoredFiles(latestFiles, func(localFiles storage.MynahLocalFileSet) error {
 			// extract metadata from the files
-			return implProvider.BatchImageMetadata(user, localFiles)
+			return implProvider.BatchImageMetadata(ctx.User, localFiles)
 		})
 		if err != nil {
-			log.Errorf("failed to record metadata for files for ic dataset creation: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to record metadata for files for ic dataset creation: %s", err)
 			return
 		}
 
 		// commit the changes to the database
-		if err := dbProvider.UpdateFiles(files, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
-			log.Errorf("failed to update files for ic dataset creation: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := dbProvider.UpdateFiles(files, ctx.User, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to update files for ic dataset creation: %s", err)
 			return
 		}
 
 		//create the dataset, set the name and the files
-		dataset, err := dbProvider.CreateICDataset(user, func(dataset *model.MynahICDataset) error {
+		dataset, err := dbProvider.CreateICDataset(ctx.User, func(dataset *model.MynahICDataset) error {
 			dataset.DatasetName = req.Name
 			//create an initial version of the dataset
 			if initialVersion, err := tools.MakeICDatasetVersion(dataset); err == nil {
@@ -108,8 +99,9 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 						if err != nil {
 							return err
 						}
-						initialVersion.Files[fileId].Mean = latest.Metadata.GetDefaultFloatSlice(model.MetadataMean, nil)
-						initialVersion.Files[fileId].StdDev = latest.Metadata.GetDefaultFloatSlice(model.MetadataStddev, nil)
+						initialVersion.Files[fileId].Mean = latest.Metadata.Mean
+						initialVersion.Files[fileId].StdDev = latest.Metadata.StdDev
+
 					} else {
 						return fmt.Errorf("failed to load file %s for dataset creation: %s", fileId, err)
 					}
@@ -122,19 +114,18 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		})
 
 		if err != nil {
-			log.Errorf("failed to add new ic dataset to database %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusInternalServerError, "failed to add new ic dataset to database %s", err)
 			return
 		}
 
 		sanitizeICDataset(dataset)
 
 		//write the response
-		if err := responseWriteJson(writer, dataset); err != nil {
-			log.Warnf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(dataset); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // icDatasetFilterVersion filters a dataset based on the version range values. If neither were provided,
@@ -243,185 +234,157 @@ func odDatasetFilterVersion(dataset *model.MynahODDataset, fromVersionParam, toV
 }
 
 // icDatasetGet gets an ic dataset by id. By default, returns the latest version only
-func icDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
-
-		datasetId, ok := mux.Vars(request)[DatasetIdKey]
+func icDatasetGet(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
+		datasetId, ok := ctx.Vars()[DatasetIdKey]
 		//get request params
 		if !ok {
-			log.Errorf("ic dataset request path missing %s key", datasetId)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "ic dataset request path missing %s key", datasetId)
 			return
 		}
 
 		//get the requested ic dataset
-		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, db.NewMynahDBColumns())
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User, db.NewMynahDBColumns())
 
 		if err != nil {
-			log.Errorf("failed to get ic dataset %s from database %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusNotFound, "failed to get ic dataset %s from database %s", datasetId, err)
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
-		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
+		datasetFromVersion := ctx.GetForm(DatasetVersionStartKey)
+		datasetToVersion := ctx.GetForm(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := icDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
-			log.Warnf("failed to filter dataset version(s): %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "failed to filter dataset version(s): %s", err)
 			return
 		}
 
 		sanitizeICDataset(dataset)
 
 		//write the response
-		if err := responseWriteJson(writer, dataset); err != nil {
-			log.Errorf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(dataset); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // odDatasetGet gets an od dataset by id. By default, returns the latest version only
-func odDatasetGet(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
-
-		datasetId, ok := mux.Vars(request)[DatasetIdKey]
+func odDatasetGet(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
+		datasetId, ok := ctx.Vars()[DatasetIdKey]
 		//get request params
 		if !ok {
-			log.Errorf("od dataset request path missing %s key", datasetId)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "od dataset request path missing %s key", datasetId)
 			return
 		}
 
 		//get the requested od dataset
-		dataset, err := dbProvider.GetODDataset(model.MynahUuid(datasetId), user)
+		dataset, err := dbProvider.GetODDataset(model.MynahUuid(datasetId), ctx.User)
 
 		if err != nil {
-			log.Errorf("failed to get od dataset %s from database %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusNotFound, "failed to get od dataset %s from database %s", datasetId, err)
 			return
 		}
 		//check for range params
-		datasetFromVersion := request.Form.Get(DatasetVersionStartKey)
-		datasetToVersion := request.Form.Get(DatasetVersionEndKey)
+		datasetFromVersion := ctx.GetForm(DatasetVersionStartKey)
+		datasetToVersion := ctx.GetForm(DatasetVersionEndKey)
 
 		//filter the dataset
 		if err := odDatasetFilterVersion(dataset, datasetFromVersion, datasetToVersion, false); err != nil {
-			log.Warnf("failed to filter dataset version(s): %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "failed to filter dataset version(s): %s", err)
 			return
 		}
 
 		//write the response
-		if err := responseWriteJson(writer, dataset); err != nil {
-			log.Errorf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(dataset); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // icDatasetList lists ic datasets
-func icDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
-
+func icDatasetList(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 		//list all ic datasets
-		datasets, err := dbProvider.ListICDatasets(user)
+		datasets, err := dbProvider.ListICDatasets(ctx.User)
 
 		if err != nil {
-			log.Errorf("failed to list ic datasets in database %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to list ic datasets in database %s", err)
 			return
 		}
 
 		for _, dataset := range datasets {
 			//filter the get the latest version only
 			if err = icDatasetFilterVersion(dataset, "", "", true); err != nil {
-				log.Warnf("failed to filter ic dataset version(s): %s", err)
-				writer.WriteHeader(http.StatusBadRequest)
+				ctx.Error(http.StatusBadRequest, "failed to filter ic dataset version(s): %s", err)
 				return
 			}
 
 			sanitizeICDataset(dataset)
 		}
-
 		//write the response
-		if err := responseWriteJson(writer, &datasets); err != nil {
-			log.Errorf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(&datasets); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // odDatasetList lists od datasets
-func odDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
-
+func odDatasetList(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 		//list all od datasets
-		datasets, err := dbProvider.ListODDatasets(user)
+		datasets, err := dbProvider.ListODDatasets(ctx.User)
 
 		if err != nil {
-			log.Errorf("failed to list od datasets in database %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to list od datasets in database %s", err)
 			return
 		}
 
 		for _, dataset := range datasets {
 			//filter to get latest version only
 			if err = odDatasetFilterVersion(dataset, "", "", true); err != nil {
-				log.Warnf("failed to filter od dataset version(s): %s", err)
-				writer.WriteHeader(http.StatusBadRequest)
+				ctx.Error(http.StatusBadRequest, "failed to filter od dataset version(s): %s", err)
 				return
 			}
 		}
 
 		//write the response
-		if err := responseWriteJson(writer, &datasets); err != nil {
-			log.Errorf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(&datasets); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // allDatasetList lists datasets of all types
-func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
+func allDatasetList(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 
 		allDatasets := make([]model.MynahAbstractDataset, 0)
 
-		icDatasets, err := dbProvider.ListICDatasets(user)
+		icDatasets, err := dbProvider.ListICDatasets(ctx.User)
 
 		if err != nil {
-			log.Errorf("failed to list ic datasets in database %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to list ic datasets in database %s", err)
 			return
 		}
 
 		//list all od datasets
-		odDatasets, err := dbProvider.ListODDatasets(user)
+		odDatasets, err := dbProvider.ListODDatasets(ctx.User)
 
 		if err != nil {
-			log.Errorf("failed to list od datasets in database %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to list od datasets in database %s", err)
 			return
 		}
 
 		for _, dataset := range icDatasets {
 			//filter to get latest version only
 			if err = icDatasetFilterVersion(dataset, "", "", true); err != nil {
-				log.Warnf("failed to filter ic dataset version(s): %s", err)
-				writer.WriteHeader(http.StatusBadRequest)
+				ctx.Error(http.StatusBadRequest, "failed to filter ic dataset version(s): %s", err)
 				return
 			}
 
@@ -434,8 +397,7 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 		for _, dataset := range odDatasets {
 			//filter to get latest version only
 			if err = odDatasetFilterVersion(dataset, "", "", true); err != nil {
-				log.Warnf("failed to filter od dataset version(s): %s", err)
-				writer.WriteHeader(http.StatusBadRequest)
+				ctx.Error(http.StatusBadRequest, "failed to filter od dataset version(s): %s", err)
 				return
 			}
 			//add to the full collection
@@ -443,36 +405,31 @@ func allDatasetList(dbProvider db.DBProvider) http.HandlerFunc {
 		}
 
 		//write the response
-		if err := responseWriteJson(writer, &allDatasets); err != nil {
-			log.Errorf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+		if err := ctx.WriteJson(&allDatasets); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
 		}
-	})
+	}
 }
 
 // icDatasetExport export a dataset
-func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
-
-		datasetId, ok := mux.Vars(request)[DatasetIdKey]
+func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StorageProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
+		datasetId, ok := ctx.Vars()[DatasetIdKey]
 		//get request params
 		if !ok {
-			log.Errorf("ic dataset export request path missing %s key", datasetId)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "ic dataset export request path missing %s key", datasetId)
 			return
 		}
 
 		//get the dataset to be exported
-		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), user, db.NewMynahDBColumns())
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User, db.NewMynahDBColumns())
 		if err != nil {
-			log.Warnf("failed to get ic dataset %s from database for export: %s", datasetId, err)
-			writer.WriteHeader(http.StatusNotFound)
+			ctx.Error(http.StatusNotFound, "failed to get ic dataset %s from database for export: %s", datasetId, err)
 			return
 		}
 
-		datasetVersionId := model.MynahDatasetVersionId(request.Form.Get(DatasetVersionKey))
+		datasetVersionId := model.MynahDatasetVersionId(ctx.GetForm(DatasetVersionKey))
 		if datasetVersionId == "" {
 			//if no specific version provided, default to latest version
 			datasetVersionId = dataset.LatestVersion
@@ -480,8 +437,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 
 		datasetVersion, ok := dataset.Versions[datasetVersionId]
 		if !ok {
-			log.Warnf("no such dataset version for dataset %s: %s", datasetId, datasetVersionId)
-			writer.WriteHeader(http.StatusNotFound)
+			ctx.Error(http.StatusNotFound, "no such dataset version for dataset %s: %s", datasetId, datasetVersionId)
 			return
 		}
 
@@ -493,10 +449,9 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		}
 
 		//request the files in this dataset as a group
-		files, err := dbProvider.GetFiles(fileUuidSet.Vals(), user)
+		files, err := dbProvider.GetFiles(fileUuidSet.Vals(), ctx.User)
 		if err != nil {
-			log.Warnf("failed to request files tracked by dataset %s for dataset export: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to request files tracked by dataset %s for dataset export: %s", datasetId, err)
 			return
 		}
 
@@ -511,8 +466,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		//create a new zip archive
 		archive, err := storageProvider.CreateTempFile(archiveName)
 		if err != nil {
-			log.Warnf("failed to create new zip archive for dataset %s during export: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to create new zip archive for dataset %s during export: %s", datasetId, err)
 			return
 		}
 
@@ -540,8 +494,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			})
 
 		if err != nil {
-			log.Warnf("failed to write files for dataset %s during export: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to write files for dataset %s during export: %s", datasetId, err)
 			return
 		}
 
@@ -556,24 +509,21 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 			})
 
 		if err != nil {
-			log.Warnf("failed to write additional artifacts for dataset %s during export: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to write additional artifacts for dataset %s during export: %s", datasetId, err)
 			return
 		}
 
 		if err = zipWriter.Close(); err != nil {
-			log.Warnf("failed to close zip writer: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to close zip writer: %s", err)
 			return
 		}
 
 		if err = archive.Close(); err != nil {
-			log.Warnf("failed to close zip archive: %s", datasetId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to close zip archive: %s", err)
 			return
 		}
 
 		//respond with the zip archive
-		http.ServeContent(writer, request, archiveName, time.Unix(0, 0), archive)
-	})
+		ctx.ServeContent(archiveName, time.Unix(0, 0), archive)
+	}
 }

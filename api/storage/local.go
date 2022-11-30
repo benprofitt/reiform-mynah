@@ -54,14 +54,7 @@ func newLocalStorage(mynahSettings *settings.MynahSettings) (*localStorage, erro
 
 // CopyFile copy the contents of a file to another with a different version id. Note: creates the new version id
 func (s *localStorage) CopyFile(fileId model.MynahUuid, src, dest *model.MynahFileVersion) error {
-	// note that the file exists locally
-	dest.ExistsLocally = true
-	dest.Metadata = make(model.FileMetadata)
-
-	//copy metadata
-	for k, v := range src.Metadata {
-		dest.Metadata[k] = v
-	}
+	src.CopyTo(dest)
 
 	srcPath := s.getVersionedPath(fileId, src.VersionId)
 
@@ -136,7 +129,7 @@ func (s *localStorage) StoreFile(file *model.MynahFile, handler func(*os.File) e
 
 		//get the file size
 		if stat, err := localFile.Stat(); err == nil {
-			file.Versions[model.OriginalVersionId].Metadata[model.MetadataSize] = fmt.Sprintf("%d", stat.Size())
+			file.Versions[model.OriginalVersionId].Metadata.Size = stat.Size()
 
 		} else {
 			log.Warnf("failed to get filesize for %s: %s", file.Uuid, err)

@@ -77,7 +77,7 @@ class DatasetProcessingJob(Processing_Job):
 
             actions = task_types[task]
             if "diagnose" not in actions:
-                if "diagnose" not in self.previous_results[task]:
+                if task not in self.previous_results or "diagnose" not in self.previous_results[task]:
                     ReiformWarning("No previous diagnosis before requesting cleaning. Diagnosis will be performed.")
                     actions_to_order.append("{}::{}::{}".format("ic", "diagnose", task))
             else:
@@ -104,13 +104,17 @@ class DatasetProcessingJob(Processing_Job):
 
         for i, task in enumerate(self.tasks_requested):
             logger.write("Starting {} ({}/{})".format(task, i+1, len(self.tasks_requested)))
+            ReiformInfo("Starting {} ({}/{})".format(task, i+1, len(self.tasks_requested)))
             _, action, name = task.split("::")
 
             if action == "diagnose":
+                ReiformInfo("Starting diagnosis")
                 if name == "mislabeled_images":
                     if not valid_embeddings:
+                        ReiformInfo("Creating embeddings")
                         create_dataset_embedding(self.dataset, embedding_models_path)
                         valid_embeddings = True
+
                     _, outliers = find_outlier_consensus(self.dataset)
                     self.results[task] = {"outliers" : [f.get_name() for f in outliers.all_files()]}
                     self.previous_results[task] = self.results[task]
@@ -134,23 +138,28 @@ class DatasetProcessingJob(Processing_Job):
 
             elif action == "correct":
                 if name == "mislabeled_images":
+
                     if not valid_embeddings:
                         create_dataset_embedding(self.dataset, embedding_models_path)
 
                     to_correct = self.previous_results["ic::diagnose::mislabeled_images"]["outliers"]
+                    
                     outliers = self.dataset.dataset_from_uuids(to_correct)
-                    as_keys = set(outliers)
+                    as_keys = set(to_correct)
+                    
                     inlier_ids = [f.get_name() for f in self.dataset.all_files() if f.get_name() not in as_keys]
+                    ReiformInfo("Classes: {}".format(self.dataset.classes()))
                     inliers = self.dataset.dataset_from_uuids(inlier_ids)
-
+                    
                     self.dataset, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
                     
-                    self.results["task"] = {"removed" : [f.get_name() for f in outliers.all_files()], 
+                    self.results[task] = {"removed" : [f.get_name() for f in outliers.all_files()], 
                                             "corrected" : [f.get_name() for f in corrected.all_files()]}
                     
                     create_dataset_embedding(self.dataset, embedding_models_path)
                     valid_embeddings = True
                     self.dataset._mean_and_std_dev()
+
                 if name == "class_splitting":
                     if not valid_embeddings:
                         create_dataset_embedding(self.dataset, embedding_models_path)

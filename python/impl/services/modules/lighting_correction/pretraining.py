@@ -84,7 +84,7 @@ def load_pretrained_model(model_path : str, json_body : Dict[str, Any], model_ty
     model = model_type(channels_in, edge_size)
 
     # Load the state dict
-    model.load_state_dict(torch.load(model_path))
+    model = load_pt_model(model, model_path)
     model.eval()
     
     return model

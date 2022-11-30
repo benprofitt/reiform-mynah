@@ -165,9 +165,9 @@ def train_loss_from_svm(mu, labels, proj_dataloader, enc):
     class_labels = {}
     classes = 0
     for image_batch, label, _ in proj_dataloader:
-        torch.cuda.empty_cache()
+        empty_mem_cache()
         if random.random() < 0.2:
-            torch.cuda.empty_cache()
+            empty_mem_cache()
             image_batch = image_batch.to(device)
             label = label.to(device)
             for l in label:
@@ -211,7 +211,7 @@ def train_projection_separation_vae(vae : VAEAutoNet, dataloader : torch.utils.d
       include_enc_loss : bool = epoch > (1.0-(start_enc_loss_percent/100.0))*epochs
       
       for image_batch, label, name in dataloader:
-          torch.cuda.empty_cache()
+          empty_mem_cache()
           image_batch = image_batch.to(device)
           
           # Encode to latent space

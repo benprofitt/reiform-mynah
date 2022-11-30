@@ -49,7 +49,7 @@ class Model_Processing_Job(Processing_Job):
     def load_model(self, path : str, model : nn.Module) -> nn.Module:
 
         # Load the state dict
-        model.load_state_dict(torch.load(path))
+        model = load_pt_model(model, path)
         model.eval()
         
         return model

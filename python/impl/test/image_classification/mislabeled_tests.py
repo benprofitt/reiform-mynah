@@ -112,7 +112,6 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                         true_outliers += 1
                         if classes[class_pred] == file.get_original_class():
                             class_predicted_correctly_from_embedding_t_o += 1
-                    # ReiformInfo("Original Class and Predicted Class: {} and {}".format())
                     if classes[class_pred] == file.get_original_class():
                         class_predicted_correctly_from_embedding += 1
                 ReiformInfo("Correctly predicted original class of 'outliers': {}".format(class_predicted_correctly_from_embedding/out_size))

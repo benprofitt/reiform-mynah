@@ -313,7 +313,7 @@ def train_lighting_correction(model : LightingCorrectionNet, dataloader : torch.
       
       for image_batch, target_image_batch, labels in dataloader:
           with torch.autograd.set_detect_anomaly(True):
-            torch.cuda.empty_cache()
+            empty_mem_cache()
 
             image_batch = image_batch.to(device)
             target_image_batch = target_image_batch.to(device)
@@ -391,7 +391,7 @@ def train_lighting_correction_with_validation(model : LightingCorrectionNet, dat
       
       for image_batch, target_image_batch, labels in dataloader:
           with torch.autograd.set_detect_anomaly(True):
-            torch.cuda.empty_cache()
+            empty_mem_cache()
 
             image_batch = image_batch.to(device)
             target_image_batch = target_image_batch.to(device)

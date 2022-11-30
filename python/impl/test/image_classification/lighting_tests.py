@@ -31,7 +31,7 @@ def test_detection_model(models_path, dataset, all_dark, all_light, bare_model_c
     dataloader = torch.utils.data.DataLoader(pt_ds, batch_size=1, shuffle=False, num_workers=1)
 
     model = bare_model_class(channels, edge_size)
-    model.load_state_dict(torch.load(model_path))
+    model = load_pt_model(model, model_path)
 
     eval_model(dataloader, model)
 

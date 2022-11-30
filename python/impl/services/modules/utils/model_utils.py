@@ -21,7 +21,7 @@ def load_reiform_model(model_path : str, model_type : str, target_classes : int)
     model : nn.Module = make_model_from_string(model_type, target_classes)
 
     # Load the state dict
-    model.load_state_dict(torch.load(model_path))
+    model = load_pt_model(model, model_path)
     model.eval()
     
     return model

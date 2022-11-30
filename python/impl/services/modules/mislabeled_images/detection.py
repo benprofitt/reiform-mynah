@@ -73,7 +73,6 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
             y_known.append(i)
 
     clf.fit(X_known, y_known)
-
     for i, c in enumerate(outliers.classes()):
         for name, file in outliers.get_items(c):
             X_unknown.append(file.get_projection(PROJECTION_LABEL_REDUCED_EMBEDDING))
@@ -81,6 +80,7 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
             name_unknown.append(name)
 
     preds = clf.predict(X_unknown)
+
     prob_preds = clf.predict_proba(X_unknown)
     
     for name, p_class, c_probs, o_class in zip(name_unknown, preds, prob_preds, y_unknown):
@@ -136,4 +136,10 @@ def find_outlier_consensus(dataset : ReiformICDataSet):
             if filename not in names:
                 inlier_results.add_file(file)
     
-    return predict_outlier_labels(inlier_results, outlier_results)
+    if outlier_results.empty():
+        ReiformInfo("No Outliers")
+        return inlier_results, outlier_results
+    else:
+        datasets = predict_outlier_labels(inlier_results, outlier_results)
+
+    return datasets

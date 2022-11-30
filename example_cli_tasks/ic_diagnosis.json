@@ -7,7 +7,7 @@
         "folder_paths" : [
           "python/impl/test/test_data_small"
         ],
-        "multithread" : true
+        "multithread" : false
       }
     },
     {
@@ -30,6 +30,18 @@
         "from_task" : "create_ic_dataset",
         "tasks": [
           "ic::diagnose::mislabeled_images"
+        ],
+        "poll_frequency": 5
+      }
+    },
+    {
+      "task_id": "correct_clean",
+      "task_type": "mynah::ic::process",
+      "task_data": {
+        "from_existing" : "",
+        "from_task" : "create_ic_dataset",
+        "tasks": [
+          "ic::correct::mislabeled_images"
         ],
         "poll_frequency": 5
       }

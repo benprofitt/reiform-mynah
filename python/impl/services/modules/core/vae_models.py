@@ -127,7 +127,7 @@ def train_linear_vae(vae : nn.Module, dataloader : torch.utils.data.DataLoader, 
         if epoch % 5 == 0:
             ITERATION =[1]
         for projections, classes, filenames in dataloader:
-            torch.cuda.empty_cache()
+            empty_mem_cache()
             image_batch = projections.to(device)
             # vae reconstruction
             image_batch_recon, latent_mu, latent_logvar = vae(image_batch)
@@ -164,7 +164,7 @@ def train_vae(vae : nn.Module, dataloader : Any, optimizer : torch.optim.Optimiz
       if epoch % 5 == 0:
         ITERATION =[1]
       for image_batch, _ in dataloader:
-          torch.cuda.empty_cache()
+          empty_mem_cache()
           image_batch = image_batch.to(device)
           
           # vae reconstruction

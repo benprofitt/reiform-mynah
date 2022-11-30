@@ -14,11 +14,11 @@ func (d ImageMetadataResponse) apply(files map[model.MynahUuid]storage.MynahLoca
 		// make sure the file exists, update
 		if localFile, exists := files[fileId]; exists {
 			version := localFile.FileVersion()
-			version.Metadata[model.MetadataWidth] = data.Width
-			version.Metadata[model.MetadataHeight] = data.Height
-			version.Metadata[model.MetadataChannels] = data.Channels
-			version.Metadata[model.MetadataMean] = data.Mean
-			version.Metadata[model.MetadataStddev] = data.StdDev
+			version.Metadata.Width = data.Width
+			version.Metadata.Height = data.Height
+			version.Metadata.Channels = data.Channels
+			version.Metadata.Mean = data.Mean
+			version.Metadata.StdDev = data.StdDev
 		} else {
 			return fmt.Errorf("get_metadata_for_images() returned data for an unknown file: %s", fileId)
 		}

@@ -121,11 +121,11 @@ type ImageMetadataRequest struct {
 // ImageMetadataResponseFileData defines the metadata for a single file
 type ImageMetadataResponseFileData struct {
 	//the number of channels in an image
-	Channels int `json:"channels"`
+	Channels int64 `json:"channels"`
 	//the height of the image
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	//the width of the image
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	//the mean of the channels
 	Mean []float64 `json:"mean"`
 	//the stdev of the channels

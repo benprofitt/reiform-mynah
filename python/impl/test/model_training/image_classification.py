@@ -13,7 +13,6 @@ def test_training_job(request):
     
     training_results : Dict[str, Any] = training_job.run_processing_job(TestLogger())
 
-    ReiformInfo(training_results)
     return training_results
 
 def test_load_saved_model(request : Dict[str, Any], dataset : ReiformICDataSet):

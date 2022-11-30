@@ -67,7 +67,7 @@ def load_embedding_model(model_path : str, json_body : Dict[str, Any]) -> Encode
     encoder = VAEAutoNet(channels_in, edge_size, latent_size).encoder
 
     # Load the state dict
-    encoder.load_state_dict(torch.load(model_path))
+    encoder = load_pt_model(encoder, model_path)
     encoder.eval()
     
     return encoder

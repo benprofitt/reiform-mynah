@@ -259,7 +259,7 @@ def train_conv_net(model: nn.Module, dataloader : torch.utils.data.DataLoader,
       num_batches = 0
       
       for image_batch, labels, _ in dataloader:
-          torch.cuda.empty_cache()
+          empty_mem_cache()
           image_batch = image_batch.to(device)
           if (num_batches % 10) == 0 and VERBOSE:
             ReiformInfo("Batch: {}".format(num_batches))

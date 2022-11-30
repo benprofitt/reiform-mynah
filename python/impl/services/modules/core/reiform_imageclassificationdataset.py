@@ -42,6 +42,7 @@ class ReiformICFile(ReiformImageFile):
         del results["width"]
         del results["height"]
         del results["channels"]
+        del results["name"]
 
         return results
 
@@ -117,6 +118,8 @@ class ReiformICDataSet(ReiformImageDataset):
 
         self.mean : List[float] = []
         self.std_dev : List[float] = []
+
+        self.uuid = ""
 
         self.max_channels = 0
         self.max_height = 0
@@ -211,12 +214,21 @@ class ReiformICDataSet(ReiformImageDataset):
         side_a : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
         side_b : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
 
-        for _, files in self.files.items():
+        X = []
+        y = []
+
+        for c, files in self.files.items():
             for _, file in files.items():
-                if random.uniform(0, 1) < ratio:
-                    side_a.add_file(file)
-                else:
-                    side_b.add_file(file)
+                X.append(file)
+                y.append(c)
+
+        X_1, X_2, y1, y2 = sklearn.model_selection.train_test_split(X, y, test_size=1-ratio, shuffle=False)
+
+        for file in X_1:
+            side_a.add_file(file)
+
+        for file in X_2:
+            side_b.add_file(file)
 
         return side_a, side_b
 
@@ -360,8 +372,8 @@ class ReiformICDataSet(ReiformImageDataset):
                     new_file.from_json(file)
                     self.add_file(new_file)
 
-            for attrib in ["mean", "std_dev", "max_channels", "max_height", "max_width"]:
-                if attrib in body:
+            for attrib in ["mean", "std_dev", "max_channels", "max_height", "max_width", "uuid"]:
+                if attrib in body and body[attrib] is not None:
                     setattr(self, attrib, body[attrib])
 
     def to_json(self) -> Dict[str, Any]:
@@ -372,11 +384,18 @@ class ReiformICDataSet(ReiformImageDataset):
             if k != "files":
                 results[k] = val
 
-        self._serialize_files(attr_dict, results)
+        self._files_to_json(attr_dict, results)
         
         return results
 
     def _serialize_files(self, attr_dict, results):
+        results["class_files"] = {}
+        for c in self.class_list:
+            results["class_files"][c] = {}
+            for name, file in attr_dict["files"][c].items():
+                results["class_files"][c][name] = file.serialize()
+
+    def _files_to_json(self, attr_dict, results):
         results["files"] = {}
         for c in self.class_list:
             results["files"][c] = {}
@@ -392,7 +411,12 @@ class ReiformICDataSet(ReiformImageDataset):
         for k, val in attr_dict.items():
             if k not in extra_keys:
                 results[k] = val
-            
+
+        results["classes"] = results["class_list"]
+        del results["class_list"]
+
+        ReiformInfo("serialized classes {}".format(results))
+
         self._serialize_files(attr_dict, results)
 
         return results
@@ -479,6 +503,8 @@ class ReiformICDataSet(ReiformImageDataset):
         new_dataset = ReiformICDataSet(self.class_list)
         for id in uuids:
             new_dataset.add_file(self.get_file_by_uuid(id))
+
+        return new_dataset
 
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None, shuffle = True) -> torch.utils.data.DataLoader:
         
@@ -693,7 +719,7 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
     start = time.time()
 
     packages = zip(image_names, labels)
-    with Pool(16) as p:
+    with Pool(AVAILABLE_THREADS) as p:
         files = p.map(make_file, packages)
 
     for file in files:

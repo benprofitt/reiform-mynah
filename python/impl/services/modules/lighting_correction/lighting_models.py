@@ -215,7 +215,7 @@ def train_detection(model : LightingDetectorSparse, dataloader : torch.utils.dat
       num_batches = 0
       
       for image_batch, labels in dataloader:
-          torch.cuda.empty_cache()
+          empty_mem_cache()
           image_batch = image_batch.to(device)
           labels = labels.to(device)
           

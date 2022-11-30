@@ -3,10 +3,8 @@
 package api
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
 	"reiform.com/mynah/db"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 )
@@ -14,32 +12,26 @@ import (
 const idKey = "id"
 
 // getDataJSON get data as json
-func getDataJSON(dbProvider db.DBProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//the user making the request
-		user := middleware.GetUserFromRequest(request)
+func getDataJSON(dbProvider db.DBProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
 
-		dataId, ok := mux.Vars(request)[idKey]
+		dataId, ok := ctx.Vars()[idKey]
 		//get request params
 		if !ok {
-			log.Errorf("data as json request path missing %s key", idKey)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "data as json request path missing %s key", idKey)
 			return
 		}
 
 		//request the binary data
-		binData, err := dbProvider.GetBinObject(model.MynahUuid(dataId), user)
+		binData, err := dbProvider.GetBinObject(model.MynahUuid(dataId), ctx.User)
 		if err != nil {
-			log.Errorf("failed to get data as json object %s: %s", dataId, err)
-			writer.WriteHeader(http.StatusInternalServerError)
+			ctx.Error(http.StatusInternalServerError, "failed to get data as json object %s: %s", dataId, err)
 			return
 		}
 
 		//respond with the json contents
-		writer.Header().Add("Content-Type", "application/json")
-
-		if _, err := writer.Write(binData.Data); err != nil {
-			log.Errorf("failed to write report as json: %s", err)
+		if err := ctx.WriteJsonBytes(binData.Data); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write binary data", err)
 		}
-	})
+	}
 }

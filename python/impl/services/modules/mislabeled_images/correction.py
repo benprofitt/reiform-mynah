@@ -12,7 +12,6 @@ def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : An
         for _, file in dataset.get_items(c):
             y_known.append(i)
             X_known.append(file.get_projection(label))
-
     classifier.fit(X_known, y_known)
 
     return classifier
@@ -98,14 +97,16 @@ def monte_carlo_label_correction(simulations: int,
     packages : List[Tuple[ReiformICDataSet, ReiformICDataSet]] = []
 
     for i in range(simulations):
-        ReiformInfo("Simulation: {}".format(i+1))
+        # ReiformInfo("Simulation: {}".format(i+1))
+
+        # ReiformInfo("Inliers classes: {}".format(inliers.class_list))
         incl, dinc = inliers.split(0.9)
         if outliers.file_count() == 0:
             to_correct = dinc
 
         packages.append((incl, to_correct))
 
-    with Pool(16) as p:
+    with Pool(AVAILABLE_THREADS) as p:
         results = p.map(monte_carlo_parallel, packages)
 
     for _, result_list in results:
@@ -140,7 +141,7 @@ def monte_carlo_label_correction(simulations: int,
 
     return corrected, dropped
 
-def monte_carlo_parallel(package):
+def monte_carlo_parallel(package : Tuple[ReiformICDataSet, ReiformICDataSet]):
 
     # Get datasets out of the package
     incl, to_correct = package

@@ -11,22 +11,15 @@ import (
 	"reiform.com/mynah/auth"
 	"reiform.com/mynah/db"
 	"reiform.com/mynah/log"
-	"reiform.com/mynah/model"
 	"reiform.com/mynah/settings"
 	"reiform.com/mynah/storage"
 	"time"
 )
 
-type ctxKey string
+type HandlerFunc func(*Context)
 
-const contextUserKey ctxKey = "user"
-
-// MynahUserHandler Handler for a request that requires the user
-type MynahUserHandler func(user *model.MynahUser) (*Response, error)
-
-// GetUserFromRequest extract the user from context (can be used externally for basic http requests)
-func GetUserFromRequest(request *http.Request) *model.MynahUser {
-	return request.Context().Value(contextUserKey).(*model.MynahUser)
+func (f HandlerFunc) ServeHTTP(ctx *Context) {
+	f(ctx)
 }
 
 // NewRouter Create a new router
@@ -45,18 +38,18 @@ func NewRouter(mynahSettings *settings.MynahSettings,
 }
 
 // HttpMiddleware wraps the given function in basic request middleware
-func (r *MynahRouter) HttpMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	return r.logMiddleware(r.corsMiddleware(r.authenticationMiddleware(handler)))
+func (r *MynahRouter) HttpMiddleware(handler HandlerFunc) http.HandlerFunc {
+	return r.ctxMiddleware(r.logMiddleware(r.corsMiddleware(r.authenticationMiddleware(handler))))
 }
 
 // HandleHTTPRequest handle a basic http request (authenticated user passed in request context)
-func (r *MynahRouter) HandleHTTPRequest(method, urlPath string, handler http.HandlerFunc) *mux.Route {
+func (r *MynahRouter) HandleHTTPRequest(method, urlPath string, handler HandlerFunc) *mux.Route {
 	return r.HandleFunc(path.Join(r.settings.ApiPrefix, urlPath),
 		r.HttpMiddleware(handler)).Methods(method, http.MethodOptions)
 }
 
 // HandleAdminRequest Handle an admin request (passes authenticated admin)
-func (r *MynahRouter) HandleAdminRequest(method string, urlPath string, handler http.HandlerFunc) *mux.Route {
+func (r *MynahRouter) HandleAdminRequest(method string, urlPath string, handler HandlerFunc) *mux.Route {
 	return r.HandleFunc(path.Join(r.settings.ApiPrefix, "admin", urlPath),
 		r.HttpMiddleware(r.adminMiddleware(handler))).Methods(method, http.MethodOptions)
 }
@@ -67,9 +60,9 @@ func (r *MynahRouter) ListenAndServe() {
 	r.serveStaticSite()
 
 	//set the 404 handler
-	r.NotFoundHandler = r.logMiddleware(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	})
+	r.NotFoundHandler = r.ctxMiddleware(r.logMiddleware(func(ctx *Context) {
+		ctx.Writer.WriteHeader(http.StatusNotFound)
+	}))
 
 	r.server = &http.Server{
 		Handler:           r,

@@ -105,7 +105,7 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
             "layer4": "embedding"
         }
 
-    model_.load_state_dict(torch.load(path_to_embedding_model))
+    model_ = load_pt_model(model_, path_to_embedding_model)
     model_.to(device)
     model_.eval()
     with warnings.catch_warnings():
@@ -159,12 +159,12 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
 
     for c in dataset.classes():
         # Per-class embedding reduction -> used for class splitting
-        umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=8)
+        umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=AVAILABLE_THREADS)
         reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS, reduced_embeddings[i])
 
-        umap_red = umap.UMAP(n_jobs=8)
+        umap_red = umap.UMAP(n_jobs=AVAILABLE_THREADS)
         reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_2D_PER_CLASS, reduced_embeddings[i])
@@ -173,14 +173,14 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
     start = time.time()
 
     # Entire dataset embedding reduction -> used for outlier detection
-    umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=8)
+    umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=AVAILABLE_THREADS)
     reduced_embeddings = umap_red.fit_transform(embeddings)
 
     for i, file in enumerate(names):
         dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING, reduced_embeddings[i])
 
     # 2D projections -> Used to show user what's up with these embeddings
-    umap_red = umap.UMAP(n_jobs=8)
+    umap_red = umap.UMAP(n_jobs=AVAILABLE_THREADS)
     reduced_embeddings = umap_red.fit_transform(embeddings)
 
     for i, file in enumerate(names):

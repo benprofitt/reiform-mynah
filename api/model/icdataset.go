@@ -179,19 +179,15 @@ func NewICDatasetFile() *MynahICDatasetFile {
 // CopyICDatasetFile creates a new dataset file record by copying another
 // Note: updates to 'latest' tag
 func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
-	var confidenceVectors ConfidenceVectors
-	copy(confidenceVectors, other.ConfidenceVectors)
+	confidenceVectors := make(ConfidenceVectors, 0)
+	for _, v := range other.ConfidenceVectors {
+		confidenceVectors = append(confidenceVectors, append([]float64(nil), v...))
+	}
 
 	projections := make(map[MynahClassName][]int)
 	for key, value := range other.Projections {
 		projections[key] = value
 	}
-
-	var mean []float64
-	copy(mean, other.Mean)
-
-	var stdDev []float64
-	copy(stdDev, other.StdDev)
 
 	return &MynahICDatasetFile{
 		ImageVersionId:    LatestVersionId,
@@ -199,7 +195,7 @@ func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 		OriginalClass:     other.OriginalClass,
 		ConfidenceVectors: confidenceVectors,
 		Projections:       projections,
-		Mean:              mean,
-		StdDev:            stdDev,
+		Mean:              append([]float64(nil), other.Mean...),
+		StdDev:            append([]float64(nil), other.StdDev...),
 	}
 }

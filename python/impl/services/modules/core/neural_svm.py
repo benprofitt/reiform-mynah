@@ -14,7 +14,7 @@ def train_SVM(X, Y, ins, outs, epochs):
         sum_loss = 0
 
         for xi, y in zip(X, Y):
-            torch.cuda.empty_cache()
+            empty_mem_cache()
             with torch.no_grad():
                 x = xi * 1
             y = y.to(device)

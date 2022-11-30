@@ -22,7 +22,7 @@ stream.setLevel(logging.DEBUG)
 log.addHandler(stream)
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
-
+AVAILABLE_THREADS = 3
 
 def get_impl_version(uuid: str, sock_addr: str) -> str:
     '''Make sure that the module loads, returns version string'''
@@ -37,8 +37,10 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
         logging.info("called start_processing_job()")
         # call impl
         processing_job : processing.DatasetProcessingJob = processing.DatasetProcessingJob(request)
-
+        
         # Pass in logger to relay progress
+        # logging.info("OUTER DESERIALE: {}".format(processing_job.dataset.class_list))
+        # logging.info("OUTER DESERIALE: {}".format(processing_job.dataset.files))
         task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
     # response
     return json.dumps({
@@ -48,6 +50,8 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
             "tasks": task_results["tasks"]
         }
     })
+
+
 
 def start_ic_training_job(uuid : str, sock_addr: str) -> str:
     '''Start an IC training job. See docs/python_api.md'''
@@ -93,18 +97,18 @@ def start_ic_inference_job(uuid : str, sock_addr: str) -> str:
         }
     })
 
+def gather_data(obj):
+    path = obj["path"]
+    return (obj["uuid"], image_utils.get_image_metadata(path))
+
 def get_metadata_for_images(uuid: str, sock_addr: str) -> str:
     '''Get image width, height, channels, mean, std for all images in batch'''
 
     body = json.loads(sys.stdin.read())
+
     data = body["images"]
 
-    def gather_data(obj):
-        path = obj["path"]
-        return (obj["uuid"], image_utils.get_image_metadata(path))
-
-
-    with Pool(8) as p:
+    with Pool(AVAILABLE_THREADS) as p:
         metadatas = p.map(gather_data, data)
 
     results = {}

@@ -3,10 +3,8 @@
 package api
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
 	"reiform.com/mynah/async"
-	"reiform.com/mynah/log"
 	"reiform.com/mynah/middleware"
 	"reiform.com/mynah/model"
 )
@@ -14,44 +12,34 @@ import (
 const TaskIdKey = "taskid"
 
 // getAsyncTaskStatus get the status of a task
-func getAsyncTaskStatus(asyncProvider async.AsyncProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//get the user from context
-		user := middleware.GetUserFromRequest(request)
-
-		taskId, ok := mux.Vars(request)[TaskIdKey]
+func getAsyncTaskStatus(asyncProvider async.AsyncProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
+		taskId, ok := ctx.Vars()[TaskIdKey]
 		//get request params
 		if !ok {
-			log.Errorf("task status request path missing %s key", taskId)
-			writer.WriteHeader(http.StatusBadRequest)
+			ctx.Error(http.StatusBadRequest, "task status request path missing %s key", taskId)
 			return
 		}
 
-		//get the status of the task from the async engine
-		if stat, err := asyncProvider.GetAsyncTaskStatus(user, model.MynahUuid(taskId)); err == nil {
-			//write the response
-			if err := responseWriteJson(writer, stat); err != nil {
-				log.Warnf("failed to write response as json: %s", err)
-				writer.WriteHeader(http.StatusInternalServerError)
-			}
-		} else {
-			log.Errorf("failed to get task status: %s", err)
-			writer.WriteHeader(http.StatusBadRequest)
+		stat, err := asyncProvider.GetAsyncTaskStatus(ctx.User, model.MynahUuid(taskId))
+		if err != nil {
+			ctx.Error(http.StatusBadRequest, "failed to get task status: %s", err)
 			return
 		}
-	})
+
+		//write the response
+		if err := ctx.WriteJson(stat); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
+			return
+		}
+	}
 }
 
 // listAsyncTasks async tasks owned by the user
-func listAsyncTasks(asyncProvider async.AsyncProvider) http.HandlerFunc {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		//get the user from context
-		user := middleware.GetUserFromRequest(request)
-
-		//list tasks and write response
-		if err := responseWriteJson(writer, asyncProvider.ListAsyncTasks(user)); err != nil {
-			log.Warnf("failed to write response as json: %s", err)
-			writer.WriteHeader(http.StatusInternalServerError)
+func listAsyncTasks(asyncProvider async.AsyncProvider) middleware.HandlerFunc {
+	return func(ctx *middleware.Context) {
+		if err := ctx.WriteJson(asyncProvider.ListAsyncTasks(ctx.User)); err != nil {
+			ctx.Error(http.StatusInternalServerError, "failed to write response as json: %s", err)
 		}
-	})
+	}
 }

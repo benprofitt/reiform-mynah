@@ -85,7 +85,7 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 	// perform the update in a transaction
 	return p.dbProvider.Transaction(func(txProv db.DBProvider) error {
 		//create a new report based on this run
-		binObj, err := p.dbProvider.CreateBinObject(user, func(binObj *model.MynahBinObject) error {
+		binObj, err := txProv.CreateBinObject(user, func(binObj *model.MynahBinObject) error {
 			report := model.NewICDatasetReport()
 
 			//apply changes to dataset and report

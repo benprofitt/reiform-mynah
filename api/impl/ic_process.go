@@ -170,11 +170,11 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	dataset.StdDev = d.Dataset.StdDev
 
 	//copy dataset info from the ic process result
-	for _, classFiles := range d.Dataset.ClassFiles {
+	for class, classFiles := range d.Dataset.ClassFiles {
 		for _, fileData := range classFiles {
 			//copy the new data into the dataset
 			if datasetFile, ok := dataset.Files[fileData.Uuid]; ok {
-				datasetFile.CurrentClass = fileData.CurrentClass
+				datasetFile.CurrentClass = class
 				datasetFile.Projections = fileData.Projections
 				datasetFile.ConfidenceVectors = fileData.ConfidenceVectors
 				datasetFile.Mean = fileData.Mean

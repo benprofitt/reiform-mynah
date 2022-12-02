@@ -73,8 +73,6 @@ type ICProcessJobRequest struct {
 type ICProcessJobResponseFile struct {
 	//the uuid of the file
 	Uuid model.MynahUuid `json:"uuid"`
-	//the current class for this file
-	CurrentClass model.MynahClassName `json:"current_class"`
 	//projections
 	Projections map[model.MynahClassName][]int `json:"projections"`
 	//confidence vectors

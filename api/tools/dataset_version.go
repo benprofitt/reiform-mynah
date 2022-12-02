@@ -88,7 +88,7 @@ func FreezeICDatasetFileVersions(version *model.MynahICDatasetVersion,
 					}
 
 					//update the file in the database with the new version
-					if err := tx.UpdateFile(file, user, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+					if err := tx.UpdateFile(file, user, model.VersionsColName); err != nil {
 						return fmt.Errorf("failed to update file while freezing file version: %s", err)
 					}
 				}

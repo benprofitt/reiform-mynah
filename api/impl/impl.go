@@ -51,7 +51,7 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 	datasetId model.MynahUuid,
 	tasks []model.MynahICProcessTaskType) error {
 	//get the dataset
-	dataset, err := p.dbProvider.GetICDataset(datasetId, user, db.NewMynahDBColumns())
+	dataset, err := p.dbProvider.GetICDataset(datasetId, user)
 	if err != nil {
 		return fmt.Errorf("failed to get dataset for ic process job: %w", err)
 	}
@@ -82,42 +82,39 @@ func (p *localImplProvider) ICProcessJob(user *model.MynahUser,
 		return fmt.Errorf("failed to execute start_ic_processing_job: %s", err)
 	}
 
-	//create a new report based on this run
-	binObj, err := p.dbProvider.CreateBinObject(user, func(binObj *model.MynahBinObject) error {
-		report := model.NewICDatasetReport()
+	// perform the update in a transaction
+	return p.dbProvider.Transaction(func(txProv db.DBProvider) error {
+		//create a new report based on this run
+		binObj, err := p.dbProvider.CreateBinObject(user, func(binObj *model.MynahBinObject) error {
+			report := model.NewICDatasetReport()
 
-		//apply changes to dataset and report
-		if err = jobResponse.applyChanges(newVersion, report, user, p.storageProvider, p.dbProvider); err != nil {
-			return fmt.Errorf("ic process job failed when applying process changes to dataset and report: %s", err)
-		}
+			//apply changes to dataset and report
+			if err = jobResponse.applyChanges(newVersion, report, user, p.storageProvider, txProv); err != nil {
+				return fmt.Errorf("ic process job failed when applying process changes to dataset and report: %s", err)
+			}
 
-		//store the report
-		data, err := json.Marshal(report)
+			//store the report
+			data, err := json.Marshal(report)
+			if err != nil {
+				return fmt.Errorf("ic process job failed when serializing report: %s", err)
+			}
+			//set the binary data to store
+			binObj.Data = data
+			return nil
+		})
+
 		if err != nil {
-			return fmt.Errorf("ic process job failed when serializing report: %s", err)
+			return fmt.Errorf("ic process job failed when creating report: %s", err)
 		}
-		//set the binary data to store
-		binObj.Data = data
-		return nil
+
+		//record the report by id
+		dataset.Reports[dataset.LatestVersion] = &model.MynahICDatasetReportMetadata{
+			DataId:      binObj.Uuid,
+			DateCreated: time.Now().Unix(),
+			Tasks:       tasks,
+		}
+		return txProv.UpdateICDataset(dataset, user, model.VersionsColName, model.LatestVersionColName, model.ReportsColName)
 	})
-
-	if err != nil {
-		return fmt.Errorf("ic process job failed when creating report: %s", err)
-	}
-
-	//record the report by id
-	dataset.Reports[dataset.LatestVersion] = &model.MynahICDatasetReportMetadata{
-		DataId:      binObj.Uuid,
-		DateCreated: time.Now().Unix(),
-		Tasks:       tasks,
-	}
-
-	//update the results in the database (will overwrite any changes made to versions col since task started)
-	if err := p.dbProvider.UpdateICDataset(dataset, user, db.NewMynahDBColumns(model.VersionsColName, model.ReportsColName)); err != nil {
-		return fmt.Errorf("ic process task for dataset failed when updating in database: %s", err)
-	}
-
-	return nil
 }
 
 // BatchImageMetadata gets image metadata. Note: this will overwrite any metadata in the specified file version

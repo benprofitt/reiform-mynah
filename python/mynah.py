@@ -46,7 +46,7 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
     return json.dumps({
         "status": 0,
         "data": {
-            "dataset": request["dataset"],
+            "dataset": task_results["dataset"],
             "tasks": task_results["tasks"]
         }
     })

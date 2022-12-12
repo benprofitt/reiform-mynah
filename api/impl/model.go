@@ -74,7 +74,7 @@ type ICProcessJobResponseFile struct {
 	//the uuid of the file
 	Uuid model.MynahUuid `json:"uuid"`
 	//projections
-	Projections map[model.MynahClassName][]int `json:"projections"`
+	Projections map[model.MynahClassName][]float64 `json:"projections"`
 	//confidence vectors
 	ConfidenceVectors model.ConfidenceVectors `json:"confidence_vectors"`
 	//the mean of the channels of this image

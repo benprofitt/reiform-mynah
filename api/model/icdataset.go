@@ -96,7 +96,7 @@ type MynahICDatasetFile struct {
 	//the confidence vectors
 	ConfidenceVectors ConfidenceVectors `json:"confidence_vectors"`
 	//projections
-	Projections map[MynahClassName][]int `json:"projections"`
+	Projections map[MynahClassName][]float64 `json:"projections"`
 	//the mean of the this file's channels
 	Mean []float64 `json:"mean"`
 	//the stddev of this file's channels
@@ -170,7 +170,7 @@ func NewICDatasetFile() *MynahICDatasetFile {
 		CurrentClass:      "",
 		OriginalClass:     "",
 		ConfidenceVectors: make(ConfidenceVectors, 0),
-		Projections:       make(map[MynahClassName][]int),
+		Projections:       make(map[MynahClassName][]float64),
 		Mean:              make([]float64, 0),
 		StdDev:            make([]float64, 0),
 	}
@@ -184,9 +184,9 @@ func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 		confidenceVectors = append(confidenceVectors, append([]float64(nil), v...))
 	}
 
-	projections := make(map[MynahClassName][]int)
+	projections := make(map[MynahClassName][]float64)
 	for key, value := range other.Projections {
-		projections[key] = value
+		projections[key] = append([]float64(nil), value...)
 	}
 
 	return &MynahICDatasetFile{

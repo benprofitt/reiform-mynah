@@ -65,7 +65,6 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 
 	//get previous task results
 	prevResults, err := getPreviousDiagnosisTaskResults(dataset)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to identify previous diagnosis tasks for dataset %s: %s", dataset.Uuid, err)
 	}

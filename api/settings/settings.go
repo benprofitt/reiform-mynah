@@ -116,7 +116,7 @@ func DefaultSettings() *MynahSettings {
 			Type:            "local",
 			LocalPath:       "data/mynah_local.db",
 			InitialOrgCount: 1,
-			LogSQL:          true,
+			LogSQL:          false,
 		},
 		AuthSettings: MynahAuthSettings{
 			PemFilePath: "data/auth.pem",

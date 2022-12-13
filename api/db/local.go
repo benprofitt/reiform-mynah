@@ -90,6 +90,9 @@ func newLocalDB(mynahSettings *settings.MynahSettings, authProvider auth.AuthPro
 		return nil, engineErr
 	}
 
+	// set the log options
+	xormEngine.ShowSQL(mynahSettings.DBSettings.LogSQL)
+
 	db := localDB{
 		engine.NewEngine(xormEngine),
 	}
@@ -173,11 +176,9 @@ func (d *localDB) GetUser(uuid model.MynahUuid, requestor *model.MynahUser) (*mo
 
 // GetFile get a file from the database
 func (d *localDB) GetFile(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahFile, error) {
-	file := model.MynahFile{
-		Uuid: uuid,
-	}
+	var file model.MynahFile
 
-	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Get(&file)
+	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", uuid).Get(&file)
 	if err != nil {
 		return nil, err
 	}
@@ -219,13 +220,9 @@ func (d *localDB) GetFiles(uuids []model.MynahUuid, requestor *model.MynahUser) 
 
 // GetICDataset get a dataset from the database
 func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser, omitCols ...model.MynahColName) (*model.MynahICDataset, error) {
-	dataset := model.MynahICDataset{
-		MynahDataset: model.MynahDataset{
-			Uuid: uuid,
-		},
-	}
+	var dataset model.MynahICDataset
 
-	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Omit(colsToStrings(omitCols)...).Get(&dataset)
+	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", uuid).Omit(colsToStrings(omitCols)...).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -243,13 +240,9 @@ func (d *localDB) GetICDataset(uuid model.MynahUuid, requestor *model.MynahUser,
 
 // GetODDataset get a dataset from the database
 func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahODDataset, error) {
-	dataset := model.MynahODDataset{
-		MynahDataset: model.MynahDataset{
-			Uuid: uuid,
-		},
-	}
+	var dataset model.MynahODDataset
 
-	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Get(&dataset)
+	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", uuid).Get(&dataset)
 	if err != nil {
 		return nil, err
 	}
@@ -267,11 +260,9 @@ func (d *localDB) GetODDataset(uuid model.MynahUuid, requestor *model.MynahUser)
 
 // GetBinObject gets a cached object by uuid
 func (d *localDB) GetBinObject(uuid model.MynahUuid, requestor *model.MynahUser) (*model.MynahBinObject, error) {
-	obj := model.MynahBinObject{
-		Uuid: uuid,
-	}
+	var obj model.MynahBinObject
 
-	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Get(&obj)
+	found, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", uuid).Get(&obj)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +321,7 @@ func (d *localDB) GetODDatasets(uuids []model.MynahUuid, requestor *model.MynahU
 	return res, nil
 }
 
-// ListUsers list all users
+// ListUsers list all users in an org
 func (d *localDB) ListUsers(requestor *model.MynahUser) (users []*model.MynahUser, err error) {
 	if commonErr := commonListUsers(requestor); commonErr != nil {
 		return users, commonErr
@@ -467,7 +458,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 		return commonErr
 	}
 
-	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Cols(colsToStrings(cols)...).Update(user)
+	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", user.Uuid).Cols(colsToStrings(cols)...).Update(user)
 	if err != nil {
 		return err
 	}
@@ -483,7 +474,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 		return commonErr
 	}
 
-	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Cols(colsToStrings(cols)...).Update(dataset)
+	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", dataset.Uuid).Cols(colsToStrings(cols)...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -499,7 +490,7 @@ func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *mode
 		return commonErr
 	}
 
-	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Cols(colsToStrings(cols)...).Update(dataset)
+	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", dataset.Uuid).Cols(colsToStrings(cols)...).Update(dataset)
 	if err != nil {
 		return err
 	}
@@ -515,7 +506,7 @@ func (d *localDB) UpdateFile(file *model.MynahFile, requestor *model.MynahUser, 
 		return commonErr
 	}
 
-	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).Cols(colsToStrings(cols)...).Update(file)
+	affected, err := d.GetEngine().Where("org_id = ?", requestor.OrgId).And("uuid = ?", file.Uuid).Cols(colsToStrings(cols)...).Update(file)
 	if err != nil {
 		return err
 	}

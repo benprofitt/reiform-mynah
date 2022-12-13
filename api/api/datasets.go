@@ -136,7 +136,7 @@ func icDatasetFilterVersion(dataset *model.MynahICDataset, fromVersionParam, toV
 	//by default, start with latest
 	fromVersionNum := len(dataset.Versions) - 1
 
-	if (len(fromVersionParam) >= 0) && !latestOnly {
+	if (len(fromVersionParam) > 0) && !latestOnly {
 		if val, err := strconv.Atoi(fromVersionParam); err == nil {
 			fromVersionNum = val
 		} else {
@@ -188,7 +188,7 @@ func odDatasetFilterVersion(dataset *model.MynahODDataset, fromVersionParam, toV
 	//by default, start with latest
 	fromVersionNum := len(dataset.Versions) - 1
 
-	if (len(fromVersionParam) >= 0) && !latestOnly {
+	if (len(fromVersionParam) > 0) && !latestOnly {
 		if val, err := strconv.Atoi(fromVersionParam); err == nil {
 			fromVersionNum = val
 		} else {

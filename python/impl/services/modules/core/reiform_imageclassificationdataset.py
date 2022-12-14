@@ -88,6 +88,7 @@ class ReiformICFile(ReiformImageFile):
     def __deepcopy__(self, memo) -> ReiformICFile:
         
         copied : ReiformICFile = ReiformICFile(self.name, self.current_class)
+        copied.uuid = self.uuid
         copied.original_class = self.original_class
         copied.width = self.width
         copied.height = self.height
@@ -428,6 +429,7 @@ class ReiformICDataSet(ReiformImageDataset):
         new_ds : ReiformICDataSet = ReiformICDataSet(self.class_list)
         new_ds.files = copy.deepcopy(self.files)
 
+        new_ds.uuid = self.uuid
         new_ds.max_width = self.max_width
         new_ds.max_height = self.max_height
         new_ds.max_channels = self.max_channels

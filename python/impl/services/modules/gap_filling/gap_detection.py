@@ -1,5 +1,3 @@
-from matplotlib.backend_bases import MouseButton
-import matplotlib.pyplot as plt
 import numpy as np
 import math, random
 from sklearn.cluster import OPTICS

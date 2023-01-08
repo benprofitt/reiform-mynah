@@ -188,8 +188,8 @@ def transform_spaces(points1, points2):
 
     return border_to_draw
 
-
 def find_points_near_border(clusters):
+    # I need to rewrite this to work with files rahter than points
     closest_for_each = []
 
     border_points = transform_spaces(clusters[0], clusters[1])
@@ -199,13 +199,12 @@ def find_points_near_border(clusters):
 
     return closest_for_each
 
-def get_border_points(x_vals, y_vals):
-    clf = OPTICS(min_samples=len(x_vals)//5)
-    embeddings = list(zip(x_vals, y_vals))[2:]
+def get_border_points(embeddings, names):
+    clf = OPTICS(min_samples=len(embeddings)//5)
     predictions = clf.fit_predict(embeddings)
     clusters = [[] for _ in set(predictions)]
 
-    for p, v in zip(embeddings, predictions):
+    for p, v, name in zip(embeddings, predictions, names):
         clusters[v].append(p)
 
     hull_border = transform_spaces(clusters[0], clusters[1])
@@ -216,7 +215,10 @@ def get_border_points(x_vals, y_vals):
 def test():
     x = [random.uniform(-1, -0.2) for _ in range(100)] + [random.uniform(0.2, 1) for _ in range(100)]
     y = [random.uniform(-1, -0.2) for _ in range(100)] + [random.uniform(0.2, 1) for _ in range(100)]
+    embeddings = list(zip(x, y))
     try:
-        hull_border, near_border = get_border_points(x, y)
+        hull_border, near_border = get_border_points(embeddings)
+        print(hull_border)
+        print(near_border)
     except:
         print("Failure to run gap detection")

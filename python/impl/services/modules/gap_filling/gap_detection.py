@@ -1,9 +1,10 @@
+from typing import List, Any
 import numpy as np
 import math, random
 from sklearn.cluster import OPTICS
 from scipy.spatial import ConvexHull, Delaunay
 
-def find_closest_points(cluster, points, percent=10):
+def find_closest_points(cluster_files, cluster, points, percent=10) -> List[Any]:
 
     n = int(len(cluster) * percent/100)
 
@@ -19,11 +20,11 @@ def find_closest_points(cluster, points, percent=10):
     closest_points = []
     
     # Iterate through the points in the cluster
-    for p in cluster:
+    for p, file in zip(cluster, cluster_files):
         min_distance = float('inf')
 
         if tri.find_simplex(p) >= 0:
-            closest_points.append((p, 0))
+            closest_points.append((file, 0))
             continue
         
         # Iterate through the edges of the convex hull
@@ -35,7 +36,7 @@ def find_closest_points(cluster, points, percent=10):
             min_distance = min(min_distance, distance)
         
         # Add the closest point to the list of closest points
-        closest_points.append((p, min_distance))
+        closest_points.append((file, min_distance))
     
     # Sort the list of closest points by distance from the boundary of the convex hull
     closest_points.sort(key=lambda x: x[1])
@@ -188,14 +189,14 @@ def transform_spaces(points1, points2):
 
     return border_to_draw
 
-def find_points_near_border(clusters):
-    # I need to rewrite this to work with files rahter than points
+def find_points_near_border(clusters, points) -> List[List[Any]]:
+
     closest_for_each = []
 
-    border_points = transform_spaces(clusters[0], clusters[1])
+    border_points = transform_spaces(points[0], points[1])
 
-    for c in clusters:
-        closest_for_each.append(find_closest_points(c, border_points, 15))
+    for c, p in zip(clusters, points):
+        closest_for_each.append(find_closest_points(c, p, border_points, 15))
 
     return closest_for_each
 
@@ -213,6 +214,7 @@ def get_border_points(embeddings, names):
     return hull_border, near_border
 
 def test():
+    # Now broken
     x = [random.uniform(-1, -0.2) for _ in range(100)] + [random.uniform(0.2, 1) for _ in range(100)]
     y = [random.uniform(-1, -0.2) for _ in range(100)] + [random.uniform(0.2, 1) for _ in range(100)]
     embeddings = list(zip(x, y))

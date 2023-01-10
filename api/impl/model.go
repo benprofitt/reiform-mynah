@@ -69,14 +69,21 @@ type ICProcessJobRequest struct {
 	PreviousResults []*model.MynahICProcessTaskData `json:"previous_results"`
 }
 
+// ICProcessJobResponseFileProjections defines projects for this file
+type ICProcessJobResponseFileProjections struct {
+	ProjectionLabelFullEmbeddingConcatenation []float64 `json:"projection_label_full_embedding_concatenation"`
+	ProjectionLabelReducedEmbedding           []float64 `json:"projection_label_reduced_embedding"`
+	ProjectionLabelReducedEmbeddingPerClass   []float64 `json:"projection_label_reduced_embedding_per_class"`
+	ProjectionLabel2dPerClass                 []float64 `json:"projection_label_2d_per_class"`
+	ProjectionLabel2d                         []float64 `json:"projection_label_2d"`
+}
+
 // ICProcessJobResponseFile file data returned in response
 type ICProcessJobResponseFile struct {
 	//the uuid of the file
 	Uuid model.MynahUuid `json:"uuid"`
-	//the current class for this file
-	CurrentClass model.MynahClassName `json:"current_class"`
 	//projections
-	Projections map[model.MynahClassName][]int `json:"projections"`
+	Projections ICProcessJobResponseFileProjections `json:"projections"`
 	//confidence vectors
 	ConfidenceVectors model.ConfidenceVectors `json:"confidence_vectors"`
 	//the mean of the channels of this image

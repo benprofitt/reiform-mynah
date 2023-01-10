@@ -41,7 +41,7 @@ func RegisterRoutes(router *middleware.MynahRouter,
 	router.HandleHTTPRequest("GET", "dataset/ic/list", icDatasetList(dbProvider))
 	router.HandleHTTPRequest("GET", fmt.Sprintf("dataset/ic/{%s}", DatasetIdKey), icDatasetGet(dbProvider))
 
-	router.HandleHTTPRequest("GET", fmt.Sprintf("data/json/{%s}", DatasetIdKey), getDataJSON(dbProvider))
+	router.HandleHTTPRequest("GET", fmt.Sprintf("data/json/{%s}", IdKey), getDataJSON(dbProvider))
 
 	//router.HandleHTTPRequest("POST", "dataset/od/create", ocDatasetCreate(dbProvider))
 	router.HandleHTTPRequest("GET", "dataset/od/list", odDatasetList(dbProvider))

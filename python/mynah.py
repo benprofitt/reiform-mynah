@@ -22,7 +22,7 @@ stream.setLevel(logging.DEBUG)
 log.addHandler(stream)
 
 logging.getLogger('PIL').setLevel(logging.WARNING)
-AVAILABLE_THREADS = 3
+AVAILABLE_THREADS = 8
 
 def get_impl_version(uuid: str, sock_addr: str) -> str:
     '''Make sure that the module loads, returns version string'''
@@ -39,18 +39,16 @@ def start_ic_processing_job(uuid: str, sock_addr: str) -> str:
         processing_job : processing.DatasetProcessingJob = processing.DatasetProcessingJob(request)
         
         # Pass in logger to relay progress
-        # logging.info("OUTER DESERIALE: {}".format(processing_job.dataset.class_list))
-        # logging.info("OUTER DESERIALE: {}".format(processing_job.dataset.files))
         task_results : Dict[str, Any] = processing_job.run_processing_job(plogger)
+        
     # response
     return json.dumps({
         "status": 0,
         "data": {
-            "dataset": request["dataset"],
+            "dataset": task_results["dataset"],
             "tasks": task_results["tasks"]
         }
     })
-
 
 
 def start_ic_training_job(uuid : str, sock_addr: str) -> str:

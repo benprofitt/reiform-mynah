@@ -76,7 +76,7 @@ func icDatasetCreate(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		}
 
 		// commit the changes to the database
-		if err := dbProvider.UpdateFiles(files, ctx.User, db.NewMynahDBColumns(model.VersionsColName)); err != nil {
+		if err := dbProvider.UpdateFiles(files, ctx.User, model.VersionsColName); err != nil {
 			ctx.Error(http.StatusInternalServerError, "failed to update files for ic dataset creation: %s", err)
 			return
 		}
@@ -244,7 +244,7 @@ func icDatasetGet(dbProvider db.DBProvider) middleware.HandlerFunc {
 		}
 
 		//get the requested ic dataset
-		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User, db.NewMynahDBColumns())
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User)
 
 		if err != nil {
 			ctx.Error(http.StatusNotFound, "failed to get ic dataset %s from database %s", datasetId, err)
@@ -423,7 +423,7 @@ func icDatasetExport(dbProvider db.DBProvider, storageProvider storage.StoragePr
 		}
 
 		//get the dataset to be exported
-		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User, db.NewMynahDBColumns())
+		dataset, err := dbProvider.GetICDataset(model.MynahUuid(datasetId), ctx.User)
 		if err != nil {
 			ctx.Error(http.StatusNotFound, "failed to get ic dataset %s from database for export: %s", datasetId, err)
 			return

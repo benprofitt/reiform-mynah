@@ -73,7 +73,6 @@ func (e *xormSession) GetEngine() xorm.Interface {
 
 // NewTransaction executes a transaction for the duration of the handler with rollback
 func (e *xormSession) NewTransaction(handler func(Engine) error) error {
-	log.Warnf("Transaction() called on transaction already started - possible bug")
 	return handler(e)
 }
 

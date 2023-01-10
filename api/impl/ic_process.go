@@ -65,7 +65,6 @@ func (p *localImplProvider) NewICProcessJobRequest(user *model.MynahUser,
 
 	//get previous task results
 	prevResults, err := getPreviousDiagnosisTaskResults(dataset)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to identify previous diagnosis tasks for dataset %s: %s", dataset.Uuid, err)
 	}
@@ -170,12 +169,18 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 	dataset.StdDev = d.Dataset.StdDev
 
 	//copy dataset info from the ic process result
-	for _, classFiles := range d.Dataset.ClassFiles {
+	for class, classFiles := range d.Dataset.ClassFiles {
 		for _, fileData := range classFiles {
 			//copy the new data into the dataset
 			if datasetFile, ok := dataset.Files[fileData.Uuid]; ok {
-				datasetFile.CurrentClass = fileData.CurrentClass
-				datasetFile.Projections = fileData.Projections
+				datasetFile.CurrentClass = class
+				datasetFile.Projections = &model.MynahICDatasetFileProjections{
+					ProjectionLabelFullEmbeddingConcatenation: fileData.Projections.ProjectionLabelFullEmbeddingConcatenation,
+					ProjectionLabelReducedEmbedding:           fileData.Projections.ProjectionLabelReducedEmbedding,
+					ProjectionLabelReducedEmbeddingPerClass:   fileData.Projections.ProjectionLabelReducedEmbeddingPerClass,
+					ProjectionLabel2dPerClass:                 fileData.Projections.ProjectionLabel2dPerClass,
+					ProjectionLabel2d:                         fileData.Projections.ProjectionLabel2d,
+				}
 				datasetFile.ConfidenceVectors = fileData.ConfidenceVectors
 				datasetFile.Mean = fileData.Mean
 				datasetFile.StdDev = fileData.StdDev
@@ -198,8 +203,8 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 		report.Points[fileData.CurrentClass] = append(report.Points[fileData.CurrentClass], &model.MynahICDatasetReportPoint{
 			FileId:         fileId,
 			ImageVersionId: fileData.ImageVersionId,
-			X:              0,
-			Y:              0,
+			X:              fileData.Projections.ProjectionLabel2d[0],
+			Y:              fileData.Projections.ProjectionLabel2d[1],
 			OriginalClass:  fileData.OriginalClass,
 		})
 	}

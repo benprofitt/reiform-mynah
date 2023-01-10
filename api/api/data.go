@@ -9,16 +9,16 @@ import (
 	"reiform.com/mynah/model"
 )
 
-const idKey = "id"
+const IdKey = "id"
 
 // getDataJSON get data as json
 func getDataJSON(dbProvider db.DBProvider) middleware.HandlerFunc {
 	return func(ctx *middleware.Context) {
 
-		dataId, ok := ctx.Vars()[idKey]
+		dataId, ok := ctx.Vars()[IdKey]
 		//get request params
 		if !ok {
-			ctx.Error(http.StatusBadRequest, "data as json request path missing %s key", idKey)
+			ctx.Error(http.StatusBadRequest, "data as json request path missing %s key", IdKey)
 			return
 		}
 

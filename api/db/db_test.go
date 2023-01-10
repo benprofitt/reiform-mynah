@@ -90,7 +90,7 @@ func TestBasicDBActionsUser(t *testing.T) {
 	localUser.NameFirst = "new_name_first"
 	localUser.NameLast = "new_name_last"
 
-	require.NoError(t, dbProvider.UpdateUser(localUser, &admin, NewMynahDBColumns(model.NameLastCol, model.NameFirstCol)))
+	require.NoError(t, dbProvider.UpdateUser(localUser, &admin, model.NameLastCol, model.NameFirstCol))
 
 	dbUser, getErr = dbProvider.GetUser(localUser.Uuid, &admin)
 	require.NoError(t, getErr)
@@ -130,7 +130,7 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, user.OrgId, icDataset.OrgId)
 
-	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumnsNoDeps(model.VersionsColName))
+	omitDataset, err := dbProvider.GetICDataset(icDataset.Uuid, &user, model.VersionsColName)
 	require.NoError(t, err)
 	require.Nil(t, omitDataset.Versions)
 
@@ -139,23 +139,23 @@ func TestBasicDBActionsICDataset(t *testing.T) {
 	require.Equal(t, *datasetList[0], *icDataset)
 	require.Equal(t, len(datasetList), 1)
 
-	dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	dbDataset, getErr := dbProvider.GetICDataset(icDataset.Uuid, &user)
 	require.NoError(t, getErr)
 	require.Equal(t, *dbDataset, *icDataset)
 
 	//update some fields
 	icDataset.DatasetName = "new_icdataset_name"
 
-	require.NoError(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns(model.DatasetNameCol)))
-	dbDataset, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	require.NoError(t, dbProvider.UpdateICDataset(icDataset, &user, model.DatasetNameCol))
+	dbDataset, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user)
 	require.NoError(t, getErr)
 	require.Equal(t, *dbDataset, *icDataset)
 
-	require.Error(t, dbProvider.UpdateICDataset(icDataset, &user, NewMynahDBColumns("uuid")))
+	require.Error(t, dbProvider.UpdateICDataset(icDataset, &user, "uuid"))
 
 	require.NoError(t, dbProvider.DeleteICDataset(icDataset.Uuid, &user))
 
-	_, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user, NewMynahDBColumns())
+	_, getErr = dbProvider.GetICDataset(icDataset.Uuid, &user)
 	require.Error(t, getErr)
 }
 

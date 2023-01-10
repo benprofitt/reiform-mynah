@@ -30,6 +30,8 @@ type MynahDBSettings struct {
 	LocalPath string `json:"local_path"`
 	//the number of organizations to create on startup
 	InitialOrgCount int `json:"initial_org_count"`
+	// log the sql queries the orm makes
+	LogSQL bool `json:"log_sql"`
 }
 
 // MynahAuthSettings defines settings for authentication
@@ -114,6 +116,7 @@ func DefaultSettings() *MynahSettings {
 			Type:            "local",
 			LocalPath:       "data/mynah_local.db",
 			InitialOrgCount: 1,
+			LogSQL:          false,
 		},
 		AuthSettings: MynahAuthSettings{
 			PemFilePath: "data/auth.pem",

@@ -2,7 +2,7 @@ from resources import *
 
 def find_images_near_gaps(dataset : ReiformICDataSet, cls: str) -> List[List[List[Any]]]:
 
-    projection_label = PROJECTION_LABEL_2D_PER_CLASS
+    projection_label = GAP_PROJECTION_LABEL
 
     embeddings : List[NDArray] = []
     names : List[str] = []
@@ -11,7 +11,7 @@ def find_images_near_gaps(dataset : ReiformICDataSet, cls: str) -> List[List[Lis
         embeddings.append(file.get_projection(projection_label)) 
         names.append(name)
 
-    clf = OPTICS(min_samples=len(embeddings)//5)
+    clf = OPTICS(min_samples=len(embeddings)//15)
     predictions = clf.fit_predict(embeddings)
     cluster_classes = set(predictions)
     if len(cluster_classes) < 2:

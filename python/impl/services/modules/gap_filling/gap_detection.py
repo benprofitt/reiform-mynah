@@ -6,7 +6,7 @@ from scipy.spatial import ConvexHull, Delaunay
 
 def find_closest_points(cluster_files, cluster, points, percent=10) -> List[Any]:
 
-    n = int(len(cluster) * percent/100)
+    n = min(int(len(cluster) * percent/100), 35)
 
     # Calculate the convex hull of the points using the ConvexHull function from scipy
     hull = ConvexHull(points)

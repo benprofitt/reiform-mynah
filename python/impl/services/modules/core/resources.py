@@ -106,7 +106,7 @@ AVAILABLE_THREADS = 3
 
 def empty_mem_cache():
     if device == "cuda":
-        empty_mem_cache()
+        torch.cuda.empty_cache()
 
 def load_pt_model(model: nn.Module, path : str):
     if device == "cuda":

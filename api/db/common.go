@@ -121,7 +121,6 @@ func commonUpdateDataset(dataset model.MynahAbstractDataset, requestor *model.My
 		return fmt.Errorf("dataset update failed: %s", err)
 	}
 	dataset.GetBaseDataset().DateModified = time.Now().Unix()
-	cols = append(cols, model.DateModifiedCol)
 
 	if requestor.IsAdmin || dataset.GetBaseDataset().GetPermissions(requestor) >= model.Edit {
 		return nil

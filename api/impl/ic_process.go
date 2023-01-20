@@ -174,7 +174,13 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 			//copy the new data into the dataset
 			if datasetFile, ok := dataset.Files[fileData.Uuid]; ok {
 				datasetFile.CurrentClass = class
-				datasetFile.Projections = fileData.Projections
+				datasetFile.Projections = &model.MynahICDatasetFileProjections{
+					ProjectionLabelFullEmbeddingConcatenation: fileData.Projections.ProjectionLabelFullEmbeddingConcatenation,
+					ProjectionLabelReducedEmbedding:           fileData.Projections.ProjectionLabelReducedEmbedding,
+					ProjectionLabelReducedEmbeddingPerClass:   fileData.Projections.ProjectionLabelReducedEmbeddingPerClass,
+					ProjectionLabel2dPerClass:                 fileData.Projections.ProjectionLabel2dPerClass,
+					ProjectionLabel2d:                         fileData.Projections.ProjectionLabel2d,
+				}
 				datasetFile.ConfidenceVectors = fileData.ConfidenceVectors
 				datasetFile.Mean = fileData.Mean
 				datasetFile.StdDev = fileData.StdDev
@@ -197,8 +203,8 @@ func (d ICProcessJobResponse) applyChanges(dataset *model.MynahICDatasetVersion,
 		report.Points[fileData.CurrentClass] = append(report.Points[fileData.CurrentClass], &model.MynahICDatasetReportPoint{
 			FileId:         fileId,
 			ImageVersionId: fileData.ImageVersionId,
-			X:              0,
-			Y:              0,
+			X:              fileData.Projections.ProjectionLabel2d[0],
+			Y:              fileData.Projections.ProjectionLabel2d[1],
 			OriginalClass:  fileData.OriginalClass,
 		})
 	}

@@ -470,6 +470,7 @@ func (d *localDB) UpdateUser(user *model.MynahUser, requestor *model.MynahUser, 
 
 // UpdateICDataset update a dataset
 func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *model.MynahUser, cols ...model.MynahColName) error {
+	cols = append(cols, model.DateModifiedCol)
 	if commonErr := commonUpdateDataset(dataset, requestor, cols); commonErr != nil {
 		return commonErr
 	}
@@ -486,6 +487,7 @@ func (d *localDB) UpdateICDataset(dataset *model.MynahICDataset, requestor *mode
 
 // UpdateODDataset update a dataset
 func (d *localDB) UpdateODDataset(dataset *model.MynahODDataset, requestor *model.MynahUser, cols ...model.MynahColName) error {
+	cols = append(cols, model.DateModifiedCol)
 	if commonErr := commonUpdateDataset(dataset, requestor, cols); commonErr != nil {
 		return commonErr
 	}

@@ -85,6 +85,15 @@ type MynahICProcessTaskData struct {
 	Metadata MynahICProcessTaskMetadata `json:"metadata"`
 }
 
+// MynahICDatasetFileProjections defines projections for a dataset file
+type MynahICDatasetFileProjections struct {
+	ProjectionLabelFullEmbeddingConcatenation []float64 `json:"projection_label_full_embedding_concatenation"`
+	ProjectionLabelReducedEmbedding           []float64 `json:"projection_label_reduced_embedding"`
+	ProjectionLabelReducedEmbeddingPerClass   []float64 `json:"projection_label_reduced_embedding_per_class"`
+	ProjectionLabel2dPerClass                 []float64 `json:"projection_label_2d_per_class"`
+	ProjectionLabel2d                         []float64 `json:"projection_label_2d"`
+}
+
 // MynahICDatasetFile defines per file metadata for the dataset
 type MynahICDatasetFile struct {
 	//the version id for the file
@@ -96,8 +105,8 @@ type MynahICDatasetFile struct {
 	//the confidence vectors
 	ConfidenceVectors ConfidenceVectors `json:"confidence_vectors"`
 	//projections
-	Projections map[MynahClassName][]float64 `json:"projections"`
-	//the mean of the this file's channels
+	Projections *MynahICDatasetFileProjections `json:"projections"`
+	//the mean of this file's channels
 	Mean []float64 `json:"mean"`
 	//the stddev of this file's channels
 	StdDev []float64 `json:"std_dev"`
@@ -153,6 +162,17 @@ func NewICDataset(creator *MynahUser) *MynahICDataset {
 	}
 }
 
+// NewMynahICDatasetFileProjections creates a new set of projections
+func NewMynahICDatasetFileProjections() *MynahICDatasetFileProjections {
+	return &MynahICDatasetFileProjections{
+		ProjectionLabelFullEmbeddingConcatenation: make([]float64, 0),
+		ProjectionLabelReducedEmbedding:           make([]float64, 0),
+		ProjectionLabelReducedEmbeddingPerClass:   make([]float64, 0),
+		ProjectionLabel2dPerClass:                 make([]float64, 0),
+		ProjectionLabel2d:                         make([]float64, 0),
+	}
+}
+
 // NewICDatasetVersion creates a new dataset version
 func NewICDatasetVersion() *MynahICDatasetVersion {
 	return &MynahICDatasetVersion{
@@ -170,7 +190,7 @@ func NewICDatasetFile() *MynahICDatasetFile {
 		CurrentClass:      "",
 		OriginalClass:     "",
 		ConfidenceVectors: make(ConfidenceVectors, 0),
-		Projections:       make(map[MynahClassName][]float64),
+		Projections:       NewMynahICDatasetFileProjections(),
 		Mean:              make([]float64, 0),
 		StdDev:            make([]float64, 0),
 	}
@@ -184,18 +204,19 @@ func CopyICDatasetFile(other *MynahICDatasetFile) *MynahICDatasetFile {
 		confidenceVectors = append(confidenceVectors, append([]float64(nil), v...))
 	}
 
-	projections := make(map[MynahClassName][]float64)
-	for key, value := range other.Projections {
-		projections[key] = append([]float64(nil), value...)
-	}
-
 	return &MynahICDatasetFile{
 		ImageVersionId:    LatestVersionId,
 		CurrentClass:      other.CurrentClass,
 		OriginalClass:     other.OriginalClass,
 		ConfidenceVectors: confidenceVectors,
-		Projections:       projections,
-		Mean:              append([]float64(nil), other.Mean...),
-		StdDev:            append([]float64(nil), other.StdDev...),
+		Projections: &MynahICDatasetFileProjections{
+			ProjectionLabelFullEmbeddingConcatenation: append([]float64(nil), other.Projections.ProjectionLabelFullEmbeddingConcatenation...),
+			ProjectionLabelReducedEmbedding:           append([]float64(nil), other.Projections.ProjectionLabelReducedEmbedding...),
+			ProjectionLabelReducedEmbeddingPerClass:   append([]float64(nil), other.Projections.ProjectionLabelReducedEmbeddingPerClass...),
+			ProjectionLabel2dPerClass:                 append([]float64(nil), other.Projections.ProjectionLabel2dPerClass...),
+			ProjectionLabel2d:                         append([]float64(nil), other.Projections.ProjectionLabel2d...),
+		},
+		Mean:   append([]float64(nil), other.Mean...),
+		StdDev: append([]float64(nil), other.StdDev...),
 	}
 }

@@ -2,6 +2,7 @@ import os, sys # type: ignore
 import time # type: ignore
 import random # type: ignore
 import copy # type: ignore
+from collections import deque # type: ignore
 
 from multiprocessing import Pool
 
@@ -90,6 +91,7 @@ MAX_CORRECTION_MODEL_BATCH_SIZE = 1024
 
 MAX_EMBEDDING_MODEL_BATCH_SIZE = 2048
 RESNET_SIZE = 299
+MINIMUM_EDGE_SIZE_EMBEDDINGS = 128
 
 # From Mislabeled Correction - need to be more dynamic
 insize = 3
@@ -102,7 +104,7 @@ device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 BASE_EMBEDDING_MODEL_BATCH_SIZE = int(12 if device == "cpu" else (torch.cuda.mem_get_info(0)[0] * 1.75) // (1024 ** 3))
 BASE_RESNET_50_MODEL_BATCH_SIZE = int(12 if device == "cpu" else (torch.cuda.mem_get_info(0)[0] * 2.5) // (1024 ** 3))
-AVAILABLE_THREADS = 3
+AVAILABLE_THREADS = 12
 
 def empty_mem_cache():
     if device == "cuda":
@@ -129,3 +131,10 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 #
+def separate_list_deque(lst, ratio):
+    split_index = int(len(lst) * ratio)
+    dq = deque(lst)
+    random.shuffle(dq)
+    part1 = [dq.popleft() for _ in range(split_index)]
+    part2 = list(dq)
+    return part1, part2

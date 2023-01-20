@@ -3,6 +3,7 @@ import numpy as np
 import math, random
 from sklearn.cluster import OPTICS
 from scipy.spatial import ConvexHull, Delaunay
+from impl.services.modules.gap_filling.resources import *
 
 def find_closest_points(cluster_files, cluster, points, percent=10) -> List[Any]:
 
@@ -88,7 +89,7 @@ def align_centroids(centroid1, centroid2, inverse=False):
     x1, y1 = centroid1
     x2, y2 = centroid2
     
-    x_mid, y_mid = centroid1 - centroid2 / 2
+    x_mid, y_mid = (centroid1 + centroid2) / 2
 
     x1 = x1 - x_mid
     x2 = x2 - x_mid
@@ -180,8 +181,11 @@ def transform_spaces(points1, points2):
     points1_aligned = transform(points1)
     points2_aligned = transform(points2)
 
+    ReiformInfo("Aligned Points: {} {}".format(str(len(points1_aligned)), str(len(points2_aligned))))
+
     # border = min_max_convex_hull(points1_aligned, points2_aligned)
     border = get_narrow_bounds(points1_aligned, points2_aligned)
+    ReiformInfo("Narrow Bounds: {}".format(str(border)))
 
     # To perform the inverse transformation, call the transformation function with the inverse flag set to True
     transform_inv = align_centroids(centroid1, centroid2, inverse=True)

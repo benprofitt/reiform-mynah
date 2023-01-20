@@ -215,21 +215,18 @@ class ReiformICDataSet(ReiformImageDataset):
         side_a : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
         side_b : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
 
-        X = []
-        y = []
-
-        for c, files in self.files.items():
-            for _, file in files.items():
+        for c in self.class_list:
+            X = []
+            for _, file in self.get_items(c):
                 X.append(file)
-                y.append(c)
 
-        X_1, X_2, y1, y2 = sklearn.model_selection.train_test_split(X, y, test_size=1-ratio, shuffle=False)
+            X_1, X_2 = separate_list_deque(X, ratio)
 
-        for file in X_1:
-            side_a.add_file(file)
+            for file in X_1:
+                side_a.add_file(file)
 
-        for file in X_2:
-            side_b.add_file(file)
+            for file in X_2:
+                side_b.add_file(file)
 
         return side_a, side_b
 
@@ -456,6 +453,11 @@ class ReiformICDataSet(ReiformImageDataset):
         def add_mean_and_std(f1 : ReiformICFile, f2 : ReiformICFile):
 
             nf = ReiformICFile("temp", f1.current_class)
+
+            if len(f1.mean) == 0:
+                f1.recalc_mean_and_stddev()
+            if len(f2.mean) == 0:
+                f2.recalc_mean_and_stddev()
 
             m1 = f1.mean
             m2 = f2.mean

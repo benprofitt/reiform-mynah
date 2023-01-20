@@ -38,25 +38,19 @@ def blend_images(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -
             pairs.append((file1, file2))
     pairs.sort(key=lambda x: distance(x[0], x[1]))
 
-    use_number = len(files_1) + len(files_2)
+    use_number = (len(files_1) + len(files_2)) * 3
 
     for file1, file2 in pairs[:use_number]:
-        # load the two files
-        im1 = load_image(file1.get_name())
-        im2 = load_image(file2.get_name())
 
-        # join them in some way? to make new image
-        im_new = (im1 + im2)//2
+        # new_filename = combine_images_patches([file1, file2])
+        # new_filenames = new_images_grey_patch([file1, file2])
+        new_filenames = swap_pixel([file1, file2])
         
-        # Generate a random UUID for the name - uuid4 gives more privacy that uuid1
-        uuid4 = uuid.uuid4()
-        new_filename = "new_images/{}.png".format(uuid4)
 
-        # Assign the new image a unique name and the same class to make a new file
-        save_image(im_new, new_filename)
-        new_files.append(ReiformICFile(new_filename, file1.get_class()))
+        for new_filename in new_filenames:
 
-    print(len(new_files))
+            # Assign the new image a unique name and the same class to make a new file
+            new_files.append(ReiformICFile(new_filename, file1.get_class()))
 
     return new_files
 
@@ -71,9 +65,15 @@ def test_new_images(dataset : ReiformICDataSet, test_ds : ReiformICDataSet = Non
 
     if test_ds is None:
         train_ds, test_ds = dataset.split(0.9)
+        print("Dataset sizes: ")
+        for c in train_ds.classes():
+            print(len(train_ds.files[c]))
+            print(len(test_ds.files[c]))
     else:
         train_ds = dataset
 
+
+    train_ds, test_ds = make_gapped_dataset(train_ds, test_ds)
 
     for cls in train_ds.classes():
         
@@ -85,6 +85,8 @@ def test_new_images(dataset : ReiformICDataSet, test_ds : ReiformICDataSet = Non
             ReiformInfo("Class {} has no clusters.".format(cls))
             continue
 
+        ReiformInfo("Class {} has clusters.".format(cls))
+
         augmented_dataset = train_ds.copy()
         
         for c_1, c_2 in cluster_pair_results:
@@ -94,17 +96,25 @@ def test_new_images(dataset : ReiformICDataSet, test_ds : ReiformICDataSet = Non
             for file in new_images:
                 augmented_dataset.add_file(file)
 
+        models_path = "/home/ben/Code/com.reiform.mynah/python/models"
+        embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
+        create_dataset_embedding(augmented_dataset, embedding_models_path)
+
+        plot_embeddings_multi([train_ds, augmented_dataset], PROJECTION_LABEL_2D_PER_CLASS, train_ds.classes())
+
         # Compare a model trained on the new dataset to a model trained on the old.
-        ReiformInfo("Mislabeled evaluation starting.")
-        raw_scores = dataset_evaluation_resnet(train_ds, test_ds)
         ReiformInfo("Corrected evaluation starting.")
         corrected_scores = dataset_evaluation_resnet(augmented_dataset, test_ds)
+        ReiformInfo("Mislabeled evaluation starting.")
+        raw_scores = dataset_evaluation_resnet(train_ds, test_ds)
 
         ReiformInfo("Raw Scores       : {}".format(str(raw_scores)))
         ReiformInfo("Corrected Scores : {}".format(str(corrected_scores)))        
 
 
 if __name__ == '__main__':
+
+    random.seed(1)
 
     data_path=None
     test_path=None
@@ -114,20 +124,21 @@ if __name__ == '__main__':
     if len(sys.argv) > 2:
         test_path=sys.argv[2]
 
-    # models_path = "/home/ben/Code/com.reiform.mynah/python/models"
+    models_path = "/home/ben/Code/com.reiform.mynah/python/models"
 
-    # dataset : ReiformICDataSet = dataset_from_path(data_path)
-    # embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
-    # create_dataset_embedding(dataset, embedding_models_path)
+    dataset : ReiformICDataSet = dataset_from_path(data_path)
+    embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
+    create_dataset_embedding(dataset, embedding_models_path)
 
-    dataset = ReiformICDataSet([str(x) for x in range(10)])
+    if len(sys.argv) > 8:
+        dataset = ReiformICDataSet([str(x) for x in range(10)])
 
-    with open("dataset_file.json", 'r') as fh:
-        obj = json.load(fh)
-        obj["class_files"] = obj["files"]
-        dataset.from_json(obj)
+        with open("dataset_file.json", 'r') as fh:
+            obj = json.load(fh)
+            obj["class_files"] = obj["files"]
+            dataset.from_json(obj)
 
-    print("Loaded dataset")
+        print("Loaded dataset")
 
     if test_path is None:
         test_new_images(dataset)

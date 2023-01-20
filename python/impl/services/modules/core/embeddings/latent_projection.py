@@ -112,7 +112,10 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
         warnings.simplefilter("ignore")
         model_ = create_feature_extractor(model_, eval_return_nodes=return_nodes, train_return_nodes=return_nodes)
 
-    pt_dl = dataset.get_dataloader(3, batch_size=batch_size, edge_size=224)
+    edge_size = max(dataset.find_max_image_dims())
+    edge_size=min(256, max(MINIMUM_EDGE_SIZE_EMBEDDINGS, edge_size))
+    batch_size = int((224/edge_size)*batch_size)
+    pt_dl = dataset.get_dataloader(3, batch_size=batch_size, edge_size=edge_size)
 
     embeddings : List[NDArray] = []
     file_names : List[str] = []

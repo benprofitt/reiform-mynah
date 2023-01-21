@@ -30,6 +30,10 @@ def predict_masks(dataset):
 
 def blend_images(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -> List[ReiformICFile]:
     
+    # save_images_from_files(files_1, 1)
+    # save_images_from_files(files_2, 2)
+    # ReiformInfo("Saved files to new location for inspection and comparison.")
+
     new_files = []
 
     pairs = []
@@ -44,7 +48,8 @@ def blend_images(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -
 
         # new_filename = combine_images_patches([file1, file2])
         # new_filenames = new_images_grey_patch([file1, file2])
-        new_filenames = swap_pixel([file1, file2])
+        # new_filenames = swap_pixel([file1, file2])
+        new_filenames = average_image([file1, file2])
         
 
         for new_filename in new_filenames:
@@ -105,6 +110,8 @@ def test_new_images(dataset : ReiformICDataSet, test_ds : ReiformICDataSet = Non
         # Compare a model trained on the new dataset to a model trained on the old.
         ReiformInfo("Corrected evaluation starting.")
         corrected_scores = dataset_evaluation_resnet(augmented_dataset, test_ds)
+        ReiformInfo("Corrected Scores : {}".format(str(corrected_scores)))        
+
         ReiformInfo("Mislabeled evaluation starting.")
         raw_scores = dataset_evaluation_resnet(train_ds, test_ds)
 

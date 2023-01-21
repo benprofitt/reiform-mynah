@@ -4,9 +4,11 @@ from impl.services.modules.core.reiform_imageclassificationdataset import Reifor
 from impl.services.modules.core.reiform_imageclassificationdataset import ReiformICFile
 from impl.services.modules.utils.reiform_exceptions import ReiformInfo
 from gap_detection import *
-import uuid
+import uuid, shutil
 import matplotlib.pyplot as plt
 from matplotlib.widgets import LassoSelector
+
+from impl.services.modules.gap_filling.image_smoothing import ImageSmoother
 
 def plot_scatter(points_list):
     colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k'] # define a list of colors
@@ -27,9 +29,25 @@ def load_image(filename):
 
 def save_image(image, filename):
     # Convert the image to a PIL image
-    image = Image.fromarray(image)
+    smoother = ImageSmoother()
+    image = smoother.forward(image)
+
     # Save the image
     image.save(filename)
+
+def save_images_from_files(files : List[ReiformICFile], cluster_num : int):
+    
+    if not len(files):
+        return
+
+    base_path = "cluster_images/{}/{}/".format(files[0].get_class(), str(cluster_num))
+
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
+
+    for file in files:
+        shutil.copy2(file.get_name(), base_path)
+
 
 def plot_embeddings(dataset : ReiformICDataSet, label : str, classes : List[str]):
 
@@ -186,7 +204,7 @@ def combine_images_patches(image_list : List[ReiformICFile]):
 
     # Save the new image
     filename = generate_filename()
-    img1.save(filename)
+    save_image(img1, filename)
 
     return filename
 
@@ -223,12 +241,31 @@ def new_images_grey_patch(image_list : List[ReiformICFile]):
 
         # Save the new image
         new_filename = generate_filename()
-        img.save(new_filename)
+
+        save_image(img, new_filename)
 
         filenames.append(new_filename)
 
     return filenames
 
+def average_image(image_list : List[ReiformICFile]):
+    # Files to names (to be opened)
+    image_list = [im.get_name() for im in image_list]
+
+    # Open ims and divide by len (for taking avg)
+    images = [load_image(im)//len(image_list) for im in image_list]
+
+    # Add images
+    new_image = images[0]
+    for im in images[1:]:
+        new_image += im
+
+    new_image = Image.fromarray(new_image)
+
+    fname = generate_filename()
+    save_image(new_image, fname)
+
+    return [fname]
 
 def swap_pixel(image_list : List[ReiformICFile]):
 
@@ -262,7 +299,9 @@ def swap_pixel(image_list : List[ReiformICFile]):
     # Save the new images
     for i,img in enumerate(imgs):
         name = generate_filename()
-        img.save(name)
+
+        save_image(img, name)
+        
         filenames.append(name)
     
     return filenames

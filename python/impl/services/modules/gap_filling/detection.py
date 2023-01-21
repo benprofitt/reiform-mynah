@@ -11,11 +11,6 @@ def find_images_near_gaps(dataset : ReiformICDataSet, cls: str) -> List[List[Lis
         embeddings.append(file.get_projection(projection_label)) 
         names.append(name)
 
-    if len(embeddings) == 0:
-        for n, f in dataset.get_items(cls):
-            print(n, f)
-    print(len(embeddings))
-
     clf = OPTICS(min_samples=max(10, len(embeddings)//15))
     predictions = clf.fit_predict(embeddings)
     cluster_classes = set(predictions)

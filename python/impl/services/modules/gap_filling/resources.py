@@ -267,6 +267,22 @@ def average_image(image_list : List[ReiformICFile]):
 
     return [fname]
 
+def process_ims_vae(image_list : List[ReiformICFile]):
+    # Files to names (to be opened)
+    image_list = [im.get_name() for im in image_list]
+
+    # Add images
+    names : List[str] = []
+    for im in image_list:
+
+        new_image = Image.open(im)
+
+        fname = generate_filename()
+        save_image(new_image, fname)
+        names.append(fname)
+
+    return names
+
 def swap_pixel(image_list : List[ReiformICFile]):
 
     # Images to names

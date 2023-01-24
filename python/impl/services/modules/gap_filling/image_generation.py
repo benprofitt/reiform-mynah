@@ -28,11 +28,27 @@ def predict_masks(dataset):
   # Return the list of mask predictions
   return mask_predictions
 
+def blend_images_vae(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -> List[ReiformICFile]:
+    
+    new_filenames = process_ims_vae(files_1)
+    new_filenames += process_ims_vae(files_2)
+    
+    new_files = []
+    for new_filename in new_filenames:
+
+            # Assign the new image a unique name and the same class to make a new file
+            new_files.append(ReiformICFile(new_filename, files_1[0].get_class()))
+
+    return new_files
+
 def blend_images(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -> List[ReiformICFile]:
     
     # save_images_from_files(files_1, 1)
     # save_images_from_files(files_2, 2)
     # ReiformInfo("Saved files to new location for inspection and comparison.")
+
+    new_filenames = process_ims_vae(files_1)
+    new_filenames += process_ims_vae(files_2)
 
     new_files = []
 
@@ -48,8 +64,8 @@ def blend_images(files_1 : List[ReiformICFile], files_2 : List[ReiformICFile]) -
 
         # new_filename = combine_images_patches([file1, file2])
         # new_filenames = new_images_grey_patch([file1, file2])
-        # new_filenames = swap_pixel([file1, file2])
-        new_filenames = average_image([file1, file2])
+        new_filenames = swap_pixel([file1, file2])
+        # new_filenames = average_image([file1, file2])
         
 
         for new_filename in new_filenames:

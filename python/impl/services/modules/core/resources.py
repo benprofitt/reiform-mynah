@@ -46,7 +46,8 @@ VERBOSE = False
 
 PROJECTION_LABEL : str = "inception_projection"
 
-EMBEDDING_MODEL_NAME : str = "densenet201-imagenet-torch.pt"
+# EMBEDDING_MODEL_NAME : str = "densenet201-imagenet-torch.pt"
+EMBEDDING_MODEL_NAME : str = "densenet201-adversarial_1_23_23.pt"
 
 LOCAL_EMBEDDING_PATH_MOBILENET : str = "models/mobilenet-v2-embeddings.pt"
 LOCAL_EMBEDDING_PATH_RESNET18 : str = "models/resnet18-imagenet-torch.pt"

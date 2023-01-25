@@ -1,15 +1,17 @@
 import { Dialog, Menu } from "@headlessui/react";
 import clsx from "clsx";
-import { MynahFile, MynahICDataset, MynahICFile } from "../../utils/types";
+import { MynahFile, MynahICDataset, MynahICFile } from "../../../utils/types";
 import { useQuery } from "react-query";
-import makeRequest from "../../utils/apiFetch";
-import Image from "../../components/Image";
-import getDate from "../../utils/date";
+import makeRequest from "../../../utils/apiFetch";
+import Image from "../../../components/Image";
+import getDate from "../../../utils/date";
 import _ from "lodash";
 import { Link, useLocation } from "wouter";
 import { memo } from "react";
+import MenuItem from "../../../components/menu_item";
+import EllipsisMenu from "../../../components/ellipsis_menu";
 
-const File = memo((props: {
+const FileListItem = memo((props: {
   version: string;
   fileId: string;
   file: MynahICFile;
@@ -17,7 +19,7 @@ const File = memo((props: {
   basePath: string;
 }): JSX.Element => {
   const { version, fileId, file, data, basePath } = props;
-  const { image_version_id } = file;
+  const { image_version_id } = file
   const imgClass = "current_class" in file ? file.current_class : "OD class";
   if (!data) return <></>;
   const { date_created } = data;
@@ -40,37 +42,7 @@ const File = memo((props: {
       <h6 className="w-[20%]">{getDate(date_created)}</h6>
       <h6 className="w-[20%]">{imgClass}</h6>
       <h6 className="w-[20%]">{version}</h6>
-      <Menu
-        as="div"
-        className="absolute inline-block text-left right-[15px] top-[30%]"
-      >
-        {({ open }) => (
-          <>
-            <div>
-              <Menu.Button
-                className={clsx(
-                  "hover:bg-grey3 transition-colors duration-300 rounded-full w-[30px] aspect-square flex items-center justify-center group",
-                  open ? "bg-grey3" : "bg-clearGrey3"
-                )}
-              >
-                {[0, 1, 2].map((ix) => (
-                  <div
-                    key={ix}
-                    className={clsx(
-                      "rounded-full w-[4px] aspect-square mx-[2px] transition-colors duration-300 group-hover:bg-grey5 ",
-                      open ? "bg-grey5" : "bg-grey6"
-                    )}
-                  />
-                ))}
-              </Menu.Button>
-            </div>
-            <Menu.Items className="z-10 absolute right-[15px] mt-[15px] w-56 origin-top-right rounded-md bg-white shadow-floating focus:outline-none">
-              {/* <DotMenuItem src={OpenDatasetIcon} text="Open Dataset" />
-          <DotMenuItem src={TrashIcon} text="Delete" /> */}
-            </Menu.Items>
-          </>
-        )}
-      </Menu>
+      <EllipsisMenu />
     </Link>
   );
 });
@@ -120,7 +92,7 @@ export default function Files(props: FilesProps): JSX.Element {
       {versionKeys.map((version) => {
         const files = dataset.versions[version].files;
         return _.keys(files).map((id, ix) => (
-          <File
+          <FileListItem
             key={ix}
             version={version}
             file={files[id]}
@@ -186,20 +158,21 @@ const DetailedFileView = (props: {
         <h1 className="py-[24px] font-black text-[28px]">{fileData.name}</h1>
         {_.keys(versions).map((version) => {
           const file = versions[version].files[fileId];
+          const { image_version_id, current_class, original_class } = file; // img_version_id should replace latest in the image src
           if (file === undefined) return <></>;
           return (
             <div className="flex border-grey1 border-2 h-[350px]" key={version}>
               <Image
-                src={`/api/v1/file/${fileId}/${file.image_version_id}`}
+                src={`/api/v1/file/${fileId}/${image_version_id}`}
                 className="max-w-[min(60%,700px)] object-contain"
               />
               <div className="w-[376px]">
                 <h3 className="text-[20px] p-[24px]">Version: {version}</h3>
                 <div className="grid gap-[10px]">
-                  <MetaDetail title="Class" value={file.current_class} />
+                  <MetaDetail title="Class" value={current_class} />
                   <MetaDetail
                     title="Original Class"
-                    value={file.original_class}
+                    value={original_class}
                   />
                 </div>
                 {/* {JSON.stringify({ ...theFile, fileData })} */}

@@ -210,6 +210,12 @@ func (s *localStorage) GenerateSHA1Id(fileId model.MynahUuid, version *model.Myn
 	if err != nil {
 		return "", err
 	}
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			log.Warnf("failed to close file: %s", err)
+		}
+	}(fileReader)
 
 	hash := sha1.New() // #nosec
 	if _, err := io.Copy(hash, fileReader); err != nil {

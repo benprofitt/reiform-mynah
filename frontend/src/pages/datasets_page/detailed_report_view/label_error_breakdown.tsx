@@ -1,8 +1,14 @@
 import { Tab } from "@headlessui/react";
 import clsx from "clsx";
 import Plot from "react-plotly.js";
+import { MynahICProcessTaskDiagnoseMislabeledImagesReport } from "../../../utils/types";
 
-export default function LabelErrorBreakdown(): JSX.Element {
+export interface LabelErrorBreakdownProps {
+  taskMetadata: MynahICProcessTaskDiagnoseMislabeledImagesReport
+}
+
+export default function LabelErrorBreakdown(props: LabelErrorBreakdownProps): JSX.Element {
+  const { taskMetadata } = props
   return (
     <>
       <h3 className="font-black text-[20px]">Breakdown</h3>
@@ -29,26 +35,42 @@ export default function LabelErrorBreakdown(): JSX.Element {
         <Tab.Panels className="pt-[20px]">
           <Tab.Panel>
             <table className="w-full">
-              <th className="text-left">Class 1</th>
-              <tr>
-                <td>Bad:</td>
-                <td className="text-right">129</td>
-              </tr>
-              <tr>
-                <td>Acceptable:</td>
-                <td className="text-right">905</td>
-              </tr>
-              <tr>
-                <td>Total:</td>
-                <td className="text-right">1235</td>
-              </tr>
+            {Object.entries(taskMetadata.class_label_errors).map(([className, {mislabeled, correct}]) => <>
+              <thead>
+                <tr>
+                  <th className="text-left">Class {className}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Bad:</td>
+                  <td className="text-right">{mislabeled.length}</td>
+                </tr>
+                <tr>
+                  <td>Acceptable:</td>
+                  <td className="text-right">{correct.length}</td>
+                </tr>
+                <tr>
+                  <td>Total:</td>
+                  <td className="text-right">{mislabeled.length + correct.length}</td>
+                </tr>
+              </tbody>
+            </>)}
+            
             </table>
           </Tab.Panel>
           <Tab.Panel>
             {() => {
+              // Object.entries(taskMetadata.class_label_errors).map(([className, {mislabeled, correct}]) =>
+              const correctCounts = Object.values(taskMetadata.class_label_errors).map(({correct}) => correct.length)
+
+              const mislabeledCounts = Object.values(taskMetadata.class_label_errors).map(({mislabeled}) => mislabeled.length)
+
+              const classNames = Object.keys(taskMetadata.class_label_errors).map((name) => "Class " + name)
+
               const trace1 = {
-                x: [129, 229],
-                y: ["class1", "class2"],
+                x: mislabeledCounts,
+                y: classNames,
                 name: "Mislabeled",
                 text: "Mislabeled",
                 orientation: "h",
@@ -60,8 +82,8 @@ export default function LabelErrorBreakdown(): JSX.Element {
               };
 
               const trace2 = {
-                x: [905, 805],
-                y: ["class1", "class2"],
+                x: correctCounts,
+                y: classNames,
                 name: "Correct",
                 text: "Correct",
                 orientation: "h",

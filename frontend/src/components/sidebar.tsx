@@ -1,10 +1,12 @@
 import clsx from "clsx";
 import ReiformLogo from "./reiform_logo";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import ImportData from "./import_data";
 import PlusCircle from "../images/PlusCircle.svg";
-import HomeButton from "../images/HomeButton.svg";
+import DatasetsIcon from "../images/DatasetsIcon.svg";
+import ModelsIcon from "../images/ModelsIcon.svg";
+import CreateNewModel from "../pages/models_page/new_model_dialog";
 
 export interface SideBarButtonProps {
   children?: JSX.Element;
@@ -40,7 +42,12 @@ export interface SideBarProps {
 }
 export default function SideBar(props: SideBarProps): JSX.Element {
   const { children } = props;
+  const [loc, setLoc] = useLocation();
+  const isDatasets = loc.startsWith("/datasets");
+  const isModels = loc.startsWith("/models");
+  console.log(loc);
   const [isAddingDataset, setIsAddingDataset] = useState(false);
+  const [isCreatingModel, setIsCreatingModel] = useState(false);
   return (
     <div className="h-screen flex">
       <nav
@@ -51,23 +58,38 @@ export default function SideBar(props: SideBarProps): JSX.Element {
         <Link to="/">
           <ReiformLogo className="w-[36px] mb-[60px]" />
         </Link>
-        <SideBarButton onClick={() => setIsAddingDataset(true)}>
+        <SideBarButton
+          onClick={() => {
+            if (isDatasets) setIsAddingDataset(true);
+            if (isModels) setIsCreatingModel(true);
+          }}
+        >
           <img src={PlusCircle} alt="add new dataset" />
         </SideBarButton>
-        <SideBarButton selected>
-          <Link to="/home">
-            <img src={HomeButton} alt="Go Home" />
-          </Link>
-        </SideBarButton>
+        <Link to="/datasets">
+          <SideBarButton selected={isDatasets}>
+            <img src={DatasetsIcon} alt="Datasets" />
+          </SideBarButton>
+        </Link>
+        {/* <Link to="/models">
+          <SideBarButton selected={isModels}>
+            <img src={ModelsIcon} alt="Datasets" />
+          </SideBarButton>
+        </Link> */}
         <Link
           to="/account-settings"
           className="w-[32px] aspect-square bg-green-700 grid place-items-center text-[12px] font-medium mt-auto rounded-full text-white"
         >
           JL
         </Link>
+        {/* maybe just one stateful 'is creating' and then do the rest based on route */}
         <ImportData
           open={isAddingDataset}
           close={() => setIsAddingDataset(false)}
+        />
+        <CreateNewModel
+          open={isCreatingModel}
+          close={() => setIsCreatingModel(false)}
         />
       </nav>
       {children}

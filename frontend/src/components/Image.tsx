@@ -21,7 +21,7 @@ export default function Image(props: ImageProps): JSX.Element {
   } = useQuery(endpoint, () =>
     getImg(endpoint)
   );
-  return <img alt="img" className={className} src={src} />
+  return src ? <img alt="img" className={className} src={src} /> : <div className={className + " bg-black"} />
 }
 
 async function getImg(url: string) {

@@ -67,8 +67,8 @@ func (r *MynahRouter) ListenAndServe() {
 	r.server = &http.Server{
 		Handler:           r,
 		Addr:              fmt.Sprintf(":%d", r.settings.Port),
-		WriteTimeout:      15 * time.Second,
-		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second, // TODO these should be lower once we rearchitect
+		ReadTimeout:       30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 15 * time.Second,
 	}

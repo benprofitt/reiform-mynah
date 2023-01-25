@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const maxBodySize1MB = 1048576
+const maxBodySize10MB = 10485760 // TODO reduce this limit once we rearchitect
 
 // Context defines the context of an http request
 type Context struct {
@@ -53,8 +53,8 @@ func (ctx *Context) ReadJson(target interface{}) error {
 		return errors.New("no body to decode")
 	}
 
-	//max size is 1MB
-	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxBodySize1MB)
+	//max size is 10MB
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxBodySize10MB)
 
 	return mynahJson.Decode(ctx.Request.Body, target)
 }

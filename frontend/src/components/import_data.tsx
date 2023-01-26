@@ -37,7 +37,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
 
   const uploadFiles = async (theFiles: File[]) => {
     setFiles(
-      theFiles.map((file) => {
+      theFiles.filter((file) => file.name != '.DS_Store').map((file) => {
         return { file, isFinished: false };
       })
     );

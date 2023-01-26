@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Cookies from "universal-cookie";
-import { authCookieName, authCookieOptions } from "./login_page";
-import AddUserModal from "../components/add_user_modal";
+import { authCookieName, authCookieOptions } from "../login_page";
+import AddUserModal from "./add_user_modal";
 
 export default function AccountSettingsPage(): JSX.Element {
   const cookies = new Cookies();

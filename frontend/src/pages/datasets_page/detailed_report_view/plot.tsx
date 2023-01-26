@@ -4,7 +4,7 @@ import Plot from "react-plotly.js";
 
 export interface MyPlotProps {
   data: Partial<Plotly.ScatterData>[];
-  setPoint: (x: Plotly.Datum, y: Plotly.Datum, pointIndex: number) => void;
+  setPoint: (x: Plotly.Datum, y: Plotly.Datum, pointIndex: number, pointClass: number) => void;
   plotLayout: Partial<Plotly.Layout>;
   plotRef: RefObject<Plot>
 }
@@ -39,9 +39,10 @@ function MyPlot(props: MyPlotProps) {
       data={data}
       layout={plotLayout}
       onClick={(e) => {
-        const { x, y, pointIndex } = e.points[0];
+        const { x, y, pointIndex, curveNumber } = e.points[0];
+        console.log(e.points[0])
         console.log("click", { x, y, pointIndex, e });
-        setPoint(x, y, pointIndex);
+        setPoint(x, y, pointIndex, curveNumber);
       }}
     />
   );

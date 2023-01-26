@@ -2,14 +2,13 @@ import { Dialog } from "@headlessui/react";
 import clsx from "clsx";
 import { Dispatch, SetStateAction, useState } from "react";
 import { useQuery } from "react-query";
-import makeRequest from "../../utils/apiFetch";
-import { AsyncTaskData } from "../../utils/types";
+import makeRequest from "../../../utils/apiFetch";
+import { AsyncTaskData } from "../../../utils/types";
 
 export interface ProcessDataModalProps {
   uuid: string;
   isOpen: boolean;
   close: () => void;
-  setPendingReports: Dispatch<SetStateAction<string[] | null>>;
 }
 
 interface StartingJobResponse {
@@ -19,7 +18,7 @@ interface StartingJobResponse {
 export default function ProcessDataModal(
   props: ProcessDataModalProps
 ): JSX.Element {
-  const { uuid, isOpen, close, setPendingReports } = props;
+  const { uuid, isOpen, close } = props;
   const [selected, setSelected] = useState<"correction" | "diagnosis" | null>(
     null
   );
@@ -37,6 +36,10 @@ export default function ProcessDataModal(
     selected === "diagnosis" ||
     (selected && (labelingErrors || intraclassVariance));
 
+  const { refetch } = useQuery<AsyncTaskData[]>("tasks", () =>
+    makeRequest<AsyncTaskData[]>("GET", "/api/v1/task/list")
+  );
+  
   const submitRequest = () => {
     if (!isValid) return;
     const types: string[] = [];
@@ -66,16 +69,9 @@ export default function ProcessDataModal(
       "/api/v1/dataset/ic/process/start",
       body
     ).then((x) => {
-      setPendingReports((curReports) =>
-        curReports === null ? [x.task_uuid] : [...curReports, x.task_uuid]
-      );
-      console.log(x);
       refetch();
     });
   };
-  const { refetch } = useQuery<AsyncTaskData[]>("tasks", () =>
-    makeRequest<AsyncTaskData[]>("GET", "/api/v1/task/list")
-  );
   return (
     <Dialog
       open={isOpen}

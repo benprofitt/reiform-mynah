@@ -3,15 +3,17 @@ import _ from "lodash";
 import { useState } from "react";
 import { useQuery } from "react-query";
 import { Link } from "wouter";
-import makeRequest from "../../utils/apiFetch";
-import getDate from "../../utils/date";
+import makeRequest from "../../../utils/apiFetch";
+import getDate from "../../../utils/date";
 import {
   AsyncTaskData,
   MynahICDataset,
   MynahICProcessTaskType,
   MynahICReport,
-} from "../../utils/types";
-import DetailedReportView from "./detailedreportview/detailed_report_view";
+} from "../../../utils/types";
+import DetailedReportView from "../detailed_report_view/detailed_report_view";
+import ArrowIcon from "../../../images/ArrowIcon.svg";
+import ReportIcon from "../../../images/ReportIcon.svg";
 
 export const reportToString: Record<MynahICProcessTaskType, string> = {
   "ic::diagnose::mislabeled_images": "Labeling Diagnosis Report",
@@ -19,6 +21,18 @@ export const reportToString: Record<MynahICProcessTaskType, string> = {
   "ic::diagnose::class_splitting": "Variance Diagnosis Report",
   "ic::correct::class_splitting": "Variance Correction Report",
 };
+
+function PendingReport(props: { version: number; date_created: number }) {
+  const { version, date_created } = props;
+  return (
+    <div className="w-full hover:shadow-floating cursor-pointer bg-white border border-grey4 rounded-md text-[18px] flex items-center mt-[10px] relative text-left h-[72px] px-[15px]">
+      <h6 className="w-[60%] flex items-center">
+        <span className="ml-[10px] text-grey6">(Currently Processing...)</span> <div className="ml-[10px] animate-spin aspect-square border-l border-r border-b border-red-500 rounded-full w-[20px]" />
+      </h6>
+      <h6 className="w-[20%]">{getDate(date_created)}</h6>
+    </div>
+  );
+}
 
 function ReportDropDown(props: {
   version: string;
@@ -42,6 +56,11 @@ function ReportDropDown(props: {
         <h6 className="w-[60%]">Version {version}</h6>
         <h6 className="w-[20%]">{getDate(date_created)}</h6>
         <h6 className="w-[20%]">{tasks.length}</h6>
+        <img
+          src={ArrowIcon}
+          alt="arrow"
+          className={clsx("absolute right-[4px]", open && "rotate-180")}
+        />
         {/* {[version, data_id, date_created, tasks].toString(',')} */}
       </div>
       {open &&
@@ -51,6 +70,7 @@ function ReportDropDown(props: {
             className="hover:font-bold h-[55px] flex items-center cursor-pointer"
             to={`${basePath}/${data_id}/${task}`}
           >
+            <img src={ReportIcon} className="mr-[10px]" />
             <h6>{reportToString[task]}</h6>
             <button className="ml-auto text-linkblue font-bold">View</button>
           </Link>
@@ -61,26 +81,13 @@ function ReportDropDown(props: {
 
 export interface ReportsProps {
   dataset: MynahICDataset;
-  pendingReports: string[] | null;
   basePath: string;
   reportId: string;
   reportType: MynahICProcessTaskType;
 }
-// temporary hard coded reports
-  const reports: MynahICDataset["reports"] = {
-    "0": {
-      data_id: "901dj012931iu3091",
-      date_created: 12341212,
-      tasks: ["ic::correct::class_splitting", "ic::diagnose::class_splitting"],
-    },
-    "1": {
-      data_id: "901dj012931iu3092",
-      date_created: 12341212,
-      tasks: ["ic::diagnose::mislabeled_images", "ic::correct::mislabeled_images"],
-    },
-  };
+
 export default function Reports(props: ReportsProps) {
-  const { dataset, pendingReports, basePath, reportId, reportType } = props;
+  const { dataset, basePath, reportId, reportType } = props;
 
   // i will show all completed tasks properly,
   // things that are pending and failed will show pending / failed
@@ -93,13 +100,19 @@ export default function Reports(props: ReportsProps) {
   } = useQuery<AsyncTaskData[]>("tasks", () =>
     makeRequest<AsyncTaskData[]>("GET", "/api/v1/task/list")
   );
-  // const versionKeys = _.keys(dataset.reports);
-  const versionKeysHard = _.keys(reports);
-  const numCompleted = versionKeysHard.length;
+  
+  const pendingReports = tasks?.filter(
+    (task) => ['running', 'pending'].includes(task.task_status)
+  );
+  const versionKeys = _.keys(dataset.reports);
+  const maxVersion = Math.max(...versionKeys.map((x) => parseInt(x)));
+  const numCompleted = versionKeys.length;
   const completedPhrase = `${numCompleted} completed report${
     numCompleted !== 1 ? "s" : ""
   }`;
-  const curSelectedVersion = Object.entries(reports).filter(([,{data_id}]) => data_id === reportId)[0]?.[0]
+  const curSelectedVersion = Object.entries(dataset.reports).filter(
+    ([, { data_id }]) => data_id === reportId
+  )[0]?.[0];
   if (error) return <div>error getting datasetFiles</div>;
   if (isLoading || !tasks)
     return (
@@ -108,6 +121,7 @@ export default function Reports(props: ReportsProps) {
   return Boolean(reportId) ? (
     <DetailedReportView
       dataId={reportId}
+      dataset={dataset}
       basePath={basePath}
       reportType={reportType}
       version={curSelectedVersion}
@@ -122,14 +136,16 @@ export default function Reports(props: ReportsProps) {
         <h5 className="w-[20%]">Date Created</h5>
         <h5 className="w-[20%]">Number of reports</h5>
       </div>
-      {/* should be versionKeys (nohard) and dataset.reports */}
-      {versionKeysHard.map((version, ix) => (
+      {versionKeys.map((version, ix) => (
         <ReportDropDown
           key={ix}
           version={version}
-          report={reports[version]}
+          report={dataset.reports[version]}
           basePath={basePath}
         />
+      ))}
+      {pendingReports?.map((x) => (
+        <PendingReport key={x.task_id} date_created={x.started} version={maxVersion + 1} />
       ))}
     </div>
   );

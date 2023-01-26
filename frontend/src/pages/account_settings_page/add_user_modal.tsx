@@ -1,8 +1,8 @@
 import { Dialog } from "@headlessui/react";
 import clsx from "clsx";
 import React, { useEffect, useRef, useState } from "react";
-import makeRequest from "../utils/apiFetch";
-import { CreateUserResponse } from "../utils/types";
+import makeRequest from "../../utils/apiFetch";
+import { CreateUserResponse } from "../../utils/types";
 
 export interface AddUserModalProps {
   open: boolean;

@@ -1,15 +1,13 @@
 import React from "react";
 import { MynahICProcessTaskDiagnoseClassSplittingReport } from "../../../utils/types";
 
-export interface ClassSplittingBreakdownProps {
-  correctionReport: boolean;
+export interface ClassSplittingBreakdownDiagnosisProps {
   taskMetadata: MynahICProcessTaskDiagnoseClassSplittingReport;
 }
 
-export default function ClassSplittingBreakdown({
-  correctionReport,
+export default function ClassSplittingBreakdownDiagnosis({
   taskMetadata,
-}: ClassSplittingBreakdownProps) {
+}: ClassSplittingBreakdownDiagnosisProps) {
   return (
     <table className="w-full text-[18px]">
       <thead>

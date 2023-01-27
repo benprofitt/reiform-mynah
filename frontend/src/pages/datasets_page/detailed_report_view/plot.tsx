@@ -4,9 +4,9 @@ import Plot from "react-plotly.js";
 
 export interface MyPlotProps {
   data: Partial<Plotly.ScatterData>[];
-  setPoint: (x: Plotly.Datum, y: Plotly.Datum, pointIndex: number, pointClass: number) => void;
+  setPoint: (pointIndex: number, pointClass: number) => void;
   plotLayout: Partial<Plotly.Layout>;
-  plotRef: RefObject<Plot>
+  plotRef: RefObject<Plot>;
 }
 
 const blankData: Plotly.Data[] = [
@@ -23,26 +23,26 @@ function MyPlot(props: MyPlotProps) {
   const { data, setPoint, plotLayout, plotRef } = props;
   const divId = "plotDiv";
 
-  console.log('plot render')
+  console.log("plot render");
 
   return (
     <Plot
-    className="w-full h-full"
+      className="w-full h-full"
       divId={divId}
       ref={plotRef}
       config={{
         scrollZoom: true,
         responsive: true, // removing this makes it so the graph doesn't move when things change (the same way that relayouting kept it in the same place)
-        displayModeBar: false
+        displayModeBar: false,
         // modeBarButtonsToRemove: ["lasso2d", "autoScale2d", "select2d"],
       }}
       data={data}
       layout={plotLayout}
       onClick={(e) => {
         const { x, y, pointIndex, curveNumber } = e.points[0];
-        console.log(e.points[0])
+        console.log(e.points[0]);
         console.log("click", { x, y, pointIndex, e });
-        setPoint(x, y, pointIndex, curveNumber);
+        setPoint(pointIndex, curveNumber);
       }}
     />
   );

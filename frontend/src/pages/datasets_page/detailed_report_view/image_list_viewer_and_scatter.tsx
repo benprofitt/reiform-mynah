@@ -74,19 +74,22 @@ export default function ImageListViewerAndScatter(
 
   const plotRef = useRef<Plot>(null);
 
-  const [last, setLast] = useState<{
-    x: Plotly.Datum;
-    y: Plotly.Datum;
+  const [selectedPoint, setSelectedPoint] = useState<{
     pointIndex: number;
     pointClass: number;
   } | null>(null);
 
+  
+  const selectedPointData = selectedPoint
+    ? reportData.points[selectedPoint.pointClass][selectedPoint.pointIndex]
+    : null;
+
   const data: Partial<Plotly.ScatterData>[] = [
     ...dataConversion,
-    last
+    selectedPoint && selectedPointData
       ? {
-          x: [last.x],
-          y: [last.y],
+          x: [selectedPointData.x],
+          y: [selectedPointData.y],
           type: "scattergl",
           // selected: {},
           mode: "markers",
@@ -129,14 +132,15 @@ export default function ImageListViewerAndScatter(
   // as triggers a useeffect which scrolls to the highlighted point
   const setPoint = useCallback(
     (
-      x: Plotly.Datum,
-      y: Plotly.Datum,
       pointIndex: number,
       pointClass: number
     ) => {
-      setLast({ x, y, pointIndex, pointClass });
+      setSelectedPoint({ pointIndex, pointClass });
 
+      const newLastData = reportData.points[pointClass][pointIndex]
       if (!plotRef.current) return;
+
+      const {x,y} = newLastData
 
       const layout = plotRef.current.props.layout;
       const xrange = layout.xaxis?.range?.map(Number);
@@ -149,8 +153,8 @@ export default function ImageListViewerAndScatter(
 
       if (
         isInRectangle(
-          Number(x),
-          Number(y),
+          x,
+          y,
           xrange[0],
           xrange[1],
           yrange[0],
@@ -161,14 +165,14 @@ export default function ImageListViewerAndScatter(
       const newLayout: Partial<Plotly.Layout> = {
         xaxis: {
           range: [
-            Math.max(Number(x) - xwidth, minx),
-            Math.min(Number(x) + xwidth, maxx),
+            Math.max(x - xwidth, minx),
+            Math.min(x + xwidth, maxx),
           ],
         },
         yaxis: {
           range: [
-            Math.max(Number(y) - ywidth, miny),
-            Math.min(Number(y) + ywidth, maxy),
+            Math.max(y - ywidth, miny),
+            Math.min(y + ywidth, maxy),
           ],
         },
       };
@@ -179,17 +183,14 @@ export default function ImageListViewerAndScatter(
     },
     []
   );
-  // last only needs to store point class and point index because x and y can be derived from that
-  const selectedPointData = last
-    ? reportData.points[last.pointClass][last.pointIndex]
-    : null;
+  
   return (
     <>
       <div className="w-[30%] shadow-huge h-full">
         <ImageList
           data={data}
           setPoint={setPoint}
-          last={last}
+          last={selectedPoint}
           points={reportData.points}
         />
       </div>
@@ -197,7 +198,7 @@ export default function ImageListViewerAndScatter(
       <div className="w-[70%] bg-grey">
         <div className="h-[50%] px-[15px] py-[25px]">
           <SelectedImage
-            last={last}
+            last={selectedPoint}
             data={data}
             selectedPointData={selectedPointData}
           />

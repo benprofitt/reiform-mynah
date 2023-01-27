@@ -12,14 +12,10 @@ import makeRequest from "../../../utils/apiFetch";
 export interface ImageListProps {
   data: Partial<Plotly.ScatterData>[];
   setPoint: (
-    x: Plotly.Datum,
-    y: Plotly.Datum,
     pointIndex: number,
     pointClass: number
   ) => void;
   last: {
-    x: Plotly.Datum;
-    y: Plotly.Datum;
     pointIndex: number;
     pointClass: number;
   } | null;
@@ -123,8 +119,6 @@ export default function ImageList(props: ImageListProps): JSX.Element {
               selected={last !== null && props.index === lastFlatIndex}
               onClick={() => {
                 setPoint(
-                  xList[props.index] as Plotly.Datum,
-                  yList[props.index] as Plotly.Datum,
                   index,
                   classNum
                 );

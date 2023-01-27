@@ -64,7 +64,7 @@ func (m MynahICProcessTaskCorrectMislabeledImagesMetadata) ApplyChanges(version 
 		} else if corrected.Contains(fileId) {
 			classLabelErrors[fileData.CurrentClass].MislabeledCorrected = append(classLabelErrors[fileData.CurrentClass].MislabeledCorrected, fileId)
 		} else {
-			classLabelErrors[fileData.CurrentClass].MislabeledCorrected = append(classLabelErrors[fileData.CurrentClass].MislabeledCorrected, fileId)
+			classLabelErrors[fileData.CurrentClass].Unchanged = append(classLabelErrors[fileData.CurrentClass].Unchanged, fileId)
 		}
 	}
 

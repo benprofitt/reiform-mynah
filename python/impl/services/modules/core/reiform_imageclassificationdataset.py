@@ -78,6 +78,7 @@ class ReiformICFile(ReiformImageFile):
         if self.name != other.name:
             raise ReiformICFileException("Cannot merge files different names", "merge")
         merged_file : ReiformICFile = ReiformICFile(other.name, other.current_class)
+        merged_file.uuid = other.uuid
         merged_file.original_class = other.original_class
 
         merged_file.confidence_vectors = self.confidence_vectors + other.confidence_vectors
@@ -117,6 +118,9 @@ class ReiformICDataSet(ReiformImageDataset):
 
         self.files : Dict[str, Dict[str, ReiformICFile]] = {}
 
+        # TODO - fix to have only one map when we do a rearchitecture
+        self.uuid_to_name : Dict[str, str] = {}
+
         self.mean : List[float] = []
         self.std_dev : List[float] = []
 
@@ -128,6 +132,7 @@ class ReiformICDataSet(ReiformImageDataset):
 
         for c in self.class_list:
             self.files[c] = {}
+            self.uuid_to_name[c] = {}
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, ReiformICDataSet):
@@ -163,6 +168,7 @@ class ReiformICDataSet(ReiformImageDataset):
             ReiformWarning("File class {} <{}> not in dataset - file not added".format(file.current_class, str(type(file.current_class))))
             return
         self.files[file.get_class()][file.get_name()] = file
+        self.uuid_to_name[file.get_class()][file.get_uuid()] = file.get_name()
         if self.max_channels < file.channels:
             self.max_channels = file.channels
 
@@ -174,11 +180,17 @@ class ReiformICDataSet(ReiformImageDataset):
         else:
             raise ReiformICDataSetException("File not in dataset", "get_file")
 
-    def get_file_by_uuid(self, name : str):
+    def get_file_by_uuid(self, uuid : str):
+        for c in self.class_list:
+            if uuid in self.uuid_to_name[c]:
+                return self.files[c][self.uuid_to_name[c][uuid]]
+        raise ReiformICDataSetException("File not in dataset", "get_file_by_uuid")
+
+    def get_file_by_name(self, name : str):
         for c in self.class_list:
             if name in self.files[c]:
                 return self.files[c][name]
-        raise ReiformICDataSetException("File not in dataset", "get_file_by_uuid")
+        raise ReiformICDataSetException("File not in dataset", "get_file_by_name")
 
     def set_file_class(self, label : str, name : str, new_label : str):
         # Removes the file from the old class and adds it back to the new one
@@ -353,7 +365,7 @@ class ReiformICDataSet(ReiformImageDataset):
             for filename, file in other.get_items(c):
 
                 if self.contains(filename):
-                    my_file = self.get_file_by_uuid(filename)
+                    my_file = self.get_file_by_name(filename)
                     merged_file = my_file.merge(file)
                     self.remove_file(my_file.current_class, filename)
                     self.add_file(merged_file)
@@ -408,15 +420,13 @@ class ReiformICDataSet(ReiformImageDataset):
         attr_dict : Dict[str, Any] = self.__dict__
         results : Dict[str, Any] = {}
 
-        extra_keys = ["files", "max_width", "max_height", "max_channels"]
+        extra_keys = ["files", "max_width", "max_height", "max_channels", "uuid_to_name"]
         for k, val in attr_dict.items():
             if k not in extra_keys:
                 results[k] = val
 
         results["classes"] = results["class_list"]
         del results["class_list"]
-
-        ReiformInfo("serialized classes {}".format(results))
 
         self._serialize_files(attr_dict, results)
 
@@ -456,6 +466,11 @@ class ReiformICDataSet(ReiformImageDataset):
         def add_mean_and_std(f1 : ReiformICFile, f2 : ReiformICFile):
 
             nf = ReiformICFile("temp", f1.current_class)
+
+            if len(f1.mean) == 0:
+                f1.recalc_mean_and_stddev()
+            if len(f2.mean) == 0:
+                f2.recalc_mean_and_stddev()
 
             m1 = f1.mean
             m2 = f2.mean
@@ -505,6 +520,14 @@ class ReiformICDataSet(ReiformImageDataset):
         new_dataset = ReiformICDataSet(self.class_list)
         for id in uuids:
             new_dataset.add_file(self.get_file_by_uuid(id))
+
+        return new_dataset
+
+    def dataset_from_names(self, names : List[str]):
+        
+        new_dataset = ReiformICDataSet(self.class_list)
+        for name in names:
+            new_dataset.add_file(self.get_file_by_name(name))
 
         return new_dataset
 

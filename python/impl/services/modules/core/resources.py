@@ -54,16 +54,12 @@ LOCAL_EMBEDDING_PATH_RESNET152 : str = "models/resnet152-imagenet-torch.pt"
 LOCAL_EMBEDDING_PATH_INCEPTIONV3 : str = "models/inception-v3-imagenet-torch.pt"
 LOCAL_EMBEDDING_PATH_DENSENET201 : str = "models/densenet201-imagenet-torch.pt"
 
-LOCAL_PRETRAINED_PATH_LIGHT_DETECTION : str = "models/lighting/detection"
-LOCAL_PRETRAINED_PATH_LIGHT_CORRECTION : str = "models/lighting/correction"
-
 PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION = "projection_label_full_embedding_concatenation"
 PROJECTION_LABEL_REDUCED_EMBEDDING = "projection_label_reduced_embedding"
 PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS = "projection_label_reduced_embedding_per_class"
 PROJECTION_LABEL_2D_PER_CLASS = "projection_label_2d_per_class"
 PROJECTION_LABEL_2D : str = "projection_label_2d"
 
-LIGHTING_PREDICTION = "lighting_prediction"
 NEW_LABEL_PREDICTION = "corrected_label_prediction"
 NEW_LABEL_PREDICTION_PROBABILITIES = "corrected_label_prediction_probability_vector"
 

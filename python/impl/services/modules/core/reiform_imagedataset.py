@@ -98,6 +98,9 @@ class ReiformImageFile():
     def get_projection_size(self, label: str):
         self.projections.get_size(label)
 
+    def get_uuid(self) -> str:
+        return self.uuid
+
     def get_name(self) -> str:
         return self.name
 

@@ -135,7 +135,7 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
     ReiformInfo("Time for initial embedding inference: {}".format(time.time() - start))
 
     for i, name in enumerate(file_names):
-        file = dataset.get_file_by_uuid(name)
+        file = dataset.get_file_by_name(name)
         file.add_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION, embeddings[i])
 
     embeddings = []

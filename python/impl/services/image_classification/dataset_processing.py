@@ -136,7 +136,7 @@ class DatasetProcessingJob(Processing_Job):
                     outliers = self.dataset.dataset_from_uuids(to_correct)
                     as_keys = set(to_correct)
                     
-                    inlier_ids = [f.get_name() for f in self.dataset.all_files() if f.get_name() not in as_keys]
+                    inlier_ids = [f.get_name() for f in self.dataset.all_files() if f.get_uuid() not in as_keys]
                     ReiformInfo("Classes: {}".format(self.dataset.classes()))
                     inliers = self.dataset.dataset_from_names(inlier_ids)
                     inliers.uuid = self.dataset.uuid

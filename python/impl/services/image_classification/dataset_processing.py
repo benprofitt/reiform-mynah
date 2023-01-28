@@ -1,8 +1,5 @@
-from impl.services.modules import lighting_correction
 from impl.services.modules.class_splitting.correction import split_dataset
 from impl.services.modules.class_splitting.detection import detect_split_need
-from impl.services.modules.lighting_correction.correction import run_lighting_correction_model
-from impl.services.modules.lighting_correction.detection import run_lighting_detection_models
 from impl.services.modules.core.reiform_imageclassificationdataset import *
 from impl.services.image_classification.job_processing import Processing_Job
 from .resources import *
@@ -50,7 +47,7 @@ class DatasetProcessingJob(Processing_Job):
 
     def order_tasks(self, tasks_list : List[str]):
         # Standard order for tasks to be most effective
-        std_order = ["lighting_conditions", "image_blur", "class_splitting", "mislabeled_images"]
+        std_order = ["class_splitting", "mislabeled_images"]
 
         self.raw_tasks = copy.copy(tasks_list)
         task_list : List[List[str]] = [t.split("::") for t in tasks_list]
@@ -116,7 +113,8 @@ class DatasetProcessingJob(Processing_Job):
                         valid_embeddings = True
 
                     _, outliers = find_outlier_consensus(self.dataset)
-                    self.results[task] = {"outliers" : [f.get_name() for f in outliers.all_files()]}
+                    
+                    self.results[task] = {"outliers" : [f.get_uuid() for f in outliers.all_files()]}
                     self.previous_results[task] = self.results[task]
 
                 if name == "class_splitting":
@@ -126,15 +124,6 @@ class DatasetProcessingJob(Processing_Job):
                     _, clusters = detect_split_need(self.dataset)
                     self.results[task] = {"predicted_class_splits" : clusters}
                     self.previous_results[task] = self.results[task]
-
-                if name == "lighting_conditions":
-                    self.dataset, results = run_lighting_detection_models(self.dataset, "{}/{}".format(models_path, "lighting/detection"))
-                    self.results[task] = results
-                    self.previous_results["ic::diagnose::lighting_conditions"] = results
-                    # results : {"bright" : bright_files, "dark" : dark_files}
-
-                if name == "image_blur":
-                    ReiformUnimplementedException("ImageBlur not yet implemented")
 
             elif action == "correct":
                 if name == "mislabeled_images":
@@ -149,12 +138,13 @@ class DatasetProcessingJob(Processing_Job):
                     
                     inlier_ids = [f.get_name() for f in self.dataset.all_files() if f.get_name() not in as_keys]
                     ReiformInfo("Classes: {}".format(self.dataset.classes()))
-                    inliers = self.dataset.dataset_from_uuids(inlier_ids)
+                    inliers = self.dataset.dataset_from_names(inlier_ids)
+                    inliers.uuid = self.dataset.uuid
                     
                     self.dataset, outliers, corrected = iterative_reinjection_label_correction(5, inliers, outliers)
                     
-                    self.results[task] = {"removed" : [f.get_name() for f in outliers.all_files()], 
-                                            "corrected" : [f.get_name() for f in corrected.all_files()]}
+                    self.results[task] = {"removed" : [f.get_uuid() for f in outliers.all_files()], 
+                                            "corrected" : [f.get_uuid() for f in corrected.all_files()]}
                     
                     create_dataset_embedding(self.dataset, embedding_models_path)
                     valid_embeddings = True
@@ -172,14 +162,6 @@ class DatasetProcessingJob(Processing_Job):
 
                     create_dataset_embedding(self.dataset, embedding_models_path)
                     valid_embeddings = True
-                if name == "lighting_conditions":
-                    to_correct = self.previous_results["ic::diagnose::lighting_conditions"]
-                    run_lighting_correction_model("{}/{}".format(models_path, "lighting"), to_correct)
-                    for uuid in to_correct:
-                        self.dataset.get_file_by_uuid(uuid).recalc_mean_and_stddev()
-                    self.dataset._mean_and_std_dev()
-                if name == "image_blur":
-                    ReiformUnimplementedException("ImageBlur not yet implemented")
 
             logger.write("Finished {} ({}/{})".format(task, i+1, len(self.tasks_requested)))
 

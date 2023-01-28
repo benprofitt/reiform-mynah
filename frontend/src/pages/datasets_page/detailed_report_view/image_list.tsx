@@ -13,11 +13,11 @@ export interface ImageListProps {
   data: Partial<Plotly.ScatterData>[];
   setPoint: (
     pointIndex: number,
-    pointClass: number
+    pointClass: string
   ) => void;
-  last: {
+  selectedPoint: {
     pointIndex: number;
-    pointClass: number;
+    pointClass: string;
   } | null;
   points: MynahICDatasetReport["points"]
 }
@@ -49,7 +49,7 @@ function Row(props: RowProps): JSX.Element {
 }
 
 export default function ImageList(props: ImageListProps): JSX.Element {
-  const { data, setPoint, last, points } = props;
+  const { data, setPoint, selectedPoint, points } = props;
   const allButLast = data.slice(0, -1);
   const xList = allButLast.map((val) => val.x).flat();
   const yList = allButLast.map((val) => val.y).flat();
@@ -59,6 +59,8 @@ export default function ImageList(props: ImageListProps): JSX.Element {
   ).flatMap(([imgClassName, pointList], idx) =>
     pointList.flatMap((x) => x.fileid))
 
+  const pointClasses = Object.keys(points)
+
   const query = `/api/v1/file/list?fileid=${allIds.join("&fileid=")}`;
   const { error, isLoading, data: fileData } = useQuery("datasetFiles", () =>
     makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
@@ -67,14 +69,16 @@ export default function ImageList(props: ImageListProps): JSX.Element {
 
   const headerid = "header";
 
-  const lastFlatIndex = last
-    ? sum(classLens.slice(0, last.pointClass)) + last.pointIndex
+  const classNum = selectedPoint ? Object.keys(points).indexOf(selectedPoint?.pointClass) : 0
+
+  const lastFlatIndex = selectedPoint
+    ? sum(classLens.slice(0, classNum)) + selectedPoint.pointIndex
     : 0;
 
   useEffect(() => {
-    if (!last || !listRef.current) return;
+    if (!selectedPoint || !listRef.current) return;
     listRef.current.scrollToItem(lastFlatIndex, "smart");
-  }, [last]);
+  }, [selectedPoint]);
 
   console.log("imagelist render");
   if (!xList || !yList) return <></>;
@@ -103,7 +107,8 @@ export default function ImageList(props: ImageListProps): JSX.Element {
             index -= classLens[classNum] ?? 0;
             classNum += 1;
           }
-          const pointData = points[classNum][index]
+          const className = pointClasses[classNum]
+          const pointData = points[className][index]
           const imgLoc = pointData ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}` : ''
           const fileName = pointData && fileData ? fileData[pointData.fileid].name : ''
           return (
@@ -116,11 +121,11 @@ export default function ImageList(props: ImageListProps): JSX.Element {
               fileName={fileName}
               index={props.index}
               style={props.style}
-              selected={last !== null && props.index === lastFlatIndex}
+              selected={selectedPoint !== null && props.index === lastFlatIndex}
               onClick={() => {
                 setPoint(
                   index,
-                  classNum
+                  className
                 );
               }}
             />

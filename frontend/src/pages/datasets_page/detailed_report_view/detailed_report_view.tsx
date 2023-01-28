@@ -117,7 +117,7 @@ export default function DetailedReportView(props: DetailedReportViewProps) {
 
       {/* main content */}
       <div className="flex w-[70%]">
-        <ImageListViewerAndScatter reportData={data} />
+        <ImageListViewerAndScatter reportData={data} reportType={reportType}/>
       </div>
     </div>
   );

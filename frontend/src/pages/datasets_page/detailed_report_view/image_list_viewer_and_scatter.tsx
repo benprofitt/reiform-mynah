@@ -4,7 +4,7 @@ import ImageList from "./image_list";
 import * as Plotly from "plotly.js-dist-min";
 import Plot from "react-plotly.js";
 import SelectedImage from "./selected_image";
-import { MynahICDatasetReport } from "../../../utils/types";
+import { MynahICDatasetReport, MynahICProcessTaskCorrectMislabeledImagesReport, MynahICProcessTaskDiagnoseMislabeledImagesReport, MynahICProcessTaskReportMetadata, MynahICProcessTaskType } from "../../../utils/types";
 import _ from "lodash";
 
 function stringToColor(str: string): string {
@@ -32,14 +32,29 @@ function isInRectangle(
   return x >= xmin && x <= xmax && y >= ymin && y <= ymax;
 }
 
+function getMislabeledImages(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType): string[] {
+
+  if (reportType == 'ic::correct::mislabeled_images') {
+    return Object.values((reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport).class_label_errors).flatMap((value) => [...value.mislabeled_corrected, ...value.mislabeled_removed])
+  }
+
+  if (reportType == 'ic::diagnose::mislabeled_images') {
+    return Object.values((reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport).class_label_errors).flatMap((value) => [...value.mislabeled])
+  }
+
+  return []
+}
 export interface ImageListViewerAndScatterProps {
   reportData: MynahICDatasetReport;
+  reportType: MynahICProcessTaskType
 }
 
 export default function ImageListViewerAndScatter(
   props: ImageListViewerAndScatterProps
 ): JSX.Element {
-  const { reportData } = props;
+  const { reportData, reportType } = props;
+
+  const taskMetaData = reportData.tasks.filter(({ type }) => type == reportType)[0].metadata;
 
   const dataConversion: Partial<Plotly.ScatterData>[] = Object.entries(
     reportData.points
@@ -72,14 +87,18 @@ export default function ImageListViewerAndScatter(
     )
   );
 
+  const misLabled_images = getMislabeledImages(taskMetaData, reportType)
+
   const plotRef = useRef<Plot>(null);
 
   const [selectedPoint, setSelectedPoint] = useState<{
     pointIndex: number;
-    pointClass: number;
+    pointClass: string;
   } | null>(null);
 
   
+  const pointClasses = Object.keys(reportData.points)
+
   const selectedPointData = selectedPoint
     ? reportData.points[selectedPoint.pointClass][selectedPoint.pointIndex]
     : null;
@@ -123,9 +142,6 @@ export default function ImageListViewerAndScatter(
   const miny = Math.min(...yes);
   const maxy = Math.max(...yes);
 
-  const xwidth = (maxx - minx) / 30;
-  const ywidth = (maxy - miny) / 15;
-
   // this one function is called both on clicking a point on the graph
   // AND on clicking an item in the list of images. it changes the value of
   // 'last' and thus updates whats being displayed in the top right as well
@@ -133,7 +149,7 @@ export default function ImageListViewerAndScatter(
   const setPoint = useCallback(
     (
       pointIndex: number,
-      pointClass: number
+      pointClass: string
     ) => {
       setSelectedPoint({ pointIndex, pointClass });
 
@@ -190,7 +206,7 @@ export default function ImageListViewerAndScatter(
         <ImageList
           data={data}
           setPoint={setPoint}
-          last={selectedPoint}
+          selectedPoint={selectedPoint}
           points={reportData.points}
         />
       </div>
@@ -198,14 +214,16 @@ export default function ImageListViewerAndScatter(
       <div className="w-[70%] bg-grey">
         <div className="h-[50%] px-[15px] py-[25px]">
           <SelectedImage
-            last={selectedPoint}
+            selectedPoint={selectedPoint}
             data={data}
             selectedPointData={selectedPointData}
+            mislabeledImages={misLabled_images}
           />
         </div>
         <div className="h-[50%]">
           <MyPlot
             data={data}
+            classNames={Object.keys(reportData.points)}
             setPoint={setPoint}
             plotLayout={plotLayout}
             plotRef={plotRef}

@@ -102,7 +102,7 @@ export default function LabelErrorBreakdownDiagnosis(
                         <th className="text-left">Class {className}</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="border-b-2">
                       <tr>
                         <td>Unchanged:</td>
                         <td className="text-right">{unchanged.length}</td>
@@ -115,6 +115,12 @@ export default function LabelErrorBreakdownDiagnosis(
                         <td>Mislabeled Removed:</td>
                         <td className="text-right">
                           {mislabeled_removed.length}
+                        </td>
+                      </tr>
+                      <tr className="font-bold">
+                        <td>Total:</td>
+                        <td className="text-right">
+                          {mislabeled_removed.length + mislabeled_corrected.length + unchanged.length}
                         </td>
                       </tr>
                     </tbody>

@@ -32,10 +32,11 @@ function MyPlot(props: MyPlotProps) {
       divId={divId}
       ref={plotRef}
       config={{
+        displaylogo: false,
         scrollZoom: true,
         responsive: true, // removing this makes it so the graph doesn't move when things change (the same way that relayouting kept it in the same place)
-        displayModeBar: false,
-        // modeBarButtonsToRemove: ["lasso2d", "autoScale2d", "select2d"],
+        // displayModeBar: true,
+        modeBarButtonsToRemove: ["lasso2d", "autoScale2d", "select2d", "toImage", "zoom2d", "pan2d", "resetScale2d", ],
       }}
       data={data}
       layout={plotLayout}

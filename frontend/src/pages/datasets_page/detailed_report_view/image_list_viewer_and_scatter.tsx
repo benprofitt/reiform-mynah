@@ -44,6 +44,9 @@ function getMislabeledImages(reportMetadata: MynahICProcessTaskReportMetadata, r
 
   return []
 }
+
+const colors = ['red', 'blue', 'green', 'yellow']
+
 export interface ImageListViewerAndScatterProps {
   reportData: MynahICDatasetReport;
   reportType: MynahICProcessTaskType
@@ -64,7 +67,6 @@ export default function ImageListViewerAndScatter(
       (acc: Partial<Plotly.ScatterData>, point, ix) => {
         return {
           ...acc,
-          // these + indexes are just to seperate the classes cuz everything was coming in at 0,0
           x: [...(acc.x as Plotly.Datum[]), point.x],
           y: [...(acc.y as Plotly.Datum[]), point.y],
         };
@@ -78,7 +80,7 @@ export default function ImageListViewerAndScatter(
         mode: "markers",
         marker: {
           color: Array.from({ length: pointList.length }, () =>
-            stringToColor(imgClassName.repeat(10))
+            idx < colors.length ? colors[idx] : stringToColor(imgClassName.repeat(10))
           ),
           size: Array.from({ length: pointList.length }, () => 12),
           line: { width: 0 },
@@ -87,7 +89,7 @@ export default function ImageListViewerAndScatter(
     )
   );
 
-  const misLabled_images = getMislabeledImages(taskMetaData, reportType)
+  const mislabled_images = getMislabeledImages(taskMetaData, reportType)
 
   const plotRef = useRef<Plot>(null);
 
@@ -96,8 +98,6 @@ export default function ImageListViewerAndScatter(
     pointClass: string;
   } | null>(null);
 
-  
-  const pointClasses = Object.keys(reportData.points)
 
   const selectedPointData = selectedPoint
     ? reportData.points[selectedPoint.pointClass][selectedPoint.pointIndex]
@@ -109,7 +109,9 @@ export default function ImageListViewerAndScatter(
       ? {
           x: [selectedPointData.x],
           y: [selectedPointData.y],
+          showlegend: false,
           type: "scattergl",
+          name: "Selected point",
           // selected: {},
           mode: "markers",
           marker: {
@@ -122,7 +124,7 @@ export default function ImageListViewerAndScatter(
   ];
 
   const [plotLayout, setLayout] = useState<Partial<Plotly.Layout>>({
-    showlegend: false,
+    showlegend: true,
     plot_bgcolor: "rgba(0,0,0,0)",
     paper_bgcolor: "rgba(0,0,0,0)",
     xaxis: {
@@ -217,7 +219,7 @@ export default function ImageListViewerAndScatter(
             selectedPoint={selectedPoint}
             data={data}
             selectedPointData={selectedPointData}
-            mislabeledImages={misLabled_images}
+            mislabeledImages={mislabled_images}
           />
         </div>
         <div className="h-[50%]">

@@ -4,22 +4,28 @@ import { CSSProperties, useEffect, useRef } from "react";
 import { FixedSizeList as List } from "react-window";
 import FilterDropdown from "../../../components/filter_dropdown";
 import { sum } from "lodash";
-import { MynahFile, MynahICDatasetReport } from "../../../utils/types";
+import {
+  MynahFile,
+  MynahICDatasetReport,
+  MynahICPoint,
+} from "../../../utils/types";
 import Image from "../../../components/Image";
 import { useQuery } from "react-query";
 import makeRequest from "../../../utils/apiFetch";
+import ReportFilterDropdown from "./report_filter_dropdown";
 
 export interface ImageListProps {
   data: Partial<Plotly.ScatterData>[];
-  setPoint: (
-    pointIndex: number,
-    pointClass: string
-  ) => void;
+  setPoint: (pointIndex: number, pointClass: string) => void;
   selectedPoint: {
     pointIndex: number;
     pointClass: string;
   } | null;
-  points: MynahICDatasetReport["points"]
+  points: [string, MynahICPoint[]][];
+  allClassNames: string[];
+  updateClassNamesFilter: (className: string) => void;
+  updateMislabeledFilter: () => void;
+  mislabeledFilterSetting: boolean;
 }
 
 interface RowProps {
@@ -42,34 +48,40 @@ function Row(props: RowProps): JSX.Element {
       style={style}
       onClick={onClick}
     >
-      <Image className="h-[47px] aspect-square mr-[10px]" src={imgLoc} /> {fileName}
+      <Image className="h-[47px] aspect-square mr-[10px]" src={imgLoc} />{" "}
+      {fileName}
       <img src={RightArrowIcon} className="ml-auto" />
     </div>
   );
 }
 
 export default function ImageList(props: ImageListProps): JSX.Element {
-  const { data, setPoint, selectedPoint, points } = props;
+  const { data, setPoint, selectedPoint, points, allClassNames, updateClassNamesFilter, updateMislabeledFilter, mislabeledFilterSetting } = props;
   const allButLast = data.slice(0, -1);
   const xList = allButLast.map((val) => val.x).flat();
   const yList = allButLast.map((val) => val.y).flat();
   const classLens = allButLast.map((val) => val.x?.length);
-  const allIds: string[] = Object.entries(
-    points
-  ).flatMap(([imgClassName, pointList], idx) =>
-    pointList.flatMap((x) => x.fileid))
+  const allIds: string[] = points.flatMap(([imgClassName, pointList]) =>
+    pointList.flatMap((x) => x.fileid)
+  );
 
-  const pointClasses = Object.keys(points)
+  const pointClasses = points.map(([className, pointList]) => className);
 
   const query = `/api/v1/file/list?fileid=${allIds.join("&fileid=")}`;
-  const { error, isLoading, data: fileData } = useQuery("datasetFiles", () =>
+  const {
+    error,
+    isLoading,
+    data: fileData,
+  } = useQuery("datasetFiles", () =>
     makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
   );
   const listRef = useRef<List | null>();
 
   const headerid = "header";
 
-  const classNum = selectedPoint ? Object.keys(points).indexOf(selectedPoint?.pointClass) : 0
+  const classNum = selectedPoint
+    ? pointClasses.indexOf(selectedPoint?.pointClass)
+    : 0;
 
   const lastFlatIndex = selectedPoint
     ? sum(classLens.slice(0, classNum)) + selectedPoint.pointIndex
@@ -90,7 +102,9 @@ export default function ImageList(props: ImageListProps): JSX.Element {
         id={headerid}
       >
         <h3 className="mb-[10px] text-[20px] font-medium">Images</h3>
-        <FilterDropdown leftAligned />
+        <ReportFilterDropdown leftAligned 
+        allClassNames={allClassNames} updateClassNamesFilter={updateClassNamesFilter} updateMislabeledFilter={updateMislabeledFilter} filteredClasses={pointClasses} mislabledFilterSetting={mislabeledFilterSetting}
+        />
       </div>
       <List
         className="no-scrollbar"
@@ -107,26 +121,26 @@ export default function ImageList(props: ImageListProps): JSX.Element {
             index -= classLens[classNum] ?? 0;
             classNum += 1;
           }
-          const className = pointClasses[classNum]
-          const pointData = points[className][index]
-          const imgLoc = pointData ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}` : ''
-          const fileName = pointData && fileData ? fileData[pointData.fileid].name : ''
+          const pointData = points[classNum][1][index];
+          const imgLoc = pointData
+            ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}`
+            : "";
+          // this is
+          const fileName =
+            pointData && fileData && fileData[pointData.fileid]?.name;
           return (
-            // maybe we want to memoize rows? 
+            // maybe we want to memoize rows?
             // https://react-window.vercel.app/#/api/areEqual
             // maybe memoizing would be good or maybe not..
             <Row
               imgLoc={imgLoc}
               // will add props to send over data to get the file name and image
-              fileName={fileName}
+              fileName={fileName ?? ''}
               index={props.index}
               style={props.style}
               selected={selectedPoint !== null && props.index === lastFlatIndex}
               onClick={() => {
-                setPoint(
-                  index,
-                  className
-                );
+                setPoint(index, pointClasses[classNum]);
               }}
             />
           );

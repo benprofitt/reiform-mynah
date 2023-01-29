@@ -4,7 +4,14 @@ import ImageList from "./image_list";
 import * as Plotly from "plotly.js-dist-min";
 import Plot from "react-plotly.js";
 import SelectedImage from "./selected_image";
-import { MynahICDatasetReport, MynahICProcessTaskCorrectMislabeledImagesReport, MynahICProcessTaskDiagnoseMislabeledImagesReport, MynahICProcessTaskReportMetadata, MynahICProcessTaskType } from "../../../utils/types";
+import {
+  MynahICDatasetReport,
+  MynahICPoint,
+  MynahICProcessTaskCorrectMislabeledImagesReport,
+  MynahICProcessTaskDiagnoseMislabeledImagesReport,
+  MynahICProcessTaskReportMetadata,
+  MynahICProcessTaskType,
+} from "../../../utils/types";
 import _ from "lodash";
 
 function stringToColor(str: string): string {
@@ -32,24 +39,35 @@ function isInRectangle(
   return x >= xmin && x <= xmax && y >= ymin && y <= ymax;
 }
 
-function getMislabeledImages(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType): string[] {
-
-  if (reportType == 'ic::correct::mislabeled_images') {
-    return Object.values((reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport).class_label_errors).flatMap((value) => [...value.mislabeled_corrected, ...value.mislabeled_removed])
+function getMislabeledImages(
+  reportMetadata: MynahICProcessTaskReportMetadata,
+  reportType: MynahICProcessTaskType
+): string[] {
+  if (reportType == "ic::correct::mislabeled_images") {
+    return Object.values(
+      (reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport)
+        .class_label_errors
+    ).flatMap((value) => [
+      ...value.mislabeled_corrected,
+      ...value.mislabeled_removed,
+    ]);
   }
 
-  if (reportType == 'ic::diagnose::mislabeled_images') {
-    return Object.values((reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport).class_label_errors).flatMap((value) => [...value.mislabeled])
+  if (reportType == "ic::diagnose::mislabeled_images") {
+    return Object.values(
+      (reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport)
+        .class_label_errors
+    ).flatMap((value) => [...value.mislabeled]);
   }
 
-  return []
+  return [];
 }
 
-const colors = ['red', 'blue', 'green', 'yellow']
+const colors = ["red", "blue", "green", "yellow"];
 
 export interface ImageListViewerAndScatterProps {
   reportData: MynahICDatasetReport;
-  reportType: MynahICProcessTaskType
+  reportType: MynahICProcessTaskType;
 }
 
 export default function ImageListViewerAndScatter(
@@ -57,39 +75,58 @@ export default function ImageListViewerAndScatter(
 ): JSX.Element {
   const { reportData, reportType } = props;
 
-  const taskMetaData = reportData.tasks.filter(({ type }) => type == reportType)[0].metadata;
+  const taskMetaData = reportData.tasks.filter(
+    ({ type }) => type == reportType
+  )[0].metadata;
 
-  const dataConversion: Partial<Plotly.ScatterData>[] = Object.entries(
-    reportData.points
-  ).map(([imgClassName, pointList], idx) =>
-    _.reduce(
-      pointList,
-      (acc: Partial<Plotly.ScatterData>, point, ix) => {
-        return {
-          ...acc,
-          x: [...(acc.x as Plotly.Datum[]), point.x],
-          y: [...(acc.y as Plotly.Datum[]), point.y],
-        };
-      },
-      {
-        x: [],
-        y: [],
-        type: "scattergl",
-        name: imgClassName,
-        // selected: {},
-        mode: "markers",
-        marker: {
-          color: Array.from({ length: pointList.length }, () =>
-            idx < colors.length ? colors[idx] : stringToColor(imgClassName.repeat(10))
-          ),
-          size: Array.from({ length: pointList.length }, () => 12),
-          line: { width: 0 },
-        },
-      }
-    )
+  const mislabled_images = getMislabeledImages(taskMetaData, reportType);
+  const [filteredClasses, setFilteredClasses] = useState<string[]>(
+    Object.keys(reportData.points)
   );
-
-  const mislabled_images = getMislabeledImages(taskMetaData, reportType)
+  const [mislabeledFilter, setMislabeledFilter] = useState(false);
+  const points: [string, MynahICPoint[]][] = Object.entries(reportData.points)
+    .filter(([imgClassName]) =>
+        filteredClasses.includes(imgClassName)
+    )
+    .map(([imgClassName, pointList]) => [
+      imgClassName,
+      pointList.filter(({ fileid }) =>
+        !mislabeledFilter ? true : mislabled_images.includes(fileid)
+      ),
+    ]);
+  const classNames = points.map(([className, pointList]) => className);
+  const dataConversion: Partial<Plotly.ScatterData>[] = points.map(
+    ([imgClassName, pointList], idx) =>
+      _.reduce(
+        pointList.filter(({ fileid }) =>
+          !mislabeledFilter ? true : mislabled_images.includes(fileid)
+        ),
+        (acc: Partial<Plotly.ScatterData>, point, ix) => {
+          return {
+            ...acc,
+            x: [...(acc.x as Plotly.Datum[]), point.x],
+            y: [...(acc.y as Plotly.Datum[]), point.y],
+          };
+        },
+        {
+          x: [],
+          y: [],
+          type: "scattergl",
+          name: imgClassName,
+          // selected: {},
+          mode: "markers",
+          marker: {
+            color: Array.from({ length: pointList.length }, () =>
+              idx < colors.length
+                ? colors[idx]
+                : stringToColor(imgClassName.repeat(10))
+            ),
+            size: Array.from({ length: pointList.length }, () => 12),
+            line: { width: 0 },
+          },
+        }
+      )
+  );
 
   const plotRef = useRef<Plot>(null);
 
@@ -98,9 +135,10 @@ export default function ImageListViewerAndScatter(
     pointClass: string;
   } | null>(null);
 
-
   const selectedPointData = selectedPoint
-    ? reportData.points[selectedPoint.pointClass][selectedPoint.pointIndex]
+    ? points[classNames.indexOf(selectedPoint.pointClass)][1][
+        selectedPoint.pointIndex
+      ]
     : null;
 
   const data: Partial<Plotly.ScatterData>[] = [
@@ -148,60 +186,37 @@ export default function ImageListViewerAndScatter(
   // AND on clicking an item in the list of images. it changes the value of
   // 'last' and thus updates whats being displayed in the top right as well
   // as triggers a useeffect which scrolls to the highlighted point
-  const setPoint = useCallback(
-    (
-      pointIndex: number,
-      pointClass: string
-    ) => {
-      setSelectedPoint({ pointIndex, pointClass });
+  const setPoint = useCallback((pointIndex: number, pointClass: string) => {
+    setSelectedPoint({ pointIndex, pointClass });
 
-      const newLastData = reportData.points[pointClass][pointIndex]
-      if (!plotRef.current) return;
+    const newLastData = reportData.points[pointClass][pointIndex];
+    if (!plotRef.current) return;
 
-      const {x,y} = newLastData
+    const { x, y } = newLastData;
 
-      const layout = plotRef.current.props.layout;
-      const xrange = layout.xaxis?.range?.map(Number);
-      const yrange = layout.yaxis?.range?.map(Number);
-      if (!xrange || !yrange) return;
+    const layout = plotRef.current.props.layout;
+    const xrange = layout.xaxis?.range?.map(Number);
+    const yrange = layout.yaxis?.range?.map(Number);
+    if (!xrange || !yrange) return;
 
-      const xwidth = xrange[1] - xrange[0];
-      const ywidth = yrange[1] - yrange[0];
+    const xwidth = xrange[1] - xrange[0];
+    const ywidth = yrange[1] - yrange[0];
 
+    if (isInRectangle(x, y, xrange[0], xrange[1], yrange[0], yrange[1])) return;
+    const newLayout: Partial<Plotly.Layout> = {
+      xaxis: {
+        range: [Math.max(x - xwidth, minx), Math.min(x + xwidth, maxx)],
+      },
+      yaxis: {
+        range: [Math.max(y - ywidth, miny), Math.min(y + ywidth, maxy)],
+      },
+    };
 
-      if (
-        isInRectangle(
-          x,
-          y,
-          xrange[0],
-          xrange[1],
-          yrange[0],
-          yrange[1]
-        )
-      )
-        return;
-      const newLayout: Partial<Plotly.Layout> = {
-        xaxis: {
-          range: [
-            Math.max(x - xwidth, minx),
-            Math.min(x + xwidth, maxx),
-          ],
-        },
-        yaxis: {
-          range: [
-            Math.max(y - ywidth, miny),
-            Math.min(y + ywidth, maxy),
-          ],
-        },
-      };
+    setLayout((layout) => {
+      return { ...layout, ...newLayout };
+    });
+  }, []);
 
-      setLayout((layout) => {
-        return { ...layout, ...newLayout };
-      });
-    },
-    []
-  );
-  
   return (
     <>
       <div className="w-[30%] shadow-huge h-full">
@@ -209,7 +224,21 @@ export default function ImageListViewerAndScatter(
           data={data}
           setPoint={setPoint}
           selectedPoint={selectedPoint}
-          points={reportData.points}
+          points={points}
+          allClassNames={Object.keys(reportData.points)}
+          updateClassNamesFilter={(className: string) => {
+            setSelectedPoint(null);
+            setFilteredClasses((filteredClasses) =>
+              filteredClasses.includes(className)
+                ? filteredClasses.filter((x) => className !== x)
+                : [...filteredClasses, className]
+            );
+          }}
+          updateMislabeledFilter={() => {
+            setSelectedPoint(null);
+            setMislabeledFilter((checked) => !checked);
+          }}
+          mislabeledFilterSetting={mislabeledFilter}
         />
       </div>
       {/* picture and graph */}
@@ -225,7 +254,7 @@ export default function ImageListViewerAndScatter(
         <div className="h-[50%]">
           <MyPlot
             data={data}
-            classNames={Object.keys(reportData.points)}
+            classNames={classNames}
             setPoint={setPoint}
             plotLayout={plotLayout}
             plotRef={plotRef}

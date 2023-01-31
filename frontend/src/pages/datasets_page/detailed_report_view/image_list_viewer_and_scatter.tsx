@@ -11,8 +11,11 @@ import {
   MynahICProcessTaskDiagnoseMislabeledImagesReport,
   MynahICProcessTaskReportMetadata,
   MynahICProcessTaskType,
+  MynahICTaskReport,
 } from "../../../utils/types";
 import _ from "lodash";
+
+export type MislabeledType = 'mislabeled' | 'mislabeled_removed' | 'mislabeled_corrected' | 'unchanged'
 
 function stringToColor(str: string): string {
   var hash = 0;
@@ -39,31 +42,51 @@ function isInRectangle(
   return x >= xmin && x <= xmax && y >= ymin && y <= ymax;
 }
 
-function getMislabeledImages(
-  reportMetadata: MynahICProcessTaskReportMetadata,
-  reportType: MynahICProcessTaskType
-): string[] {
+function getMislabeledType(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType, fileId: string, className: string): MislabeledType {
+  if (!reportType.endsWith('mislabeled_images')) {
+    return 'unchanged'
+  }
   if (reportType == "ic::correct::mislabeled_images") {
-    return Object.values(
-      (reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport)
-        .class_label_errors
-    ).flatMap((value) => [
-      ...value.mislabeled_corrected,
-      ...value.mislabeled_removed,
-    ]);
+    const { mislabeled_corrected, mislabeled_removed } = (reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport).class_label_errors[className]
+    if (mislabeled_corrected.includes(fileId)) {
+      return 'mislabeled_corrected'
+    }
+    if (mislabeled_removed.includes(fileId)) {
+      return 'mislabeled_removed'
+    }
+    return 'unchanged'
   }
-
-  if (reportType == "ic::diagnose::mislabeled_images") {
-    return Object.values(
-      (reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport)
-        .class_label_errors
-    ).flatMap((value) => [...value.mislabeled]);
-  }
-
-  return [];
+  const { mislabeled } = (reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport).class_label_errors[className]
+  return mislabeled.includes(fileId) ? 'mislabeled' : 'unchanged'
 }
+// function getMislabeledImages(
+//   reportMetadata: MynahICProcessTaskReportMetadata,
+//   reportType: MynahICProcessTaskType
+// ): string[] {
+//   if (!reportType.endsWith('mislabeled_images')) {
+//     return []
+//   }
+//   if (reportType == "ic::correct::mislabeled_images") {
+//     return Object.values(
+//       (reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport)
+//         .class_label_errors
+//     ).flatMap((value) => [
+//       ...value.mislabeled_corrected,
+//       ...value.mislabeled_removed,
+//     ]);
+//   }
+
+//   return Object.values(
+//       (reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport)
+//         .class_label_errors
+//     ).flatMap((value) => [...value.mislabeled]);
+// }
 
 const colors = ["red", "blue", "green", "yellow"];
+
+const allowedMislabeledTypesDiagnosis: MislabeledType[] = ['mislabeled', 'unchanged']
+
+const allowedMislabeledTypesCorrection: MislabeledType[] = ['mislabeled_corrected', 'mislabeled_removed', 'unchanged']
 
 export interface ImageListViewerAndScatterProps {
   reportData: MynahICDatasetReport;
@@ -78,12 +101,12 @@ export default function ImageListViewerAndScatter(
   const taskMetaData = reportData.tasks.filter(
     ({ type }) => type == reportType
   )[0].metadata;
-
-  const mislabled_images = getMislabeledImages(taskMetaData, reportType);
+  const allowedMislabeledTypes = reportType == 'ic::correct::mislabeled_images' ? allowedMislabeledTypesCorrection : allowedMislabeledTypesDiagnosis
+  // const mislabled_images = getMislabeledImages(taskMetaData, reportType);
   const [filteredClasses, setFilteredClasses] = useState<string[]>(
     Object.keys(reportData.points)
   );
-  const [mislabeledFilter, setMislabeledFilter] = useState(false);
+  const [mislabeledFilter, setMislabeledFilter] = useState<MislabeledType[]>(allowedMislabeledTypes);
   const points: [string, MynahICPoint[]][] = Object.entries(reportData.points)
     .filter(([imgClassName]) =>
         filteredClasses.includes(imgClassName)
@@ -91,16 +114,14 @@ export default function ImageListViewerAndScatter(
     .map(([imgClassName, pointList]) => [
       imgClassName,
       pointList.filter(({ fileid }) =>
-        !mislabeledFilter ? true : mislabled_images.includes(fileid)
+        mislabeledFilter.includes(getMislabeledType(taskMetaData, reportType, fileid, imgClassName))
       ),
     ]);
   const classNames = points.map(([className, pointList]) => className);
   const dataConversion: Partial<Plotly.ScatterData>[] = points.map(
     ([imgClassName, pointList], idx) =>
       _.reduce(
-        pointList.filter(({ fileid }) =>
-          !mislabeledFilter ? true : mislabled_images.includes(fileid)
-        ),
+        pointList,
         (acc: Partial<Plotly.ScatterData>, point, ix) => {
           return {
             ...acc,
@@ -234,11 +255,14 @@ export default function ImageListViewerAndScatter(
                 : [...filteredClasses, className]
             );
           }}
-          updateMislabeledFilter={() => {
+          updateMislabeledFilter={(mislabeledType: MislabeledType) => {
             setSelectedPoint(null);
-            setMislabeledFilter((checked) => !checked);
+            setMislabeledFilter((mislabeledFilter) => mislabeledFilter.includes(mislabeledType)
+            ? mislabeledFilter.filter((x) => mislabeledType !== x)
+            : [...mislabeledFilter, mislabeledType]);
           }}
           mislabeledFilterSetting={mislabeledFilter}
+          allowedMislabeledTypes={allowedMislabeledTypes}
         />
       </div>
       {/* picture and graph */}
@@ -248,7 +272,7 @@ export default function ImageListViewerAndScatter(
             selectedPoint={selectedPoint}
             data={data}
             selectedPointData={selectedPointData}
-            mislabeledImages={mislabled_images}
+            getMislabeledType={(fileId, className) => getMislabeledType(taskMetaData, reportType, fileId, className)}
           />
         </div>
         <div className="h-[50%]">

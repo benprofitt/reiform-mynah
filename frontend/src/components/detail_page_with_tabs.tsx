@@ -61,7 +61,7 @@ export default function DetailPageWithTabs(props: DetailPageWithTabsProps) {
               ))}
             </Tab.List>
           </header>
-          <main className="bg-grey w-full p-[32px] flex-1 overflow-y-scroll">
+          <main className="bg-grey w-full p-[32px] flex-1 overflow-y-clip">
             {tabPanels}
           </main>
         </div>

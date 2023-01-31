@@ -128,14 +128,14 @@ export default function ImageList(props: ImageListProps): JSX.Element {
             ref={(el) => (listRef.current = el)}
             width={width}
           >
-            {(props) => {
-              let index = props.index;
+            {({index, style}) => {
+              let myIndex = index;
               let classNum = 0;
-              while (index - (classLens[classNum] ?? 0) >= 0) {
-                index -= classLens[classNum] ?? 0;
+              while (myIndex - (classLens[classNum] ?? 0) >= 0) {
+                myIndex -= classLens[classNum] ?? 0;
                 classNum += 1;
               }
-              const pointData = points[classNum][1][index];
+              const pointData = points[classNum][1][myIndex];
               const imgLoc = pointData
                 ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}`
                 : "";
@@ -150,13 +150,13 @@ export default function ImageList(props: ImageListProps): JSX.Element {
                   imgLoc={imgLoc}
                   // will add props to send over data to get the file name and image
                   fileName={fileName ?? ""}
-                  index={props.index}
-                  style={props.style}
+                  index={index}
+                  style={style}
                   selected={
-                    selectedPoint !== null && props.index === lastFlatIndex
+                    selectedPoint !== null && index === lastFlatIndex
                   }
                   onClick={() => {
-                    setPoint(index, pointClasses[classNum]);
+                    setPoint(myIndex, pointClasses[classNum]);
                   }}
                 />
               );

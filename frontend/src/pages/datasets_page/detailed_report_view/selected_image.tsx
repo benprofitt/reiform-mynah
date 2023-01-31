@@ -21,7 +21,7 @@ export default function SelectedImage({
 }: SelectedImageProps): JSX.Element {
   if (selectedPointData === null || selectedPoint === null) return <div>Select a point or file in the list</div>;
   console.log('selectedimage render')
-  const {x, y, fileid} = selectedPointData
+  const {x, y, fileid, original_class} = selectedPointData
   const { pointClass } = selectedPoint;
   const imgLoc = `/api/v1/file/${selectedPointData.fileid}/${selectedPointData.image_version_id}`
   const pointstr = `(${x.toFixed(2)}, ${y.toFixed(2)})`;
@@ -30,7 +30,8 @@ export default function SelectedImage({
     <div className="flex h-full">
       <Image src={imgLoc} className="w-[60%] h-full mr-[15px]" />
       <ul>
-        <li>Class: {pointClass}</li>
+        <li>Current Class: {pointClass}</li>
+        <li>Original Class: {original_class}</li>
         <li>Point: {pointstr}</li>
         <li>Is mislabled?: {mislabeledTypeToString[mislabeledType]}</li>
       </ul>

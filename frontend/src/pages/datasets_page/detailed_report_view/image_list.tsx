@@ -149,7 +149,7 @@ export default function ImageList(props: ImageListProps): JSX.Element {
                 <Row
                   imgLoc={imgLoc}
                   // will add props to send over data to get the file name and image
-                  fileName={fileName ?? ""}
+                  fileName={fileName ?? "Filename not found"}
                   index={index}
                   style={style}
                   selected={

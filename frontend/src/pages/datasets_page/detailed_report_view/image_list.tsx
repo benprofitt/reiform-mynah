@@ -93,6 +93,10 @@ export default function ImageList(props: ImageListProps): JSX.Element {
   }, [selectedPoint]);
 
   console.log("imagelist render");
+  console.log("Points:");
+  console.log(fileData);
+  console.log(points);
+
   if (!xList || !yList) return <></>;
 
   return (
@@ -128,6 +132,13 @@ export default function ImageList(props: ImageListProps): JSX.Element {
           // this is
           const fileName =
             pointData && fileData && fileData[pointData.fileid]?.name;
+          if (!fileName) {
+            console.log("Name not found:");
+            console.log(pointData.fileid);
+            if (fileData) {
+              console.log(fileData[pointData.fileid]);
+            }
+          }
           return (
             // maybe we want to memoize rows?
             // https://react-window.vercel.app/#/api/areEqual
@@ -135,7 +146,7 @@ export default function ImageList(props: ImageListProps): JSX.Element {
             <Row
               imgLoc={imgLoc}
               // will add props to send over data to get the file name and image
-              fileName={fileName ?? ''}
+              fileName={fileName ?? 'Filename Not Found'}
               index={props.index}
               style={props.style}
               selected={selectedPoint !== null && props.index === lastFlatIndex}

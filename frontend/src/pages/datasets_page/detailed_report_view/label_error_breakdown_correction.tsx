@@ -120,7 +120,7 @@ export default function LabelErrorBreakdownDiagnosis(
                       <tr className="font-bold">
                         <td>Total:</td>
                         <td className="text-right">
-                          {mislabeled_removed.length + mislabeled_corrected.length + unchanged.length}
+                          {mislabeled_corrected.length + unchanged.length}
                         </td>
                       </tr>
                     </tbody>

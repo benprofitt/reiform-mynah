@@ -2,6 +2,7 @@ import clsx from "clsx";
 import RightArrowIcon from "../../../images/RightArrowIcon.svg";
 import { CSSProperties, useEffect, useRef } from "react";
 import { FixedSizeList as List } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 import FilterDropdown from "../../../components/filter_dropdown";
 import { sum } from "lodash";
 import {
@@ -42,7 +43,7 @@ function Row(props: RowProps): JSX.Element {
   return (
     <div
       className={clsx(
-        "border-b-4 border-grey h-[80px] flex items-center px-[30px]",
+        "border-b-4 border-grey h-[80px] flex items-center px-[30px] w-full",
         selected && "bg-linkblue bg-opacity-5"
       )}
       style={style}
@@ -56,7 +57,16 @@ function Row(props: RowProps): JSX.Element {
 }
 
 export default function ImageList(props: ImageListProps): JSX.Element {
-  const { data, setPoint, selectedPoint, points, allClassNames, updateClassNamesFilter, updateMislabeledFilter, mislabeledFilterSetting } = props;
+  const {
+    data,
+    setPoint,
+    selectedPoint,
+    points,
+    allClassNames,
+    updateClassNamesFilter,
+    updateMislabeledFilter,
+    mislabeledFilterSetting,
+  } = props;
   const allButLast = data.slice(0, -1);
   const xList = allButLast.map((val) => val.x).flat();
   const yList = allButLast.map((val) => val.y).flat();
@@ -76,8 +86,6 @@ export default function ImageList(props: ImageListProps): JSX.Element {
     makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
   );
   const listRef = useRef<List | null>();
-
-  const headerid = "header";
 
   const classNum = selectedPoint
     ? pointClasses.indexOf(selectedPoint?.pointClass)
@@ -99,53 +107,63 @@ export default function ImageList(props: ImageListProps): JSX.Element {
     <>
       <div
         className="h-[110px] py-[20px] px-[30px] border-b-4 border-grey"
-        id={headerid}
       >
         <h3 className="mb-[10px] text-[20px] font-medium">Images</h3>
-        <ReportFilterDropdown leftAligned 
-        allClassNames={allClassNames} updateClassNamesFilter={updateClassNamesFilter} updateMislabeledFilter={updateMislabeledFilter} filteredClasses={pointClasses} mislabledFilterSetting={mislabeledFilterSetting}
+        <ReportFilterDropdown
+          leftAligned
+          allClassNames={allClassNames}
+          updateClassNamesFilter={updateClassNamesFilter}
+          updateMislabeledFilter={updateMislabeledFilter}
+          filteredClasses={pointClasses}
+          mislabledFilterSetting={mislabeledFilterSetting}
         />
       </div>
-      <List
-        className="no-scrollbar"
-        height={window.innerHeight - 110}
-        itemCount={xList.length}
-        itemSize={80}
-        ref={(el) => (listRef.current = el)}
-        width={document.getElementById(headerid)?.clientWidth ?? 500}
-      >
-        {(props) => {
-          let index = props.index;
-          let classNum = 0;
-          while (index - (classLens[classNum] ?? 0) >= 0) {
-            index -= classLens[classNum] ?? 0;
-            classNum += 1;
-          }
-          const pointData = points[classNum][1][index];
-          const imgLoc = pointData
-            ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}`
-            : "";
-          // this is
-          const fileName =
-            pointData && fileData && fileData[pointData.fileid]?.name;
-          return (
-            // maybe we want to memoize rows?
-            // https://react-window.vercel.app/#/api/areEqual
-            // maybe memoizing would be good or maybe not..
-            <Row
-              imgLoc={imgLoc}
-              // will add props to send over data to get the file name and image
-              fileName={fileName ?? ''}
-              index={props.index}
-              style={props.style}
-              selected={selectedPoint !== null && props.index === lastFlatIndex}
-              onClick={() => {
-                setPoint(index, pointClasses[classNum]);
-              }}
-            />
-          );
-        }}
-      </List>
+      <AutoSizer>
+        {({ height, width }) => (
+          <List
+            className="no-scrollbar"
+            height={height}
+            itemCount={xList.length}
+            itemSize={80}
+            ref={(el) => (listRef.current = el)}
+            width={width}
+          >
+            {(props) => {
+              let index = props.index;
+              let classNum = 0;
+              while (index - (classLens[classNum] ?? 0) >= 0) {
+                index -= classLens[classNum] ?? 0;
+                classNum += 1;
+              }
+              const pointData = points[classNum][1][index];
+              const imgLoc = pointData
+                ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}`
+                : "";
+              // this is
+              const fileName =
+                pointData && fileData && fileData[pointData.fileid]?.name;
+              return (
+                // maybe we want to memoize rows?
+                // https://react-window.vercel.app/#/api/areEqual
+                // maybe memoizing would be good or maybe not..
+                <Row
+                  imgLoc={imgLoc}
+                  // will add props to send over data to get the file name and image
+                  fileName={fileName ?? ""}
+                  index={props.index}
+                  style={props.style}
+                  selected={
+                    selectedPoint !== null && props.index === lastFlatIndex
+                  }
+                  onClick={() => {
+                    setPoint(index, pointClasses[classNum]);
+                  }}
+                />
+              );
+            }}
+          </List>
+        )}
+      </AutoSizer>
     </>
   );
 }

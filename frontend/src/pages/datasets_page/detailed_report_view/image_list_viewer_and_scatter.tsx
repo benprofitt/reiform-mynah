@@ -112,6 +112,8 @@ export interface ImageListViewerAndScatterProps {
   reportType: MynahICProcessTaskType;
 }
 
+const plotlyDotSize = 11
+
 export default function ImageListViewerAndScatter(
   props: ImageListViewerAndScatterProps
 ): JSX.Element {
@@ -163,12 +165,13 @@ export default function ImageListViewerAndScatter(
           // selected: {},
           mode: "markers",
           marker: {
-            color: Array.from({ length: pointList.length }, () =>
-              idx < colors.length
-                ? colors[idx]
-                : stringToColor(imgClassName.repeat(10))
-            ),
-            size: Array.from({ length: pointList.length }, () => 12),
+            // color: Array.from({ length: pointList.length }, () =>
+            //   idx < colors.length
+            //     ? colors[idx]
+            //     : stringToColor(imgClassName.repeat(10))
+            // ),
+            // size: Array.from({ length: pointList.length }, () => 12),
+            size: plotlyDotSize,
             line: { width: 0 },
           },
         }
@@ -201,7 +204,7 @@ export default function ImageListViewerAndScatter(
           mode: "markers",
           marker: {
             color: "#000000",
-            size: 12,
+            size: plotlyDotSize,
             line: { width: 0 },
           },
         }

@@ -467,10 +467,24 @@ class ReiformICDataSet(ReiformImageDataset):
 
             nf = ReiformICFile("temp", f1.current_class)
 
-            if len(f1.mean) == 0:
-                f1.recalc_mean_and_stddev()
-            if len(f2.mean) == 0:
-                f2.recalc_mean_and_stddev()
+            if len(f1.mean) != 3:
+                if len(f1.mean) == 0:
+                    f1.recalc_mean_and_stddev()
+                if len(f1.mean) == 1:
+                    f1.mean = f1.mean * 3
+                    f1.std_dev = f1.std_dev * 3
+                if len(f1.mean) == 4:
+                    f1.mean = f1.mean[:3]
+                    f1.std_dev = f1.std_dev[:3]
+            if len(f2.mean) != 3:
+                if len(f2.mean) == 0:
+                    f2.recalc_mean_and_stddev()
+                if len(f2.mean) == 1:
+                    f2.mean = f2.mean * 3
+                    f2.std_dev = f2.std_dev * 3
+                if len(f2.mean) == 4:
+                    f2.mean = f2.mean[:3]
+                    f2.std_dev = f2.std_dev[:3]
 
             m1 = f1.mean
             m2 = f2.mean

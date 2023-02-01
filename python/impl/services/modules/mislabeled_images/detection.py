@@ -10,7 +10,7 @@ def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:
     mean = np.mean(arr, 0)
     std_dev = np.std(arr, 0)
 
-    sigma_count = 2.5
+    sigma_count = 2.0
 
     plus_three_sigma = mean + sigma_count * std_dev
     minus_three_sigma = mean - sigma_count * std_dev
@@ -21,7 +21,7 @@ def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:
         if np.any(v>plus_three_sigma) or np.any(v<minus_three_sigma):
             outlier_count += 1
 
-    # ReiformInfo("Outlier Ratio Used: {}".format(round(outlier_count/len(projected_data), 3)))
+    ReiformInfo("Outlier Ratio Used: {}".format(round(outlier_count/len(projected_data), 3)))
 
     return outlier_count/len(projected_data)
 
@@ -100,7 +100,7 @@ def find_outlier_consensus(dataset : ReiformICDataSet):
     possible_detectors : List[Callable] = [
                                            find_outliers_loda
                                           ]
-    possible_cuts : List[int] = [1103, 1009, 931, 871, 767]
+    possible_cuts : List[int] = [1251, 1103, 1009, 931, 871, 767]
 
     # Keeps track of the "votes" for various files to be inliers vs outliers.... 
     votes : Dict[str, Dict[str, int]] = {}

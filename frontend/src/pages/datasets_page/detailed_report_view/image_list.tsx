@@ -14,6 +14,7 @@ import Image from "../../../components/Image";
 import { useQuery } from "react-query";
 import makeRequest from "../../../utils/apiFetch";
 import ReportFilterDropdown from "./report_filter_dropdown";
+import { MislabeledType } from "./image_list_viewer_and_scatter";
 
 export interface ImageListProps {
   data: Partial<Plotly.ScatterData>[];
@@ -25,8 +26,9 @@ export interface ImageListProps {
   points: [string, MynahICPoint[]][];
   allClassNames: string[];
   updateClassNamesFilter: (className: string) => void;
-  updateMislabeledFilter: () => void;
-  mislabeledFilterSetting: boolean;
+  updateMislabeledFilter: (mislabeledType: MislabeledType) => void;
+  mislabeledFilterSetting: MislabeledType[];
+  allowedMislabeledTypes: MislabeledType[]
 }
 
 interface RowProps {
@@ -66,6 +68,7 @@ export default function ImageList(props: ImageListProps): JSX.Element {
     updateClassNamesFilter,
     updateMislabeledFilter,
     mislabeledFilterSetting,
+    allowedMislabeledTypes
   } = props;
   const allButLast = data.slice(0, -1);
   const xList = allButLast.map((val) => val.x).flat();
@@ -120,6 +123,7 @@ export default function ImageList(props: ImageListProps): JSX.Element {
           updateMislabeledFilter={updateMislabeledFilter}
           filteredClasses={pointClasses}
           mislabledFilterSetting={mislabeledFilterSetting}
+          allowedMislabeledTypes={allowedMislabeledTypes}
         />
       </div>
       <AutoSizer>

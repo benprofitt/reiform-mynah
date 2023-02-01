@@ -77,28 +77,9 @@ export default function Files(props: FilesProps): JSX.Element {
   const fileIds = Object.keys(files);
   const listRef = useRef<List | null>();
 
-  // const allIds: string[] = _.reduce<string, string[]>(
-  //   versionKeys,
-  //   (prev, curr) => [...prev, ..._.keys(dataset.versions[curr].files)],
-  //   []
-  // );
-  // console.log("all files");
-  // // 'photo' now means 'unique file' in this count
-  // const numFiles = allIds.length;
-
   const numFiles = fileIds.length;
   const fileCount = numFiles === 1 ? "1 photo" : `${numFiles} photos`;
 
-  // const query = `/api/v1/file/list?fileid=${allIds.join("&fileid=")}`;
-  // const { error, isLoading, data } = useQuery("datasetFiles", () =>
-  //   makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
-  // );
-
-  // if (error) return <div>error getting datasetFiles</div>;
-  // if (isLoading || !data)
-  //   return (
-  //     <div className="animate-spin aspect-square border-l border-r border-b border-sidebarSelected border-6 rounded-full w-[20px]" />
-  //   );
   return (
     <div className="text-grey2 h-full">
       <div className="flex">
@@ -200,7 +181,6 @@ const DetailedFileView = (props: {
                   <MetaDetail title="Class" value={current_class} />
                   <MetaDetail title="Original Class" value={original_class} />
                 </div>
-                {/* {JSON.stringify({ ...theFile, fileData })} */}
               </div>
             </div>
           );

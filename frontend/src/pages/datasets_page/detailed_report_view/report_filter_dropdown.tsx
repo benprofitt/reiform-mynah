@@ -2,6 +2,7 @@ import { Menu } from "@headlessui/react";
 import clsx from "clsx";
 import ArrowIcon from "../../../images/ArrowIcon.svg";
 import MenuItem from "../../../components/menu_item";
+import { MislabeledType } from "./image_list_viewer_and_scatter";
 
 export default function ReportFilterDropdown({
   leftAligned,
@@ -9,14 +10,16 @@ export default function ReportFilterDropdown({
   updateClassNamesFilter,
   updateMislabeledFilter,
   filteredClasses,
-  mislabledFilterSetting
+  mislabledFilterSetting,
+  allowedMislabeledTypes
 }: {
   leftAligned?: boolean;
   allClassNames: string[];
   updateClassNamesFilter: (className: string) => void;
-  updateMislabeledFilter: () => void;
+  updateMislabeledFilter: (mislabledType: MislabeledType) => void;
   filteredClasses: string[];
-  mislabledFilterSetting: boolean;
+  mislabledFilterSetting: MislabeledType[];
+  allowedMislabeledTypes: MislabeledType[]
 }): JSX.Element {
   console.log(filteredClasses)
   return (
@@ -39,7 +42,7 @@ export default function ReportFilterDropdown({
         )}
       >
         <Menu.Item as="div" className="flex flex-col bg-white z-30">
-          Show which classes?
+          Filter by class
           {allClassNames.map((className, ix) => (
             <label className="ml-[20px]" key={ix}>
               <input
@@ -57,15 +60,20 @@ export default function ReportFilterDropdown({
           ))}
         </Menu.Item>
         <Menu.Item as="div" className="flex flex-col bg-white z-30">
-          <label className="ml-[20px] border-t-2">
+        Filter by mislabled type
+          {allowedMislabeledTypes.map((mislabeledType, ix) => (
+            <label className="ml-[20px]" key={ix}>
               <input
                 className="mr-[10px]"
                 type="checkbox"
-                checked={mislabledFilterSetting}
-                onChange={updateMislabeledFilter}
+                checked={mislabledFilterSetting.includes(mislabeledType)}
+                onChange={() =>
+                  updateMislabeledFilter(mislabeledType)
+                }
               />
-              Only Show Mislabled Images?
+              {mislabeledType}
             </label>
+          ))}
         </Menu.Item>
       </Menu.Items>
     </Menu>

@@ -159,7 +159,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
             webkitdirectory=""
             onChange={(e) => {
               const uploadedFiles = e.target.files;
-              if (uploadedFiles === null) return;
+              if (uploadedFiles === null || uploadedFiles) return;
               uploadFiles(Array.from(uploadedFiles));
             }}
           />

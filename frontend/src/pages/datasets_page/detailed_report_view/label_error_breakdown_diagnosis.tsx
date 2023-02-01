@@ -26,8 +26,8 @@ export default function LabelErrorBreakdownDiagnosis(
   const trace1 = {
     x: mislabeledCounts,
     y: classNames,
-    name: "Mislabeled",
-    text: "Mislabeled",
+    name: "Potentially Mislabeled",
+    text: "Potentially Mislabeled",
     orientation: "h",
     marker: {
       color: "rgba(55,128,191,0.6)",

@@ -29,7 +29,7 @@ export default function EllipsisMenu({children}: {children?: ReactNode}): JSX.El
           </Menu.Button>
         </div>
         <Menu.Items className="z-10 absolute right-[15px] mt-[15px] w-56 origin-top-right rounded-md bg-white shadow-floating focus:outline-none">
-          {children ?? <MenuItem text='should this be here?' />}
+          {children ?? <MenuItem text='View File Details' />}
         </Menu.Items>
       </>
     )}

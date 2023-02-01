@@ -115,6 +115,7 @@ def monte_carlo_label_correction(simulations: int,
             for name, o_class, pred_vec in zip(name_unknown, y_unknown, preds):
                 to_correct.get_file(o_class, name).add_confidence_vector(pred_vec)
 
+    unchanged : ReiformICDataSet = ReiformICDataSet(classes=inliers.classes())
     corrected : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
     dropped : ReiformICDataSet = ReiformICDataSet(classes=outliers.classes())
 
@@ -133,13 +134,16 @@ def monte_carlo_label_correction(simulations: int,
             predictions = np.array(data.get_confidence_vectors())
             keep, new_label = evaluate_correction_confidence(i, predictions)
             data.clear_confidence_vectors()
-            data.set_class(to_correct.classes()[new_label])
             if keep:
-                corrected.add_file(data)
+                if to_correct.classes()[new_label] == data.get_class():
+                    unchanged.add_file(data)
+                else:
+                    data.set_class(to_correct.classes()[new_label])
+                    corrected.add_file(data)
             else:
                 dropped.add_file(data)
 
-    return corrected, dropped
+    return corrected, dropped, unchanged
 
 def monte_carlo_parallel(package : Tuple[ReiformICDataSet, ReiformICDataSet]):
 
@@ -167,7 +171,7 @@ def iterative_reinjection_label_correction(iterations : int,
     for iter in range(iterations):
         ReiformInfo("Iteration: {} / {}".format(iter+1, iterations))
 
-        corrected, dropped = monte_carlo_label_correction(MONTE_CARLO_SIMULATIONS, inliers, outliers)
+        corrected, dropped, unchanged = monte_carlo_label_correction(MONTE_CARLO_SIMULATIONS, inliers, outliers)
 
         all_corrected.merge_in(corrected)
 
@@ -176,6 +180,7 @@ def iterative_reinjection_label_correction(iterations : int,
             inliers.set_minus(dropped)
 
         inliers.merge_in(corrected)
+        inliers.merge_in(unchanged)
 
         if outliers == dropped:
             ReiformInfo("Early termination of iterative label correction: outliers == dropped (no improvement)")

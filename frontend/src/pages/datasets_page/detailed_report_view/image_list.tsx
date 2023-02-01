@@ -28,7 +28,8 @@ export interface ImageListProps {
   updateClassNamesFilter: (className: string) => void;
   updateMislabeledFilter: (mislabeledType: MislabeledType) => void;
   mislabeledFilterSetting: MislabeledType[];
-  allowedMislabeledTypes: MislabeledType[]
+  allowedMislabeledTypes: MislabeledType[];
+  allIds: string[];
 }
 
 interface RowProps {
@@ -68,15 +69,16 @@ export default function ImageList(props: ImageListProps): JSX.Element {
     updateClassNamesFilter,
     updateMislabeledFilter,
     mislabeledFilterSetting,
-    allowedMislabeledTypes
+    allowedMislabeledTypes,
+    allIds
   } = props;
   const allButLast = data.slice(0, -1);
   const xList = allButLast.map((val) => val.x).flat();
   const yList = allButLast.map((val) => val.y).flat();
   const classLens = allButLast.map((val) => val.x?.length);
-  const allIds: string[] = points.flatMap(([imgClassName, pointList]) =>
-    pointList.flatMap((x) => x.fileid)
-  );
+  // const allIds: string[] = points.flatMap(([imgClassName, pointList]) =>
+  //   pointList.flatMap((x) => x.fileid)
+  // );
 
   const pointClasses = points.map(([className, pointList]) => className);
 
@@ -109,6 +111,7 @@ export default function ImageList(props: ImageListProps): JSX.Element {
   console.log(points);
 
   if (!xList || !yList) return <></>;
+  if (isLoading || error || fileData == undefined) return <></>
 
   return (
     <>
@@ -143,13 +146,16 @@ export default function ImageList(props: ImageListProps): JSX.Element {
                 myIndex -= classLens[classNum] ?? 0;
                 classNum += 1;
               }
+              // to make the filename not found happen, get rid of unchanged, focus outside the window (like on dev tools), then bring unchanged back in
+              // it revealed that the problem is that fileData is stale, not undefined. it only had the 6 mislabeled files in it, thus making fileData[fileId] undefined
               const pointData = points[classNum][1][myIndex];
               const imgLoc = pointData
                 ? `/api/v1/file/${pointData.fileid}/${pointData.image_version_id}`
                 : "";
-              // this is
               const fileName =
-                pointData && fileData && fileData[pointData.fileid]?.name;
+                pointData && fileData[pointData.fileid]?.name;
+                console.log(imgLoc, pointData, fileData, fileName
+                  )
               return (
                 // maybe we want to memoize rows?
                 // https://react-window.vercel.app/#/api/areEqual

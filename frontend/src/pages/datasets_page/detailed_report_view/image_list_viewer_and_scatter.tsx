@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import MyPlot from "./plot";
 import ImageList from "./image_list";
 import * as Plotly from "plotly.js-dist-min";
@@ -40,6 +40,25 @@ function isInRectangle(
 ): boolean {
   console.log({ x, y, xmin, xmax, ymin, ymax });
   return x >= xmin && x <= xmax && y >= ymin && y <= ymax;
+}
+
+function getMislabledFileIdDict(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType): { [fileId: string]: MislabeledType } {
+  console.log('recreating map')
+  const dict: { [fileId: string]: MislabeledType } = {}
+  if (reportType == 'ic::correct::mislabeled_images') {
+    Object.values((reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport).class_label_errors).forEach(({ mislabeled_corrected, mislabeled_removed, unchanged }) => {
+      mislabeled_corrected.forEach((fileId) => dict[fileId] = 'mislabeled_corrected')
+      mislabeled_removed.forEach((fileId) => dict[fileId] = 'mislabeled_removed')
+      unchanged.forEach((fileId) => dict[fileId] = 'unchanged')
+    })
+  }
+  if (reportType == 'ic::diagnose::mislabeled_images') {
+    Object.values((reportMetadata as MynahICProcessTaskDiagnoseMislabeledImagesReport).class_label_errors).forEach(({ mislabeled, correct }) => {
+      correct.forEach((fileId) => dict[fileId] = 'unchanged')
+      mislabeled.forEach((fileId) => dict[fileId] = 'mislabeled')
+    })
+  }
+  return dict
 }
 
 function getMislabeledType(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType, fileId: string, className: string): MislabeledType {
@@ -93,6 +112,8 @@ export interface ImageListViewerAndScatterProps {
   reportType: MynahICProcessTaskType;
 }
 
+const plotlyDotSize = 11
+
 export default function ImageListViewerAndScatter(
   props: ImageListViewerAndScatterProps
 ): JSX.Element {
@@ -101,12 +122,17 @@ export default function ImageListViewerAndScatter(
   const taskMetaData = reportData.tasks.filter(
     ({ type }) => type == reportType
   )[0].metadata;
+
+  const fileIdMislabeledTypeMap = useMemo(() => getMislabledFileIdDict(taskMetaData, reportType), [taskMetaData])
+  
   const allowedMislabeledTypes = reportType == 'ic::correct::mislabeled_images' ? allowedMislabeledTypesCorrection : allowedMislabeledTypesDiagnosis
+  const allIds = Object.values(reportData.points).flatMap((x) => x.map((y) => y.fileid))
   // const mislabled_images = getMislabeledImages(taskMetaData, reportType);
   const [filteredClasses, setFilteredClasses] = useState<string[]>(
     Object.keys(reportData.points)
   );
   const [mislabeledFilter, setMislabeledFilter] = useState<MislabeledType[]>(allowedMislabeledTypes);
+  // what i should do instead of calling getMislabeledType on each point is take reportdata and reduce it to a map of fileId to mislabeled type
   const points: [string, MynahICPoint[]][] = Object.entries(reportData.points)
     .filter(([imgClassName]) =>
         filteredClasses.includes(imgClassName)
@@ -114,7 +140,9 @@ export default function ImageListViewerAndScatter(
     .map(([imgClassName, pointList]) => [
       imgClassName,
       pointList.filter(({ fileid }) =>
-        mislabeledFilter.includes(getMislabeledType(taskMetaData, reportType, fileid, imgClassName))
+        mislabeledFilter
+        .includes(fileIdMislabeledTypeMap[fileid])
+        // .includes(getMislabeledType(taskMetaData, reportType, fileid, imgClassName))
       ),
     ]);
   const classNames = points.map(([className, pointList]) => className);
@@ -137,12 +165,13 @@ export default function ImageListViewerAndScatter(
           // selected: {},
           mode: "markers",
           marker: {
-            color: Array.from({ length: pointList.length }, () =>
-              idx < colors.length
-                ? colors[idx]
-                : stringToColor(imgClassName.repeat(10))
-            ),
-            size: Array.from({ length: pointList.length }, () => 12),
+            // color: Array.from({ length: pointList.length }, () =>
+            //   idx < colors.length
+            //     ? colors[idx]
+            //     : stringToColor(imgClassName.repeat(10))
+            // ),
+            // size: Array.from({ length: pointList.length }, () => 12),
+            size: plotlyDotSize,
             line: { width: 0 },
           },
         }
@@ -175,7 +204,7 @@ export default function ImageListViewerAndScatter(
           mode: "markers",
           marker: {
             color: "#000000",
-            size: 12,
+            size: plotlyDotSize,
             line: { width: 0 },
           },
         }
@@ -263,6 +292,7 @@ export default function ImageListViewerAndScatter(
           }}
           mislabeledFilterSetting={mislabeledFilter}
           allowedMislabeledTypes={allowedMislabeledTypes}
+          allIds={allIds}
         />
       </div>
       {/* picture and graph */}

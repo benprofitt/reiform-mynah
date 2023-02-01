@@ -11,7 +11,7 @@ export default function LabelErrorBreakdownDiagnosis(
   props: LabelErrorBreakdownCorrectionProps
 ): JSX.Element {
   const { taskMetadata } = props;
-  console.log(JSON.stringify(taskMetadata))
+  
   const correctedCounts = Object.values(taskMetadata.class_label_errors).map(
     ({ mislabeled_corrected }) => mislabeled_corrected.length
   );

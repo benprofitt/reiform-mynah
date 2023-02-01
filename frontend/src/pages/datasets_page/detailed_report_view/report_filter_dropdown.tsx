@@ -21,7 +21,6 @@ export default function ReportFilterDropdown({
   mislabledFilterSetting: MislabeledType[];
   allowedMislabeledTypes: MislabeledType[]
 }): JSX.Element {
-  console.log(filteredClasses)
   return (
     <Menu as="div" className="relative inline-block text-left z-I10">
       <div>

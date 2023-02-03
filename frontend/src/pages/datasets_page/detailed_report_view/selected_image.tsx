@@ -10,10 +10,10 @@ export interface SelectedImageProps {
 }
 
 const mislabeledTypeToString: Record<MislabeledType, string> = {
-  'mislabeled': 'yes',
-  'unchanged': 'no',
-  'mislabeled_corrected': 'yes, corrected',
-  'mislabeled_removed': 'yes, removed'
+  'mislabeled': 'Yes',
+  'unchanged': 'No',
+  'mislabeled_corrected': 'Yes. Corrected',
+  'mislabeled_removed': 'Yes. Removed'
 }
 
 export default function SelectedImage({
@@ -30,10 +30,10 @@ export default function SelectedImage({
     <div className="flex h-full">
       <Image src={imgLoc} className="w-[60%] h-full mr-[15px]" />
       <ul>
-        <li>Current Class: {pointClass}</li>
+        <li><b>Current Class:</b> {pointClass}</li>
         <li>Original Class: {original_class}</li>
         <li>Point: {pointstr}</li>
-        <li>Is mislabled?: {mislabeledTypeToString[mislabeledType]}</li>
+        <li>Potentially Mislabled: {mislabeledTypeToString[mislabeledType]}</li>
       </ul>
     </div>
   );

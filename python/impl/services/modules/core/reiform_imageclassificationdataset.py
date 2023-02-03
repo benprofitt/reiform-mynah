@@ -209,6 +209,11 @@ class ReiformICDataSet(ReiformImageDataset):
             if name in self.files[label]:
                 del self.files[label][name]
 
+    def minmize_projections(self) -> None:
+        for c in self.class_list:
+            for _, file in self.get_items(c):
+                file.minmize_projection()
+
     def set_minus(self, other: ReiformICDataSet) -> ReiformICDataSet:
         new_ds : ReiformICDataSet = self.copy()
         if other.classes() != self.class_list:
@@ -390,6 +395,7 @@ class ReiformICDataSet(ReiformImageDataset):
                     setattr(self, attrib, body[attrib])
 
     def to_json(self) -> Dict[str, Any]:
+        self.minmize_projections()
         attr_dict : Dict[str, Any] = self.__dict__
         
         results : Dict[str, Any] = {"files" : {}}
@@ -416,7 +422,7 @@ class ReiformICDataSet(ReiformImageDataset):
                 results["files"][c][name] = file.to_json()
 
     def serialize(self) -> Dict[str, Any]:
-        
+        self.minmize_projections()
         attr_dict : Dict[str, Any] = self.__dict__
         results : Dict[str, Any] = {}
 

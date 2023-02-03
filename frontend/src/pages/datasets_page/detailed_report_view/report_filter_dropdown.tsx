@@ -4,6 +4,25 @@ import ArrowIcon from "../../../images/ArrowIcon.svg";
 import MenuItem from "../../../components/menu_item";
 import { MislabeledType } from "./image_list_viewer_and_scatter";
 
+function convert_name(name: MislabeledType, names: MislabeledType[]): string {
+  if (names.length == 3) {
+    if (name == "mislabeled_corrected") {
+      return "Mislabeled Corrected"
+    }
+    if (name == "mislabeled_removed") {
+      return "Mislabeled Removed"
+    }
+    return "Unchanged"
+  } else {
+    if (name == "mislabeled") {
+      return "Potentially Mislabeled"
+    } else {
+      return "Unchanged"
+    }
+  }
+
+}
+
 export default function ReportFilterDropdown({
   leftAligned,
   allClassNames,
@@ -70,7 +89,7 @@ export default function ReportFilterDropdown({
                   updateMislabeledFilter(mislabeledType)
                 }
               />
-              {mislabeledType}
+              {convert_name(mislabeledType, allowedMislabeledTypes)}
             </label>
           ))}
         </Menu.Item>

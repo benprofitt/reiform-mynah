@@ -43,7 +43,6 @@ function isInRectangle(
 }
 
 function getMislabledFileIdDict(reportMetadata: MynahICProcessTaskReportMetadata, reportType: MynahICProcessTaskType): { [fileId: string]: MislabeledType } {
-  console.log('recreating map')
   const dict: { [fileId: string]: MislabeledType } = {}
   if (reportType == 'ic::correct::mislabeled_images') {
     Object.values((reportMetadata as MynahICProcessTaskCorrectMislabeledImagesReport).class_label_errors).forEach(({ mislabeled_corrected, mislabeled_removed, unchanged }) => {
@@ -216,10 +215,10 @@ export default function ImageListViewerAndScatter(
     plot_bgcolor: "rgba(0,0,0,0)",
     paper_bgcolor: "rgba(0,0,0,0)",
     xaxis: {
-      title: "x-axis label",
+      title: "x-axis",
     },
     yaxis: {
-      title: "y-axis label",
+      title: "y-axis",
     },
   });
 

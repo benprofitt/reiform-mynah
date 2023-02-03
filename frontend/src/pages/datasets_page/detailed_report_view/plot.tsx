@@ -24,8 +24,6 @@ function MyPlot(props: MyPlotProps) {
   const { data, setPoint, plotLayout, plotRef, classNames } = props;
   const divId = "plotDiv";
 
-  console.log("plot render");
-
   return (
     <Plot
       className="w-full h-full"
@@ -42,8 +40,6 @@ function MyPlot(props: MyPlotProps) {
       layout={plotLayout}
       onClick={(e) => {
         const { x, y, pointIndex, curveNumber } = e.points[0];
-        console.log(e.points[0]);
-        console.log("click", { x, y, pointIndex, e });
         setPoint(pointIndex, classNames[curveNumber]);
       }}
     />

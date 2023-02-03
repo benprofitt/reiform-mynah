@@ -85,11 +85,11 @@ export default function LabelErrorBreakdownDiagnosis(
                     </thead>
                     <tbody className="border-b-2">
                       <tr>
-                        <td>Bad:</td>
+                        <td>Potentially Mislabeled:</td>
                         <td className="text-right">{mislabeled.length}</td>
                       </tr>
                       <tr>
-                        <td>Acceptable:</td>
+                        <td>Correct Class:</td>
                         <td className="text-right">{correct.length}</td>
                       </tr>
                       <tr className="font-bold">

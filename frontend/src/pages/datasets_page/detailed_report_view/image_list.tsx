@@ -105,11 +105,6 @@ export default function ImageList(props: ImageListProps): JSX.Element {
     listRef.current.scrollToItem(lastFlatIndex, "smart");
   }, [selectedPoint]);
 
-  console.log("imagelist render");
-  console.log("Points:");
-  console.log(fileData);
-  console.log(points);
-
   if (!xList || !yList) return <></>;
   if (isLoading || error || fileData == undefined) return <></>
 

@@ -18,7 +18,7 @@ function App(): JSX.Element {
   const jwt: string = cookies.get(authCookieName);
   // in actual production auth:
   // i will do the same thing, if no jwt just go to login page, but if there is a jwt, then before routing anywhere, we make a request to get datasets, and if the request returns bad jwt we gotta redirect
-  console.log(jwt)
+  // console.log(jwt)
   return (
     <Router base="/mynah">
       {!Boolean(jwt) ? (

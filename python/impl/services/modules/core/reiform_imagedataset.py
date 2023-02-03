@@ -113,6 +113,11 @@ class ReiformImageFile():
     def remove_projection(self, label : str) -> None:
         self.projections.remove(label)
 
+    def minmize_projection(self) -> None:
+        projs = self.projections.projections
+        if PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION in projs:
+            projs[PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION] = np.array([0.0, 1.0, 2.0, 3.0])
+
     def clear_projections(self) -> None:
         self.projections = Projections()
 

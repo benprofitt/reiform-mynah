@@ -80,7 +80,7 @@ export default function SideBar(props: SideBarProps): JSX.Element {
           to="/account-settings"
           className="w-[32px] aspect-square bg-green-700 grid place-items-center text-[12px] font-medium mt-auto rounded-full text-white"
         >
-          JL
+          RM
         </Link>
         {/* maybe just one stateful 'is creating' and then do the rest based on route */}
         <ImportData

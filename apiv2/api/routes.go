@@ -5,7 +5,6 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"path"
 	"reiform.com/mynah-api/settings"
 )
 
@@ -22,7 +21,7 @@ func registerRoutes(e *gin.Engine) {
 
 	// Static Routes
 	e.GET("/", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, path.Join(settings.GlobalSettings.StaticPrefix, "index.html"))
+		c.Redirect(http.StatusMovedPermanently, settings.GlobalSettings.StaticPrefix)
 	})
 	e.Static(settings.GlobalSettings.StaticPrefix, settings.GlobalSettings.StaticResourcesPath)
 }

@@ -1,6 +1,7 @@
 .test_venv
 mynah
 mynah-cli
+mynah-api
 *.pem
 *.db
 mynah.json

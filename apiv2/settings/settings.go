@@ -76,7 +76,7 @@ func defaultSettings() *MynahSettings {
 	return &MynahSettings{
 		ApiPrefix:           "/api/v1",
 		StaticPrefix:        "/mynah/",
-		StaticResourcesPath: "./static/assets/",
+		StaticResourcesPath: "./static/",
 		UnauthReadAccess:    false,
 		Port:                8080,
 		CORSAllowHeaders:    []string{"*"},

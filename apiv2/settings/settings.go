@@ -56,7 +56,6 @@ type MynahSettings struct {
 	ApiPrefix           string   `json:"api_prefix"`
 	StaticPrefix        string   `json:"static_prefix"`
 	StaticResourcesPath string   `json:"static_resources_path"`
-	BuildAssetsFolder   string   `json:"build_assets_folder"`
 	UnauthReadAccess    bool     `json:"unauth_read_access"`
 	Port                int      `json:"port"`
 	CORSAllowHeaders    []string `json:"cors_allow_headers"`
@@ -77,8 +76,7 @@ func defaultSettings() *MynahSettings {
 	return &MynahSettings{
 		ApiPrefix:           "/api/v1",
 		StaticPrefix:        "/mynah/",
-		StaticResourcesPath: "./static/",
-		BuildAssetsFolder:   "/assets/",
+		StaticResourcesPath: "./static/assets/",
 		UnauthReadAccess:    false,
 		Port:                8080,
 		CORSAllowHeaders:    []string{"*"},

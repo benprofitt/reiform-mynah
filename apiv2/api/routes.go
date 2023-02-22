@@ -24,9 +24,5 @@ func registerRoutes(e *gin.Engine) {
 	e.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, path.Join(settings.GlobalSettings.StaticPrefix, "index.html"))
 	})
-	//r.e.Group(settings.GlobalSettings.StaticPrefix).
-	//	GET(settings.GlobalSettings.StaticPrefix, func(c *gin.Context) {
-	//		c.File(path.Join(settings.GlobalSettings.StaticResourcesPath, "index.html"))
-	//	}).Static(path.Join(settings.GlobalSettings.BuildAssetsFolder, "*any"), settings.GlobalSettings.StaticResourcesPath)
-
+	e.Static(settings.GlobalSettings.StaticPrefix, settings.GlobalSettings.StaticResourcesPath)
 }

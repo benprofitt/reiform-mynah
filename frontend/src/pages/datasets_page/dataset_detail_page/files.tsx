@@ -33,7 +33,7 @@ export default function Files(props: FilesProps): JSX.Element {
     makeRequest<{ [fileId: string]: MynahFile }>("GET", query)
   );
 
-  if (!data || isLoading || error)
+  if (!data || isLoading || error || !fileIds.every((id) => data[id]))
     return <div className="w-full bg-white">getting files</div>;
   // write sort by class
   // write sort by name

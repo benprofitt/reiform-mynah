@@ -395,7 +395,8 @@ class ReiformICDataSet(ReiformImageDataset):
                     setattr(self, attrib, body[attrib])
 
     def to_json(self) -> Dict[str, Any]:
-        self.minmize_projections()
+        # Use minimize projections to remove the big ones
+        # self.minmize_projections()
         attr_dict : Dict[str, Any] = self.__dict__
         
         results : Dict[str, Any] = {"files" : {}}
@@ -422,7 +423,8 @@ class ReiformICDataSet(ReiformImageDataset):
                 results["files"][c][name] = file.to_json()
 
     def serialize(self) -> Dict[str, Any]:
-        self.minmize_projections()
+        # Use minimize projections to remove the big ones
+        # self.minmize_projections()
         attr_dict : Dict[str, Any] = self.__dict__
         results : Dict[str, Any] = {}
 

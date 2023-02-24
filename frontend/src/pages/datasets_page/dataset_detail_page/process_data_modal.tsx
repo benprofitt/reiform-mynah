@@ -86,8 +86,8 @@ export default function ProcessDataModal(
         >
           x
         </button>
-        <Dialog.Title className="text-3xl">Process data - Coming Soon!</Dialog.Title>
-        {/* <form
+        <Dialog.Title className="text-3xl">Process data</Dialog.Title>
+        {<form
           className="flex flex-col text-[18px]"
           onSubmit={(e) => {
             e.preventDefault();
@@ -149,7 +149,7 @@ export default function ProcessDataModal(
           >
             Start process
           </button>
-        </form> */}
+        </form>}
       </main>
     </Dialog>
   );

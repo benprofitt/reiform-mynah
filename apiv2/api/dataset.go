@@ -44,3 +44,40 @@ func DatasetCreate(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, newDataset)
 }
+
+// DatasetGet gets a dataset by id
+func DatasetGet(ctx *gin.Context) {
+	datasetId := ctx.Param("dataset_id")
+	mynahDataset, found, err := dataset.GetMynahDataset(db.NewContext(), types.MynahUuid(datasetId))
+	if err != nil {
+		log.Info("DatasetGet failed: %s", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	if !found {
+		log.Info("DatasetGet failed, no such dataset: %s", datasetId)
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, mynahDataset)
+}
+
+// DatasetList lists datasets
+func DatasetList(ctx *gin.Context) {
+	opts, err := db.GetPaginationOptions(ctx)
+	if err != nil {
+		log.Info("DatasetList failed: %s", err)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	datasets, err := dataset.ListMynahDatasets(db.NewContext(), opts)
+	if err != nil {
+		log.Info("DatasetList failed: %s", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, datasets)
+}

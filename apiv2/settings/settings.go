@@ -61,6 +61,7 @@ type MynahSettings struct {
 	CORSAllowHeaders    []string `json:"cors_allow_headers"`
 	CORSAllowOrigins    []string `json:"cors_allow_origins"`
 	CORSAllowMethods    []string `json:"cors_allow_methods"`
+	DefaultPageSize     int      `json:"page_size"`
 	//settings groups
 	DBSettings      MynahDBSettings      `json:"db_settings"`
 	StorageSettings MynahStorageSettings `json:"storage_settings"`
@@ -82,6 +83,7 @@ func defaultSettings() *MynahSettings {
 		CORSAllowHeaders:    []string{"*"},
 		CORSAllowOrigins:    []string{"*"},
 		CORSAllowMethods:    []string{"POST", "GET"},
+		DefaultPageSize:     20,
 		DBSettings: MynahDBSettings{
 			LocalPath: "data/mynah_local.db",
 		},

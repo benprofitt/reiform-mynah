@@ -58,3 +58,32 @@ func CreateMynahDataset(ctx *db.Context, dataset *MynahDataset) error {
 	}
 	return nil
 }
+
+// GetMynahDataset gets a dataset by id
+func GetMynahDataset(ctx *db.Context, datasetId types.MynahUuid) (*MynahDataset, bool, error) {
+	dataset := MynahDataset{
+		DatasetId: datasetId,
+	}
+	found, err := ctx.GetEngine().Get(&dataset)
+	if err != nil {
+		return nil, false, err
+	}
+	return &dataset, found, nil
+}
+
+// ListMynahDatasets returns a list of datasets
+func ListMynahDatasets(ctx *db.Context, opts *db.PaginationOptions) (*db.Paginated[*MynahDataset], error) {
+	datasets := make([]*MynahDataset, 0, opts.PageSize)
+
+	count, err := ctx.GetEngine().OrderBy("dataset_id").Limit(opts.PageSize, opts.Page*opts.PageSize).FindAndCount(&datasets)
+	if err != nil {
+		return nil, err
+	}
+
+	return &db.Paginated[*MynahDataset]{
+		Page:     opts.Page,
+		PageSize: opts.PageSize,
+		Total:    count,
+		Contents: datasets,
+	}, nil
+}

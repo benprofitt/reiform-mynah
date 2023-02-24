@@ -12,10 +12,21 @@ func registerRoutes(e *gin.Engine) {
 	// API Routes
 	apiRoutes := e.Group("api")
 	v2Routes := apiRoutes.Group("v2")
+
 	v2Routes.Group("user").
 		POST("create", UserCreate)
-	v2Routes.Group("dataset").
-		POST("create", DatasetCreate)
+
+	datasetGroup := v2Routes.Group("dataset")
+	{
+		datasetGroup.POST("create", DatasetCreate)
+		datasetGroup.GET("list", DatasetList)
+
+		specificDatasetGroup := datasetGroup.Group(":dataset_id")
+		{
+			specificDatasetGroup.GET("", DatasetGet)
+		}
+	}
+
 	v2Routes.Group("raw")
 	v2Routes.Group("file")
 

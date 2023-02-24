@@ -80,6 +80,15 @@
 }
 ```
 
+## Pagination
+- Pages are 0-indexed
+- All paginated endpoints take _optional_ query parameters `page` (defaults to 0), and `page_size` (defaults to a settings value)
+- Examples
+  - The first page of datasets `/api/v2/dataset/list`
+  - The second page of datasets `/api/v2/dataset/list?page=1`
+  - The first page of datasets with page size 10 `/api/v2/dataset/list?page_size=10`
+  - The third page of datasets with page size 15 `/api/v2/dataset/list?page=2&page_size=15`
+
 ## Endpoints
 
 ### User
@@ -120,6 +129,10 @@
     }
     ```
     - Response: `MynahDataset`
+
+#### Get a Dataset
+- `GET` `/api/v2/dataset/{dataset_id}`
+  - Response: `MynahDataset`
 
 #### List Datasets
 - `GET` `/api/v2/dataset/list`

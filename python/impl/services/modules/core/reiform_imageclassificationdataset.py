@@ -232,21 +232,18 @@ class ReiformICDataSet(ReiformImageDataset):
         side_a : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
         side_b : ReiformICDataSet = ReiformICDataSet(classes=self.class_list)
 
-        X = []
-        y = []
-
-        for c, files in self.files.items():
-            for _, file in files.items():
+        for c in self.class_list:
+            X = []
+            for _, file in self.get_items(c):
                 X.append(file)
-                y.append(c)
 
-        X_1, X_2, y1, y2 = sklearn.model_selection.train_test_split(X, y, test_size=1-ratio, shuffle=False)
+            X_1, X_2 = separate_list_deque(X, ratio)
 
-        for file in X_1:
-            side_a.add_file(file)
+            for file in X_1:
+                side_a.add_file(file)
 
-        for file in X_2:
-            side_b.add_file(file)
+            for file in X_2:
+                side_b.add_file(file)
 
         return side_a, side_b
 

@@ -124,7 +124,7 @@ class AutoResnet(nn.Module):
     def __init__(self, classes : int) -> None:
         super().__init__()
 
-        self.features : nn.Module = torchvision.models.resnet50(pretrained=True)
+        self.features : nn.Module = torchvision.models.resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT)
         self.classifier : nn.Module = linear_block(1000, classes, relu=False, dropout=0.1)
 
     def forward(self, x):

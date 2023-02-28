@@ -3,9 +3,10 @@
 package models
 
 import (
+	"fmt"
 	"reiform.com/mynah-api/models/dataset"
 	"reiform.com/mynah-api/models/db"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 // MynahFile defines an immutable file
@@ -13,7 +14,6 @@ type MynahFile struct {
 	FileId      types.MynahUuid `json:"file_id" xorm:"varchar(36) pk not null unique 'file_id'"`
 	Name        string          `json:"name" xorm:"TEXT 'name'"`
 	DateCreated int64           `json:"date_created" xorm:"INTEGER 'date_created'"`
-	MimeType    string          `json:"mime_type" xorm:"TEXT 'mime_type'"`
 	CreatedBy   types.MynahUuid `json:"created_by" xorm:"TEXT 'created_by'"`
 }
 
@@ -41,4 +41,16 @@ func init() {
 		&MynahFile{},
 		&MynahICDatasetVersionFile{},
 	)
+}
+
+// CreateMynahFile creates a new file
+func CreateMynahFile(ctx *db.Context, file *MynahFile) error {
+	affected, err := ctx.GetEngine().Insert(file)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("file (%s) not created (no records affected)", file.FileId)
+	}
+	return nil
 }

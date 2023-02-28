@@ -4,7 +4,7 @@ package dataset
 
 import (
 	"reiform.com/mynah-api/models/report"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 // MynahICProcessTaskData defines the result of running a task on an ic dataset

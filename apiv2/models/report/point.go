@@ -4,7 +4,7 @@ package report
 
 import (
 	"reiform.com/mynah-api/models/dataset"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 // MynahICDatasetReportPoint defines a plotted point and associated info

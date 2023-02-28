@@ -5,7 +5,7 @@ package dataset
 import (
 	"fmt"
 	"reiform.com/mynah-api/models/db"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 type MynahDatasetType string
@@ -86,4 +86,32 @@ func ListMynahDatasets(ctx *db.Context, opts *db.PaginationOptions) (*db.Paginat
 		Total:    count,
 		Contents: datasets,
 	}, nil
+}
+
+// CreateMynahICDatasetVersion creates a new version of an ic dataset
+func CreateMynahICDatasetVersion(ctx *db.Context, datasetVersion *MynahICDatasetVersion) error {
+	// create the dataset version
+	affected, err := ctx.GetEngine().Insert(datasetVersion)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("dataset version (dataset_id=%s, version=%s) not created (no records affected)",
+			datasetVersion.DatasetId,
+			datasetVersion.DatasetVersionId)
+	}
+	return nil
+}
+
+// GetMynahICDatasetVersion gets an image classification dataset version
+func GetMynahICDatasetVersion(ctx *db.Context, datasetId, versionId types.MynahUuid) (*MynahICDatasetVersion, bool, error) {
+	datasetVersion := MynahICDatasetVersion{
+		DatasetVersionId: versionId,
+		DatasetId:        datasetId,
+	}
+	found, err := ctx.GetEngine().Get(&datasetVersion)
+	if err != nil {
+		return nil, false, err
+	}
+	return &datasetVersion, found, nil
 }

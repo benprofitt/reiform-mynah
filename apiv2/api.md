@@ -106,7 +106,7 @@
 ### File
 
 #### File Upload
-- `POST` `/api/v2/dataset/{dataset_id}/upload`
+- `POST` `/api/v2/dataset/{dataset_id}/version/{version_id}/upload`
     - Request: multipart form with `file` containing contents
     - Response: `MynahFile`
 
@@ -169,6 +169,7 @@
   - Request:
     ```json
     {
+      "ancestor_version_id": "",
       "tasks" [
         TODO
       ]

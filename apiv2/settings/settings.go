@@ -25,8 +25,6 @@ type MynahDBSettings struct {
 type MynahStorageSettings struct {
 	//the path to store data to locally
 	LocalPath string `json:"local_path"`
-	//the max upload size
-	MaxUpload int64 `json:"max_upload"`
 	//the path to where models are stored
 	ModelsPath string `json:"models_path"`
 }
@@ -89,7 +87,6 @@ func defaultSettings() *MynahSettings {
 		},
 		StorageSettings: MynahStorageSettings{
 			LocalPath:  `data/tmp`,
-			MaxUpload:  100 * 1024 * 1024 * 1024,
 			ModelsPath: "python/models",
 		},
 		PythonSettings: MynahPythonSettings{

@@ -5,7 +5,7 @@ package report
 import (
 	"reiform.com/mynah-api/models/dataset"
 	"reiform.com/mynah-api/models/db"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 // MynahICDatasetVersionReport defines an ic dataset version report

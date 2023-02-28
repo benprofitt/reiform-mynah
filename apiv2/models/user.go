@@ -5,7 +5,7 @@ package models
 import (
 	"fmt"
 	"reiform.com/mynah-api/models/db"
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 )
 
 // MynahUser Defines a mynah user

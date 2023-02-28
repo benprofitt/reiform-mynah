@@ -24,6 +24,9 @@ func registerRoutes(e *gin.Engine) {
 		specificDatasetGroup := datasetGroup.Group(":dataset_id")
 		{
 			specificDatasetGroup.GET("", DatasetGet)
+
+			versionDatasetGroup := specificDatasetGroup.Group("version/:version_id")
+			versionDatasetGroup.POST("upload", DatasetUploadFile)
 		}
 	}
 

@@ -8,6 +8,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"reiform.com/mynah-api/models"
+	mynah_context "reiform.com/mynah-api/services/context"
 	"reiform.com/mynah-api/services/log"
 	"reiform.com/mynah-api/settings"
 	"time"
@@ -51,11 +53,27 @@ func logger(c *gin.Context) {
 		duration)
 }
 
+func auth(c *gin.Context) {
+	c.Set("app_context", &mynah_context.Context{
+		User: &models.MynahUser{
+			UserId: "none",
+		},
+	})
+	// if not authenticated, Abort()
+}
+
+// extract authenticated user from context
+func getAppContext(ctx *gin.Context) *mynah_context.Context {
+	appCtx, _ := ctx.Get("app_context")
+	return appCtx.(*mynah_context.Context)
+}
+
 // NewMynahRouter creates a new router
 func NewMynahRouter() *MynahRouter {
 	gin.SetMode(gin.ReleaseMode)
 	e := gin.New()
 	e.Use(logger)
+	e.Use(auth)
 	e.Use(gin.Recovery())
 	e.Use(cors.New(cors.Config{
 		AllowOrigins:     settings.GlobalSettings.CORSAllowOrigins,

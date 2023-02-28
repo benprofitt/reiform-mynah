@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"reiform.com/mynah-api/models"
 	"reiform.com/mynah-api/models/db"
+	"reiform.com/mynah-api/models/types"
 	"reiform.com/mynah-api/services/log"
-	"reiform.com/mynah-api/types"
 )
 
 // UserCreateBody defines the request body for UserCreate

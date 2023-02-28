@@ -3,7 +3,7 @@
 package migrations
 
 import (
-	"reiform.com/mynah-api/types"
+	"reiform.com/mynah-api/models/types"
 	"xorm.io/xorm"
 )
 

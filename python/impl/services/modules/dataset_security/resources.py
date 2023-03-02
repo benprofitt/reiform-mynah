@@ -19,6 +19,30 @@ def plot_scatter(points_list):
 
 GAP_PROJECTION_LABEL = PROJECTION_LABEL_2D_PER_CLASS
 
+class ExpArgs():
+    def __init__(self) -> None:
+        self.lr = 0.1
+        self.momentum = 0.9
+        self.weight_decay = 1e-4
+
+def load_checkpoint_to_attack(path):
+
+    model = eval("torchvision.models.{}()".format(path.split("/")[-1].split("-")[0]))
+
+    checkpoint = torch.load(path)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.eval()
+
+    args = ExpArgs()
+    optimizer = torch.optim.SGD(model.parameters(), args.lr,
+                                momentum=args.momentum,
+                                weight_decay=args.weight_decay)
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+    criterion = nn.CrossEntropyLoss().to(device)
+
+    return model, optimizer, criterion
+
 def load_image(filename):
     # Load the image as an RGB image
     image = Image.open(filename).convert("RGB")
@@ -162,7 +186,11 @@ def plot_embeddings_multi(datasets : List[ReiformICDataSet], label : str, classe
 
     plt.show()
 
+def generate_filename_pair():
+    uuid4 = uuid.uuid4()
+    new_filename = "new_images/{}.png".format(uuid4)
 
+    return new_filename, uuid4
 
 def generate_filename():
     uuid4 = uuid.uuid4()

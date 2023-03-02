@@ -550,11 +550,15 @@ class ReiformICDataSet(ReiformImageDataset):
 
         return new_dataset
 
+    def get_dataset(self, in_size: int, edge_size: int = 64, transformation = None) -> torch.utils.data.Dataset:
+        image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
+        return image_data
+
     def get_dataloader(self, in_size: int, edge_size: int = 64, batch_size: int = 16, transformation = None, shuffle = True) -> torch.utils.data.DataLoader:
         
         image_data = DatasetFromReiformDataset(self, in_size, edge_size, transformation)
         dataloader = torch.utils.data.DataLoader(image_data, batch_size=batch_size, shuffle=shuffle, num_workers=WORKERS)
-
+        
         return dataloader
 
     def get_balanced_dataloader(self, in_size : int, edge_size : int = 256, batch_size : int = 32, transformation = None) -> torch.utils.data.DataLoader:

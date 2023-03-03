@@ -3,7 +3,6 @@
 package dataset
 
 import (
-	"reiform.com/mynah-api/models/report"
 	"reiform.com/mynah-api/models/types"
 )
 
@@ -15,8 +14,6 @@ type MynahICProcessTaskData struct {
 
 // MynahICProcessTaskMetadata defines metadata specific to some task
 type MynahICProcessTaskMetadata interface {
-	// ApplyChanges applies these changes to the dataset and the report
-	ApplyChanges(*MynahICDatasetVersion, *report.MynahICDatasetVersionReport, MynahICProcessTaskType) error
 }
 
 // MynahICProcessTaskDiagnoseMislabeledImagesMetadata is metadata for

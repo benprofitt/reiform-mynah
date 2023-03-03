@@ -6,9 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"path/filepath"
-	"reiform.com/mynah-api/models"
-	"reiform.com/mynah-api/models/dataset"
+	"reiform.com/mynah-api/api/middleware"
+	dataset_model "reiform.com/mynah-api/models/dataset"
 	"reiform.com/mynah-api/models/db"
+	file_model "reiform.com/mynah-api/models/file"
 	"reiform.com/mynah-api/models/types"
 	"reiform.com/mynah-api/services/log"
 	"reiform.com/mynah-api/settings"
@@ -17,13 +18,13 @@ import (
 
 // DatasetCreateBody defines the request body for DatasetCreate
 type DatasetCreateBody struct {
-	DatasetName string `json:"dataset_name" binding:"required"`
-	DatasetType string `json:"dataset_type" binding:"required;In(image_classification)"`
+	DatasetName string                         `json:"dataset_name" binding:"required"`
+	DatasetType dataset_model.MynahDatasetType `json:"dataset_type" binding:"required,mynah_dataset_type"`
 }
 
 // DatasetCreate creates a new dataset
 func DatasetCreate(ctx *gin.Context) {
-	appCtx := getAppContext(ctx)
+	appCtx := middleware.GetAppContext(ctx)
 
 	var body DatasetCreateBody
 	if err := ctx.ShouldBindJSON(&body); err != nil {
@@ -32,24 +33,27 @@ func DatasetCreate(ctx *gin.Context) {
 		return
 	}
 
-	newDataset := dataset.MynahDataset{
+	newDataset := dataset_model.MynahDataset{
 		DatasetId:    types.NewMynahUuid(),
 		DatasetName:  body.DatasetName,
 		DateCreated:  time.Now().Unix(),
 		DateModified: time.Now().Unix(),
-		DatasetType:  dataset.MynahDatasetType(body.DatasetType),
+		DatasetType:  body.DatasetType,
 		CreatedBy:    "no-user", // TODO no user ownership currently
 	}
 
 	err := db.NewContext().NewTransaction(func(tx *db.Context) error {
-		if err := dataset.CreateMynahDataset(db.NewContext(), &newDataset); err != nil {
+		if err := dataset_model.CreateMynahDataset(db.NewContext(), &newDataset); err != nil {
 			return err
 		}
 
-		return dataset.CreateMynahICDatasetVersion(tx, &dataset.MynahICDatasetVersion{
+		return dataset_model.CreateMynahICDatasetVersion(tx, &dataset_model.MynahICDatasetVersion{
 			DatasetVersionId: types.NewMynahUuid(),
 			DatasetId:        newDataset.DatasetId,
 			DateCreated:      newDataset.DateCreated,
+			Mean:             make([]float64, 0),
+			StdDev:           make([]float64, 0),
+			TaskData:         make([]*dataset_model.MynahICProcessTaskData, 0),
 			CreatedBy:        appCtx.User.UserId,
 		})
 	})
@@ -64,32 +68,12 @@ func DatasetCreate(ctx *gin.Context) {
 
 // DatasetGet gets a dataset by id
 func DatasetGet(ctx *gin.Context) {
-	datasetId := ctx.Param("dataset_id")
-	mynahDataset, found, err := dataset.GetMynahDataset(db.NewContext(), types.MynahUuid(datasetId))
-	if err != nil {
-		log.Info("DatasetGet failed: %s", err)
-		ctx.Status(http.StatusInternalServerError)
-		return
-	}
-	if !found {
-		log.Info("DatasetGet failed, no such dataset: %s", datasetId)
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, mynahDataset)
+	ctx.JSON(http.StatusOK, middleware.GetDatasetFromContext(ctx))
 }
 
 // DatasetList lists datasets
 func DatasetList(ctx *gin.Context) {
-	opts, err := db.GetPaginationOptions(ctx)
-	if err != nil {
-		log.Info("DatasetList failed: %s", err)
-		ctx.Status(http.StatusBadRequest)
-		return
-	}
-
-	datasets, err := dataset.ListMynahDatasets(db.NewContext(), opts)
+	datasets, err := dataset_model.ListMynahDatasets(db.NewContext(), middleware.GetPaginationOptionsFromContext(ctx))
 	if err != nil {
 		log.Info("DatasetList failed: %s", err)
 		ctx.Status(http.StatusInternalServerError)
@@ -101,38 +85,7 @@ func DatasetList(ctx *gin.Context) {
 
 // DatasetUploadFile uploads a file and adds to a dataset
 func DatasetUploadFile(ctx *gin.Context) {
-	appCtx := getAppContext(ctx)
-	dbCtx := db.NewContext()
-
-	// check that the dataset exists
-	datasetId := types.MynahUuid(ctx.Param("dataset_id"))
-	_, found, err := dataset.GetMynahDataset(dbCtx, datasetId)
-	if err != nil {
-		log.Info("DatasetUploadFile failed to get dataset: %s", err)
-		ctx.Status(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		log.Info("DatasetUploadFile failed, no such dataset: %s", datasetId)
-		ctx.Status(http.StatusNotFound)
-		return
-	}
-
-	// check that the version exists
-	versionId := types.MynahUuid(ctx.Param("version_id"))
-	_, found, err = dataset.GetMynahICDatasetVersion(dbCtx, datasetId, versionId)
-	if err != nil {
-		log.Info("DatasetUploadFile failed to get dataset version: %s", err)
-		ctx.Status(http.StatusInternalServerError)
-		return
-	}
-
-	if !found {
-		log.Info("DatasetUploadFile failed, no such dataset version: %s", versionId)
-		ctx.Status(http.StatusNotFound)
-		return
-	}
+	appCtx := middleware.GetAppContext(ctx)
 
 	file, err := ctx.FormFile("file")
 	if err != nil {
@@ -141,7 +94,7 @@ func DatasetUploadFile(ctx *gin.Context) {
 		return
 	}
 
-	mynahFile := models.MynahFile{
+	mynahFile := file_model.MynahFile{
 		FileId:      types.NewMynahUuid(),
 		Name:        filepath.Base(file.Filename),
 		DateCreated: time.Now().Unix(),
@@ -149,14 +102,9 @@ func DatasetUploadFile(ctx *gin.Context) {
 	}
 
 	err = db.NewContext().NewTransaction(func(tx *db.Context) error {
-		// create the mynah file
-		if err = models.CreateMynahFile(tx, &mynahFile); err != nil {
+		if err = file_model.CreateMynahFile(tx, &mynahFile); err != nil {
 			return err
 		}
-
-		// create the dataset version reference
-		//TODO
-
 		return ctx.SaveUploadedFile(file, filepath.Join(settings.GlobalSettings.StorageSettings.LocalPath, string(mynahFile.FileId)))
 	})
 	if err != nil {
@@ -164,4 +112,37 @@ func DatasetUploadFile(ctx *gin.Context) {
 		ctx.Status(http.StatusInternalServerError)
 		return
 	}
+
+	// respond with the newly created file
+	ctx.JSON(http.StatusOK, &mynahFile)
+}
+
+// DatasetVersionRefs returns the dataset version ordering
+func DatasetVersionRefs(ctx *gin.Context) {
+	// get the versions
+	versions, err := dataset_model.ListMynahICDatasetVersionRefs(db.NewContext(), middleware.GetDatasetFromContext(ctx).DatasetId)
+	if err != nil {
+		log.Info("DatasetVersions failed: %s", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	ctx.JSON(http.StatusOK, versions)
+}
+
+// DatasetVersionGet gets a specific version of a dataset
+func DatasetVersionGet(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, middleware.GetICDatasetVersionFromContext(ctx))
+}
+
+// DatasetVersionList lists dataset versions
+func DatasetVersionList(ctx *gin.Context) {
+	versions, err := dataset_model.ListMynahICDatasets(db.NewContext(),
+		middleware.GetDatasetFromContext(ctx).DatasetId,
+		middleware.GetPaginationOptionsFromContext(ctx))
+	if err != nil {
+		log.Info("DatasetVersionList failed: %s", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+	ctx.JSON(http.StatusOK, versions)
 }

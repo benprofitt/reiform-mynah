@@ -8,8 +8,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"reiform.com/mynah-api/models"
-	mynah_context "reiform.com/mynah-api/services/context"
+	"reiform.com/mynah-api/api/middleware"
 	"reiform.com/mynah-api/services/log"
 	"reiform.com/mynah-api/settings"
 	"time"
@@ -21,59 +20,12 @@ type MynahRouter struct {
 	s *http.Server
 }
 
-func logger(c *gin.Context) {
-	start := time.Now()
-	reqPath := c.Request.URL.Path
-	raw := c.Request.URL.RawQuery
-
-	c.Next()
-
-	duration := time.Since(start)
-
-	clientIP := c.ClientIP()
-	method := c.Request.Method
-	statusCode := c.Writer.Status()
-	bodySize := c.Writer.Size()
-	if raw != "" {
-		reqPath = reqPath + "?" + raw
-	}
-
-	logHandler := log.Info
-
-	if c.Writer.Status() >= 500 {
-		logHandler = log.Error
-	}
-
-	logHandler("[%s] \"%s %s\" %d %d (%v)",
-		clientIP,
-		method,
-		reqPath,
-		statusCode,
-		bodySize,
-		duration)
-}
-
-func auth(c *gin.Context) {
-	c.Set("app_context", &mynah_context.Context{
-		User: &models.MynahUser{
-			UserId: "none",
-		},
-	})
-	// if not authenticated, Abort()
-}
-
-// extract authenticated user from context
-func getAppContext(ctx *gin.Context) *mynah_context.Context {
-	appCtx, _ := ctx.Get("app_context")
-	return appCtx.(*mynah_context.Context)
-}
-
 // NewMynahRouter creates a new router
 func NewMynahRouter() *MynahRouter {
 	gin.SetMode(gin.ReleaseMode)
 	e := gin.New()
-	e.Use(logger)
-	e.Use(auth)
+	e.Use(middleware.Logger)
+	e.Use(middleware.Auth)
 	e.Use(gin.Recovery())
 	e.Use(cors.New(cors.Config{
 		AllowOrigins:     settings.GlobalSettings.CORSAllowOrigins,

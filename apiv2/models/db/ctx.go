@@ -53,8 +53,8 @@ func NewContext() *Context {
 	}
 }
 
-// GetEngine gets the engine for the current context
-func (c *Context) GetEngine() xorm.Interface {
+// Engine gets the engine for the current context
+func (c *Context) Engine() xorm.Interface {
 	return c.engine.getInterface()
 }
 

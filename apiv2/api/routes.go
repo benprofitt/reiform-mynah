@@ -5,6 +5,7 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"reiform.com/mynah-api/api/middleware"
 	"reiform.com/mynah-api/settings"
 )
 
@@ -19,13 +20,16 @@ func registerRoutes(e *gin.Engine) {
 	datasetGroup := v2Routes.Group("dataset")
 	{
 		datasetGroup.POST("create", DatasetCreate)
-		datasetGroup.GET("list", DatasetList)
+		datasetGroup.GET("list", middleware.PaginationMiddleware, DatasetList)
 
-		specificDatasetGroup := datasetGroup.Group(":dataset_id")
+		specificDatasetGroup := datasetGroup.Group(":dataset_id", middleware.DatasetMiddleware)
 		{
 			specificDatasetGroup.GET("", DatasetGet)
+			specificDatasetGroup.GET("version/refs", DatasetVersionRefs)
+			specificDatasetGroup.GET("version/list", middleware.PaginationMiddleware, DatasetVersionList)
 
-			versionDatasetGroup := specificDatasetGroup.Group("version/:version_id")
+			versionDatasetGroup := specificDatasetGroup.Group("version/:version_id", middleware.DatasetVersionMiddleware)
+			versionDatasetGroup.GET("", DatasetVersionGet)
 			versionDatasetGroup.POST("upload", DatasetUploadFile)
 		}
 	}

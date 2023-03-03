@@ -67,6 +67,14 @@
 } 
 ```
 
+- `MynahDatasetVersionRef`
+```json
+{
+  "dataset_version_id": "",
+  "ancestor_id": ""
+}
+```
+
 ### Other Types
 - `Paginated`
 ```json
@@ -137,6 +145,10 @@
 #### List Datasets
 - `GET` `/api/v2/dataset/list`
     - Response: `Paginated[MynahDataset]`
+
+#### Get the dataset versions
+- `GET` `/api/v2/dataset/{dataset_id}/version/refs`
+  - Response: `[MynahDatasetVersionRef]`
 
 #### Get a dataset version
 - `GET` `/api/v2/dataset/{dataset_id}/version/{version_id}`

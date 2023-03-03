@@ -24,7 +24,7 @@ func init() {
 
 // CreateMynahUser creates a new user
 func CreateMynahUser(ctx *db.Context, user *MynahUser) error {
-	affected, err := ctx.GetEngine().Insert(user)
+	affected, err := ctx.Engine().Insert(user)
 	if err != nil {
 		return err
 	}

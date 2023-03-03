@@ -1,6 +1,6 @@
 // Copyright (c) 2023 by Reiform. All Rights Reserved.
 
-package models
+package file
 
 import (
 	"fmt"
@@ -45,7 +45,7 @@ func init() {
 
 // CreateMynahFile creates a new file
 func CreateMynahFile(ctx *db.Context, file *MynahFile) error {
-	affected, err := ctx.GetEngine().Insert(file)
+	affected, err := ctx.Engine().Insert(file)
 	if err != nil {
 		return err
 	}

@@ -2,8 +2,11 @@ from resources import *
 from enum import Enum
 from functools import partial
 
-from art.attacks.evasion import FastGradientMethod, ShadowAttack
+from art.attacks.evasion import FastGradientMethod, ShadowAttack, PixelAttack, SaliencyMapMethod
 from art.estimators.classification import PyTorchClassifier
+
+SAVE_PATH = "LOCAL_IMAGE_STORAGE"
+BATCH_SIZE_ATTACK_GENERATION = 96
 
 class AdversarialGenerationMethod(Enum):
 
@@ -25,20 +28,7 @@ def shadow_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
     generated_image_data : List[Tuple[str, str, str, str]] = []
     new_dataset = ReiformICDataSet(dataset.class_list)
 
-    model_path = LOCAL_EMBEDDING_PATH_MOBILENET
-    save_path = "LOCAL_IMAGE_STORAGE"
-
-    model, optimizer, criterion = load_checkpoint_to_attack(model_path)
-
-    # Create the ART classifier
-    classifier = PyTorchClassifier(
-        model=model,
-        clip_values=(0.0, 1.0),
-        loss=criterion,
-        optimizer=optimizer,
-        input_shape=(3, 224, 224),
-        nb_classes=1000,
-    )
+    classifier = create_art_classifier()
 
     attack = ShadowAttack(estimator=classifier, batch_size=96, nb_steps=100)
 
@@ -58,7 +48,7 @@ def shadow_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
 
 
         uuid_name, new_uuid = generate_filename_pair()
-        filename = "{}/{}".format(save_path, uuid_name)
+        filename = "{}/{}".format(SAVE_PATH, uuid_name)
 
         Image.fromarray(np.uint8(adv_image*255)).save(filename)
 
@@ -70,16 +60,91 @@ def shadow_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
 
     return new_dataset
 
+def create_art_classifier():
+    model_path = LOCAL_EMBEDDING_PATH_MOBILENET
+
+    model, optimizer, criterion = load_checkpoint_to_attack(model_path)
+
+    # Create the ART classifier
+    classifier = PyTorchClassifier(
+        model=model,
+        clip_values=(0.0, 1.0),
+        loss=criterion,
+        optimizer=optimizer,
+        input_shape=(3, 224, 224),
+        nb_classes=1000,
+    )
+    
+    return classifier
+
+def get_art_dataloader(dataset : ReiformICDataSet):
+    return dataset.get_dataloader(in_size=3, edge_size=224, batch_size=BATCH_SIZE_ATTACK_GENERATION, shuffle=False)
 
 def pixel_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
-    pass
+
+    # Each tuple holds: new uuid, new filename, old filename, original class
+    generated_image_data : List[Tuple[str, str, str, str]] = []
+    new_dataset = ReiformICDataSet(dataset.class_list)
+
+    classifier = create_art_classifier()
+    attack = PixelAttack(classifier)
+
+    pt_dataloader = get_art_dataloader(dataset)
+
+    for images, labels, names in pt_dataloader:
+
+        adv_images = attack.generate(images.numpy())
+
+        for image, label, name in zip(adv_images, labels, names):
+            adv_image = np.transpose(image[0], (1, 2, 0))
+
+            uuid_name, new_uuid = generate_filename_pair()
+            filename = "{}/{}".format(SAVE_PATH, uuid_name)
+
+            Image.fromarray(np.uint8(adv_image*255)).save(filename)
+
+            reiform_file = ReiformICFile(uuid_name, label)
+            reiform_file.uuid = new_uuid
+            new_dataset.add_file(reiform_file)
+
+            generated_image_data.append((uuid_name, new_uuid, name, label))
+    
+    return new_dataset
 
 def patch_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
-    pass
+
+    ReiformUnimplementedException("Patch attack is too complicated to implement for a PoC")
 
 def JSM_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
-    pass
 
+    # Each tuple holds: new uuid, new filename, old filename, original class
+    generated_image_data : List[Tuple[str, str, str, str]] = []
+    new_dataset = ReiformICDataSet(dataset.class_list)
+
+    classifier = create_art_classifier()
+    attack = SaliencyMapMethod(classifier, BATCH_SIZE_ATTACK_GENERATION)
+
+    pt_dataloader = get_art_dataloader(dataset)
+
+    for images, labels, names in pt_dataloader:
+
+        adv_images = attack.generate(images.numpy())
+
+        for image, label, name in zip(adv_images, labels, names):
+            adv_image = np.transpose(image[0], (1, 2, 0))
+
+            uuid_name, new_uuid = generate_filename_pair()
+            filename = "{}/{}".format(SAVE_PATH, uuid_name)
+
+            Image.fromarray(np.uint8(adv_image*255)).save(filename)
+
+            reiform_file = ReiformICFile(uuid_name, label)
+            reiform_file.uuid = new_uuid
+            new_dataset.add_file(reiform_file)
+
+            generated_image_data.append((uuid_name, new_uuid, name, label))
+    
+    return new_dataset
 
 def get_candidates(dataset : ReiformICDataSet) -> ReiformICDataSet:
 

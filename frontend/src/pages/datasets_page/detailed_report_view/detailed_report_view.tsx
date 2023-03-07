@@ -34,7 +34,7 @@ export default function DetailedReportView(props: DetailedReportViewProps) {
     () =>
       makeRequest<MynahICDatasetReport>("GET", `/api/v1/data/json/${dataId}`)
   );
-  console.log(data);
+  
   const [_location, setLocation] = useLocation();
 
   const close = () => setLocation(basePath);
@@ -83,7 +83,7 @@ export default function DetailedReportView(props: DetailedReportViewProps) {
 
         {/* breakdown */}
 
-        <div className="px-[32px] pt-[25px]">
+        <div className="px-[32px] pt-[25px] flex-1 overflow-wrap">
           {reportType == "ic::diagnose::class_splitting" && (
             <ClassSplittingBreakdownDiagnosis
               taskMetadata={
@@ -117,7 +117,7 @@ export default function DetailedReportView(props: DetailedReportViewProps) {
 
       {/* main content */}
       <div className="flex w-[70%]">
-        <ImageListViewerAndScatter reportData={data} />
+        <ImageListViewerAndScatter reportData={data} reportType={reportType}/>
       </div>
     </div>
   );

@@ -72,8 +72,8 @@ export default function DatasetDetailPage(
       }
       tabNames={tabNames}
       tabPanels={
-        <Tab.Panels>
-          <Tab.Panel>
+        <Tab.Panels as='div' className='h-full'>
+          <Tab.Panel as='div' className='h-full'>
             <Files
               dataset={dataset}
               basePath={`${basePath}/files`}

@@ -1,8 +1,15 @@
+import Sidebar from "./components/sidebar"
+import {
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 function App() {
   return (
-    <div className="text-sideBar">
-      Reiform
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <Sidebar />
+    </QueryClientProvider>
   )
 }
 

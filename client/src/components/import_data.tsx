@@ -12,41 +12,66 @@ export interface ImportDataProps {
 export default function ImportData(props: ImportDataProps): JSX.Element {
   const { open, close } = props;
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [dataset, setDataset] = useState<MynahDataset>()
+  const [files, setFiles] = useState<{ file: File; isFinished: boolean }[]>();
   const createDatasetMutation = useMutation({
-    mutationFn: (dataset: CreateDatasetBody) => {
-      return fetch('/api/v2/dataset/create', {
+    mutationFn: ({
+      dataset,
+    }: {
+      dataset: CreateDatasetBody;
+      _files: File[];
+    }) => {
+      // send the files to this mutation function
+      // acll the upload file mutation from here
+      // have the upload file mutation add the markup
+      // which uses .isloading to have the spinner
+      return fetch("/api/v2/dataset/create", {
         method: "POST",
-        body: JSON.stringify(dataset)
-      }).then(res => res.json()).then((resJson) => {
-        if (resJson == null) return
-        setDataset(resJson)
-        console.log(resJson)
-      })
+        body: JSON.stringify(dataset),
+      });
+    },
+    onSuccess: async (data, { _files }) => {
+      const dataJson = await data.json();
+      const datasetId: string = dataJson.dataset_id;
+      _files.forEach((file, ix) => uploadFileMutation.mutate({ file, datasetId, ix }))
     }
-  })
+  });
   const uploadFileMutation = useMutation({
-    mutationFn: (file: File) => {
-      return fetch(`/api/v2/dataset/${dataset?.dataset_id}/version/0/upload`, {
-        method: "POST"
+    mutationFn: ({ file, datasetId }: { file: File; datasetId: string, ix: number }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return fetch(`/api/v2/dataset/${datasetId}/version/0/upload`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "multipart/form-data"
+        },
+        body: formData
+      });
+    },
+    onSuccess: ( data, { file, ix } ) => {
+      setFiles((files) => {
+        if (files == undefined) return
+        files.splice(ix, 1, { file, isFinished: true });
+        return files
       })
     }
-  })
+  });
   const [datasetName, setDatasetName] = useState("");
-  const [files, setFiles] = useState<File[]>()
-  const [numFinished, setNumFinished] = useState(0);
+  const numFinished = files == undefined ? 0 : files.filter(({isFinished}) => isFinished).length
 
   const isValid = Boolean(datasetName);
 
   const uploadFiles = async (theFiles: File[]) => {
+    const _files = theFiles.filter((file) => file.name != '.DS_Store')
     setFiles(
-      theFiles.filter((file) => file.name != '.DS_Store')
+      _files.map((file) => {
+        return { file, isFinished: false };
+      })
     );
     const dataset: CreateDatasetBody = {
       dataset_name: datasetName,
-      dataset_type: "image_classification"
+      dataset_type: "image_classification",
     };
-    createDatasetMutation.mutate(dataset)
+    createDatasetMutation.mutate({ dataset, _files });
   };
 
   return (
@@ -89,7 +114,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
         </form>
         {files ? (
           <div className="overflow-y-scroll max-h-[500px] w-full">
-            {files.map((file, ix) => {
+            {files.map(({file, isFinished}, ix) => {
               const filename = file.name;
               const src = URL.createObjectURL(file);
               return (
@@ -102,7 +127,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
                   <div
                     className={clsx(
                       "animate-spin border-t border-b border-l border-sidebarSelected h-[24px] aspect-square rounded-full ml-auto mr-[10px] my-auto",
-                      // isFinished && "hidden"
+                      isFinished && "hidden"
                     )}
                   />
                 </div>

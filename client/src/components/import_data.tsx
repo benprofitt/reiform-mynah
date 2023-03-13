@@ -1,12 +1,48 @@
 import { Dialog } from "@headlessui/react";
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
-import { useRef, useState } from "react";
+import { CSSProperties, useRef, useState } from "react";
 import { CreateDatasetBody, MynahDataset } from "../types";
-
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList as List } from "react-window";
+import axios from "axios";
+declare module "react" {
+  interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
+    // extends React's HTMLAttributes
+    directory?: string;
+    webkitdirectory?: string;
+  }
+}
 export interface ImportDataProps {
   open: boolean;
   close: () => void;
+}
+
+interface RowProps {
+  index: number;
+  style: CSSProperties;
+  isFinished: boolean;
+  src: string;
+  fileName: string;
+}
+
+function Row(props: RowProps): JSX.Element {
+  const { index, style, fileName, src, isFinished } = props;
+  return (
+    <div
+      className="flex w-full h-[60px] items-center border-b border-grey1"
+      style={style}
+    >
+      <img className="h-[40px] aspect-square mr-[10px]" src={src} />
+      {fileName}
+      <div
+        className={clsx(
+          "animate-spin border-t border-b border-l border-sidebarSelected h-[24px] aspect-square rounded-full ml-auto mr-[10px] my-auto",
+          isFinished && "hidden"
+        )}
+      />
+    </div>
+  );
 }
 
 export default function ImportData(props: ImportDataProps): JSX.Element {
@@ -20,48 +56,66 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
       dataset: CreateDatasetBody;
       _files: File[];
     }) => {
-      // send the files to this mutation function
-      // acll the upload file mutation from here
-      // have the upload file mutation add the markup
-      // which uses .isloading to have the spinner
-      return fetch("/api/v2/dataset/create", {
+      return fetch("http://localhost:8080/api/v2/dataset/create", {
         method: "POST",
         body: JSON.stringify(dataset),
       });
     },
     onSuccess: async (data, { _files }) => {
       const dataJson = await data.json();
+      console.log(dataJson);
       const datasetId: string = dataJson.dataset_id;
-      _files.forEach((file, ix) => uploadFileMutation.mutate({ file, datasetId, ix }))
-    }
+      const versionJson = await fetch(
+        `http://localhost:8080/api/v2/dataset/${datasetId}/version/refs`
+      ).then((res) => res.json());
+      const versionId: string = versionJson[0].dataset_version_id;
+      _files.forEach((file, ix) =>
+        uploadFileMutation.mutate({ file, datasetId, versionId, ix })
+      );
+    },
   });
   const uploadFileMutation = useMutation({
-    mutationFn: ({ file, datasetId }: { file: File; datasetId: string, ix: number }) => {
+    mutationFn: async ({
+      file,
+      datasetId,
+      versionId,
+    }: {
+      file: File;
+      datasetId: string;
+      versionId: string;
+      ix: number;
+    }) => {
       const formData = new FormData();
       formData.append("file", file);
-      return fetch(`/api/v2/dataset/${datasetId}/version/0/upload`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data"
-        },
-        body: formData
-      });
+      return fetch(
+        `http://localhost:8080/api/v2/dataset/${datasetId}/version/${versionId}/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
     },
-    onSuccess: ( data, { file, ix } ) => {
+    onSuccess: (data, { file, ix }) => {
       setFiles((files) => {
-        if (files == undefined) return
+        if (files == undefined) return;
         files.splice(ix, 1, { file, isFinished: true });
-        return files
-      })
-    }
+        return files;
+      });
+      // i hate making it statey like this because it should just work with the filter but it doesn't...and this fixes it..
+      setNumFinished(numFinished => numFinished + 1)
+    },
   });
   const [datasetName, setDatasetName] = useState("");
-  const numFinished = files == undefined ? 0 : files.filter(({isFinished}) => isFinished).length
+  // const numFinished =
+  //   files == undefined
+  //     ? 0
+  //     : files.filter(({ isFinished }) => isFinished).length;
+  const [numFinished, setNumFinished] = useState(0)
 
   const isValid = Boolean(datasetName);
 
   const uploadFiles = async (theFiles: File[]) => {
-    const _files = theFiles.filter((file) => file.name != '.DS_Store')
+    const _files = theFiles.filter((file) => file.name != ".DS_Store");
     setFiles(
       _files.map((file) => {
         return { file, isFinished: false };
@@ -74,10 +128,16 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
     createDatasetMutation.mutate({ dataset, _files });
   };
 
+  const onClose = () => {
+    setFiles(undefined);
+    setDatasetName("");
+    close();
+  };
+
   return (
     <Dialog
       open={open}
-      onClose={close}
+      onClose={onClose}
       className="fixed inset-0 z-20 /w-full /h-full flex items-center justify-center py-[10px]"
     >
       <Dialog.Overlay className="w-full h-full bg-black absolute  top-0 left-0 opacity-20 z-20" />
@@ -88,6 +148,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
           <input
             className="w-full border border-grey1 focus:outline-none focus:ring-0 h-[56px] mt-[10px] pl-[10px]"
             placeholder="Name collection"
+            value={datasetName}
             onChange={(e) => setDatasetName(e.target.value)}
           />
           <div className="font-black w-full border-b border-grey1 pb-[10px] mt-[30px] flex justify-between">
@@ -101,12 +162,13 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
           <input
             className="hidden"
             id="upload"
+            directory=""
+            webkitdirectory=""
             type="file"
             ref={inputRef}
-            // directory=""
-            // webkitdirectory=""
             onChange={(e) => {
               const uploadedFiles = e.target.files;
+              console.log(uploadedFiles);
               if (uploadedFiles === null) return;
               uploadFiles(Array.from(uploadedFiles));
             }}
@@ -114,25 +176,27 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
         </form>
         {files ? (
           <div className="overflow-y-scroll max-h-[500px] w-full">
-            {files.map(({file, isFinished}, ix) => {
-              const filename = file.name;
-              const src = URL.createObjectURL(file);
-              return (
-                <div
-                  className="flex w-full h-[60px] items-center border-b border-grey1"
-                  key={ix}
+                <List
+                  height={400}
+                  width={650}
+                  itemCount={files.length}
+                  itemSize={40}
                 >
-                  <img className="h-[40px] aspect-square mr-[10px]" src={src} />
-                  {filename}
-                  <div
-                    className={clsx(
-                      "animate-spin border-t border-b border-l border-sidebarSelected h-[24px] aspect-square rounded-full ml-auto mr-[10px] my-auto",
-                      isFinished && "hidden"
-                    )}
-                  />
-                </div>
-              );
-            })}
+                  {({ index, style }) => {
+                    const { file, isFinished } = files[index];
+                    const { name } = file;
+                    const src = URL.createObjectURL(file);
+                    return (
+                      <Row
+                        index={index}
+                        style={style}
+                        fileName={name}
+                        src={src}
+                        isFinished={isFinished}
+                      ></Row>
+                    );
+                  }}
+                </List>
           </div>
         ) : (
           <button
@@ -152,20 +216,20 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
             "w-full text-white h-[40px] font-bold text-[16px] shrink-0",
             files ? "bg-blue-500" : "bg-grey1"
           )}
-          onClick={close}
+          onClick={onClose}
         >
           Close window
         </button>
-        {/* <p
+        <p
           className={clsx(
             "text-grey2 my-[10px]",
             !files && "opacity-0 select-none"
           )}
         >
-          {isUploadFinished
+          {files !== undefined && numFinished == files.length
             ? "Upload complete"
             : "We will let you know once all of your data sets have been uploaded"}
-        </p> */}
+        </p>
       </div>
     </Dialog>
   );

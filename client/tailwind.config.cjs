@@ -5,6 +5,7 @@ module.exports = {
     extend: {
       colors: {
         sideBar: "#0A284B",
+        sidebarSelected: "#57e1ff",
       },
     }
   },

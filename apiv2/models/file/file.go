@@ -4,6 +4,7 @@ package file
 
 import (
 	"fmt"
+	"reiform.com/mynah-api/models"
 	"reiform.com/mynah-api/models/dataset"
 	"reiform.com/mynah-api/models/db"
 	"reiform.com/mynah-api/models/types"
@@ -22,8 +23,7 @@ type MynahICDatasetVersionFile struct {
 	ID                int64                     `xorm:"pk autoincr"`
 	DatasetVersionId  types.MynahUuid           `json:"dataset_version_id" xorm:"varchar(36) not null index 'dataset_version_id'"`
 	FileId            types.MynahUuid           `json:"file_id" xorm:"varchar(36) not null index 'file_id'"`
-	CurrentClass      dataset.MynahClassName    `json:"current_class" xorm:"TEXT 'current_class'"`
-	OriginalClass     dataset.MynahClassName    `json:"original_class" xorm:"TEXT 'original_class'"`
+	Class             dataset.MynahClassName    `json:"class" xorm:"TEXT 'class'"`
 	ConfidenceVectors dataset.ConfidenceVectors `json:"confidence_vectors" xorm:"TEXT 'confidence_vectors'"`
 	Projections       struct {
 		ProjectionLabelFullEmbeddingConcatenation []float64 `json:"projection_label_full_embedding_concatenation"`
@@ -35,6 +35,8 @@ type MynahICDatasetVersionFile struct {
 	Mean   []float64 `json:"mean" xorm:"TEXT 'mean'"`
 	StdDev []float64 `json:"std_dev" xorm:"TEXT 'std_dev'"`
 }
+
+const updateBatchSize = 500
 
 func init() {
 	db.RegisterTables(
@@ -53,4 +55,31 @@ func CreateMynahFile(ctx *db.Context, file *MynahFile) error {
 		return fmt.Errorf("file (%s) not created (no records affected)", file.FileId)
 	}
 	return nil
+}
+
+// AssignMynahICDatasetClasses assigns classes for files in a given dataset version
+func AssignMynahICDatasetClasses(ctx *db.Context, datasetVersionId types.MynahUuid, assignments map[types.MynahUuid]dataset.MynahClassName) error {
+	return ctx.NewTransaction(func(tx *db.Context) error {
+		kvs := models.KeysVals(assignments, func(fileId types.MynahUuid, className dataset.MynahClassName) *MynahICDatasetVersionFile {
+			return &MynahICDatasetVersionFile{
+				DatasetVersionId: datasetVersionId,
+				Class:            className,
+			}
+		})
+
+		// update in batches
+		for i := 0; i < len(assignments); i += updateBatchSize {
+			batch := kvs[i:models.Min(i+updateBatchSize, len(assignments))]
+
+			if _, err := ctx.Engine().Cols("class").Update(&batch); err != nil {
+				return fmt.Errorf("dataset (version=%s) file classes not updated (batch_offset=%d,batch_size=%d,total=%d): %s",
+					datasetVersionId,
+					i,
+					updateBatchSize,
+					len(assignments),
+					err)
+			}
+		}
+		return nil
+	})
 }

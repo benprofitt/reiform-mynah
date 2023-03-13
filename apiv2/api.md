@@ -174,6 +174,19 @@
 - `GET` `/api/v2/dataset/{dataset_id}/version/{version_id}/file/list`
   - Response: `Paginated[MynahFile]`
 
+#### Dataset file class assignment
+- `GET` `/api/v2/dataset/{dataset_id}/version/{version_id}/file/classes`
+  - Request:
+    ```json
+    {
+      "assignments" : {
+        "fileid1": "classname",
+        "fileid2": "classname",
+      }
+    }
+    ```
+
+
 ### Operations
 
 #### Starting a processing job

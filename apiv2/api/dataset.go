@@ -22,6 +22,11 @@ type DatasetCreateBody struct {
 	DatasetType dataset_model.MynahDatasetType `json:"dataset_type" binding:"required,mynah_dataset_type"`
 }
 
+// DatasetClassesBody defines the request body for DatasetClasses
+type DatasetClassesBody struct {
+	Assignments map[types.MynahUuid]dataset_model.MynahClassName `json:"assignments" binding:"required"`
+}
+
 // DatasetCreate creates a new dataset
 func DatasetCreate(ctx *gin.Context) {
 	appCtx := middleware.GetAppContext(ctx)
@@ -145,4 +150,31 @@ func DatasetVersionList(ctx *gin.Context) {
 		return
 	}
 	ctx.JSON(http.StatusOK, versions)
+}
+
+// DatasetClasses sets the classes for files in a dataset
+func DatasetClasses(ctx *gin.Context) {
+	var body DatasetClassesBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		log.Info("DatasetClasses failed: %s", err)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	if len(body.Assignments) == 0 {
+		log.Info("DatasetClasses received empty class assignment list, ignoring")
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	err := file_model.AssignMynahICDatasetClasses(db.NewContext(),
+		middleware.GetICDatasetVersionFromContext(ctx).DatasetVersionId,
+		body.Assignments)
+	if err != nil {
+		log.Info("DatasetClasses failed: %s", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }

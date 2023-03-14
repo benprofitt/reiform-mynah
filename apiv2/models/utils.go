@@ -11,7 +11,7 @@ func Min[T constraints.Ordered](a, b T) T {
 	return a
 }
 
-// KeysVals gets the keys and vals for the map in a slice
+// KeysVals maps key value associations to a slice of some derived value
 func KeysVals[K comparable, V any, R any](m map[K]V, transformer func(K, V) *R) []*R {
 	res := make([]*R, len(m))
 

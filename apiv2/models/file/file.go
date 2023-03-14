@@ -20,7 +20,7 @@ type MynahFile struct {
 
 // MynahICDatasetVersionFile defines information relative to a file for a given image classification dataset version
 type MynahICDatasetVersionFile struct {
-	ID                int64                     `xorm:"pk autoincr"`
+	ID                int64                     `json:"-" xorm:"pk autoincr"`
 	DatasetVersionId  types.MynahUuid           `json:"dataset_version_id" xorm:"varchar(36) not null index 'dataset_version_id'"`
 	FileId            types.MynahUuid           `json:"file_id" xorm:"varchar(36) not null index 'file_id'"`
 	Class             dataset.MynahClassName    `json:"class" xorm:"TEXT 'class'"`

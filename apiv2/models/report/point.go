@@ -4,13 +4,21 @@ package report
 
 import (
 	"reiform.com/mynah-api/models/dataset"
+	"reiform.com/mynah-api/models/db"
 	"reiform.com/mynah-api/models/types"
 )
 
-// MynahICDatasetReportPoint defines a plotted point and associated info
-type MynahICDatasetReportPoint struct {
-	FileId        types.MynahUuid        `json:"fileid"`
-	X             float64                `json:"x"`
-	Y             float64                `json:"y"`
-	OriginalClass dataset.MynahClassName `json:"original_class"`
+// MynahICDatasetVersionReportPoint defines a plotted point and associated info
+type MynahICDatasetVersionReportPoint struct {
+	ID       int64                  `json:"-" xorm:"pk autoincr"`
+	ReportId types.MynahUuid        `json:"report_id" xorm:"varchar(36) not null index 'report_id'"`
+	FileId   types.MynahUuid        `json:"fileid" xorm:"varchar(36) not null index 'fileid'"`
+	Class    dataset.MynahClassName `json:"class" xorm:"TEXT not null index 'class'"`
+	Point    []float64              `json:"point" xorm:"TEXT 'point'"`
+}
+
+func init() {
+	db.RegisterTables(
+		&MynahICDatasetVersionReportPoint{},
+	)
 }

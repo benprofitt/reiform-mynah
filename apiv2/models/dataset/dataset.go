@@ -20,6 +20,13 @@ const (
 	ImageClassificationDataset MynahDatasetType = "image_classification"
 )
 
+const (
+	ICProcessDiagnoseMislabeledImagesTask MynahICProcessTaskType = "ic::diagnose::mislabeled_images"
+	ICProcessCorrectMislabeledImagesTask  MynahICProcessTaskType = "ic::correct::mislabeled_images"
+	ICProcessDiagnoseClassSplittingTask   MynahICProcessTaskType = "ic::diagnose::class_splitting"
+	ICProcessCorrectClassSplittingTask    MynahICProcessTaskType = "ic::correct::class_splitting"
+)
+
 // MynahDataset defines a mynah dataset
 type MynahDataset struct {
 	DatasetId    types.MynahUuid  `json:"dataset_id" xorm:"varchar(36) pk not null unique 'dataset_id'"`

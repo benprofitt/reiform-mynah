@@ -71,7 +71,7 @@ func AssignMynahICDatasetClasses(ctx *db.Context, datasetVersionId types.MynahUu
 		for i := 0; i < len(assignments); i += updateBatchSize {
 			batch := kvs[i:models.Min(i+updateBatchSize, len(assignments))]
 
-			if _, err := ctx.Engine().Cols("class").Update(&batch); err != nil {
+			if _, err := tx.Engine().Cols("class").Update(&batch); err != nil {
 				return fmt.Errorf("dataset (version=%s) file classes not updated (batch_offset=%d,batch_size=%d,total=%d): %s",
 					datasetVersionId,
 					i,

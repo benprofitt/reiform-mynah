@@ -109,7 +109,7 @@ class DatasetProcessingJob(Processing_Job):
                 if name == "mislabeled_images":
                     if not valid_embeddings:
                         ReiformInfo("Creating embeddings")
-                        create_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding_reduce(self.dataset, embedding_models_path)
                         valid_embeddings = True
 
                     _, outliers = find_outlier_consensus(self.dataset)
@@ -119,7 +119,7 @@ class DatasetProcessingJob(Processing_Job):
 
                 if name == "class_splitting":
                     if not valid_embeddings:
-                        create_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding_reduce(self.dataset, embedding_models_path)
                         valid_embeddings = True
                     _, clusters = detect_split_need(self.dataset)
                     self.results[task] = {"predicted_class_splits" : clusters}
@@ -129,7 +129,7 @@ class DatasetProcessingJob(Processing_Job):
                 if name == "mislabeled_images":
 
                     if not valid_embeddings:
-                        create_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding_reduce(self.dataset, embedding_models_path)
 
                     to_correct = self.previous_results["ic::diagnose::mislabeled_images"]["outliers"]
                     
@@ -146,13 +146,13 @@ class DatasetProcessingJob(Processing_Job):
                     self.results[task] = {"removed" : [f.get_uuid() for f in outliers.all_files()], 
                                             "corrected" : [f.get_uuid() for f in corrected.all_files()]}
                     
-                    create_dataset_embedding(self.dataset, embedding_models_path)
+                    create_dataset_embedding_reduce(self.dataset, embedding_models_path)
                     valid_embeddings = True
                     self.dataset._mean_and_std_dev()
 
                 if name == "class_splitting":
                     if not valid_embeddings:
-                        create_dataset_embedding(self.dataset, embedding_models_path)
+                        create_dataset_embedding_reduce(self.dataset, embedding_models_path)
                     
                     to_split = self.previous_results[task]["predicted_class_splits"]
 
@@ -160,7 +160,7 @@ class DatasetProcessingJob(Processing_Job):
 
                     self.results[task] = {"actual_class_splits" : actual_class_splits}
 
-                    create_dataset_embedding(self.dataset, embedding_models_path)
+                    create_dataset_embedding_reduce(self.dataset, embedding_models_path)
                     valid_embeddings = True
 
             logger.write("Finished {} ({}/{})".format(task, i+1, len(self.tasks_requested)))

@@ -130,9 +130,18 @@ class ReiformICDataSet(ReiformImageDataset):
         self.max_height = 0
         self.max_width = 0
 
+        # This maps the reducer dims to the pickled reducer path on disk
+        self.embedding_reducer_paths : Dict[str, Tuple[str, str]]
+
         for c in self.class_list:
             self.files[c] = {}
             self.uuid_to_name[c] = {}
+
+    def add_reducer_metadata(self, proj_label : str, path : str, path_to_embedding_model : str):
+        self.embedding_reducer_paths[proj_label] = (path, path_to_embedding_model)
+
+    def get_reducer_metadata(self, proj_label : str) -> Tuple[str, str]:
+        return self.embedding_reducer_paths[proj_label]
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, ReiformICDataSet):

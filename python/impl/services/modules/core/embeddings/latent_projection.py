@@ -1,9 +1,12 @@
+import uuid
 from impl.services.modules.core.resources import *
 from impl.services.modules.core.vae_auto_net import *
 from impl.services.modules.core.vae_models import *
 from impl.services.modules.core.reiform_imageclassificationdataset import *
 
 from .pretrained_embedding import *
+import pickle
+
 
 def pretrained_projection(data : ReiformICDataSet, model : torch.nn.Module, 
                           preprocess : transforms.Compose, label : str) -> ReiformICDataSet:
@@ -52,13 +55,17 @@ def vae_projection(data : ReiformICDataSet, latent_size : int,
 
 from torchvision.models.feature_extraction import create_feature_extractor # type: ignore
 
-def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model : str):
+def create_dataset_embedding_reduce(dataset : ReiformICDataSet, path_to_embedding_model : str):
     
     # Get the model file and process dataset. 
     # Add the projection to the dataset. 
+    perform_dataset_embedding(dataset, path_to_embedding_model)
+
     # Use umap_red to reduce to fewer dimensions. (for outliers)
     # Finally, reduce again to 2D (for reporting)
+    perform_embedding_reduction(dataset, path_to_embedding_model)
 
+def perform_dataset_embedding(dataset, path_to_embedding_model):
     start = time.time()
 
     # Load a model from the saved model
@@ -81,7 +88,6 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
         }
         
     elif "densenet" in path_to_embedding_model:
-
         model_name = path_to_embedding_model.split("/")[-1].split("-")[0]
         model_ = eval("torchvision.models.{}()".format(model_name))
 
@@ -141,6 +147,7 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
         file = dataset.get_file_by_name(name)
         file.add_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION, embeddings[i])
 
+def perform_embedding_reduction(dataset, path_to_embedding_model):
     embeddings = []
     names : List[Tuple[str, str]] = []
 
@@ -151,7 +158,6 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
         embeddings_by_class[c] = []
         names_by_class[c] = []
         for name, file in dataset.get_items(c):
-
             embeddings.append(file.get_projection(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION))
             names.append((c, name))
 
@@ -189,4 +195,65 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
     for i, file in enumerate(names):
         dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_2D, reduced_embeddings[i])
 
+    save_embedding_model(umap_red, dataset, PROJECTION_LABEL_REDUCED_EMBEDDING, path_to_embedding_model)
+
     ReiformInfo("Time for dataset-level reduction: {}".format(time.time() - start))
+
+def get_embeddings_from_dataset(dataset : ReiformICDataSet, proj_label : str) -> Tuple[List[NDArray], List[Tuple[str, str]]]:
+    embeddings : List[NDArray] = []
+    names : List[Tuple[str, str]] = []
+
+    for c in dataset.classes():
+
+        for name, file in dataset.get_items(c):
+            embeddings.append(file.get_projection(proj_label))
+            names.append((c, name))
+    
+    return embeddings, names
+
+class EmbeddingReducer():
+
+    def __init__(self, path_to_embedding_model : str, path_to_reducer: str, reduction_label : str) -> None:
+        self.path_to_embedding_model = path_to_embedding_model
+        self.path_to_reducer = path_to_reducer
+        self.reduction_label = reduction_label
+
+    def perform_reduction(self, dataset : ReiformICDataSet):
+        reducer : umap.UMAP = load_umap_model(self.path_to_reducer)
+        
+        perform_dataset_embedding(dataset, self.path_to_embedding_model)
+
+        embeddings, names = get_embeddings_from_dataset(dataset, PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION)
+
+        reduced_embeddings = reducer.transform(embeddings)
+
+        for i, name in enumerate(names):
+            file = dataset.get_file_by_name(name)
+            file.add_projection(self.reduction_label, reduced_embeddings[i])
+
+def save_embedding_model(model : umap.UMAP, dataset : ReiformICDataSet, projection_label: str, path_to_embed_model: str):
+    # Saves the embedding model and it's relationship to the dataset
+
+    uuid_path = "{}{}.pkl".format(LOCAL_TMP_MODEL_FOLDER, uuid.uuid4())
+
+    save_umap_model(model, uuid_path)
+
+    dataset.add_reducer_metadata(projection_label, uuid_path, path_to_embed_model)
+
+    return
+
+def save_umap_model(reducer : umap.UMAP, path : str):
+
+    # Save the trained UMAP model to a file
+    with open(path, "wb") as f:
+        pickle.dump(reducer, f)
+
+def load_umap_model(path: str) -> umap.UMAP:
+
+    # Load the UMAP model from the file
+    loaded_reducer : umap.UMAP
+
+    with open(path, "rb") as f:
+        loaded_reducer = pickle.load(f)
+
+    return loaded_reducer

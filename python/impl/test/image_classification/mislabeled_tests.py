@@ -30,7 +30,7 @@ def test_pretrained_projection_detection(data : ReiformICDataSet) -> Tuple[Reifo
 def run_pretrained_detection(data : ReiformICDataSet):
     # Run embedding code
     path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
-    create_dataset_embedding(data, path_to_embeddings)
+    create_dataset_embedding_reduce(data, path_to_embeddings)
 
     inliers, outliers = find_outlier_consensus(data)
 
@@ -46,7 +46,7 @@ def run_label_correction(inliers : ReiformICDataSet,
 def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet, ReiformICDataSet]:
     # Takes in a dataset and returns the corrected data to write out
     path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
-    create_dataset_embedding(dataset, path_to_embeddings)
+    create_dataset_embedding_reduce(dataset, path_to_embeddings)
 
     inliers, outliers = dataset.split(0.9)
     outliers, count = outliers.mislabel(101)
@@ -94,7 +94,7 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                 
                 data, count = dataset.mislabel(percent)
 
-                create_dataset_embedding(data, path_to_embeddings)
+                create_dataset_embedding_reduce(data, path_to_embeddings)
 
                 inliers, outliers = find_outlier_consensus(data)
                 

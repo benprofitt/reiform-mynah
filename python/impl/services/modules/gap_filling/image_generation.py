@@ -2,7 +2,7 @@ import json
 from detection import *
 from impl.services.modules.core.reiform_imageclassificationdataset import dataset_from_path
 from impl.test.image_classification.test_utils import dataset_evaluation_resnet
-from impl.services.modules.core.embeddings.latent_projection import create_dataset_embedding
+from impl.services.modules.core.embeddings.latent_projection import create_dataset_embedding_reduce
 import torch
 import torchvision
 
@@ -119,7 +119,7 @@ def test_new_images(dataset : ReiformICDataSet, test_ds : ReiformICDataSet = Non
 
         models_path = "/home/ben/Code/com.reiform.mynah/python/models"
         embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
-        create_dataset_embedding(augmented_dataset, embedding_models_path)
+        create_dataset_embedding_reduce(augmented_dataset, embedding_models_path)
 
         plot_embeddings_multi([train_ds, augmented_dataset], PROJECTION_LABEL_2D_PER_CLASS, train_ds.classes())
 
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
     dataset : ReiformICDataSet = dataset_from_path(data_path)
     embedding_models_path = "{}/{}".format(models_path, EMBEDDING_MODEL_NAME)
-    create_dataset_embedding(dataset, embedding_models_path)
+    create_dataset_embedding_reduce(dataset, embedding_models_path)
 
     if len(sys.argv) > 8:
         dataset = ReiformICDataSet([str(x) for x in range(10)])

@@ -1,4 +1,5 @@
 from image_generation import *
+from impl.services.modules.core.embeddings.latent_projection import EmbeddingReducer
 
 def detect_adversarial_coverage(dataset : ReiformICDataSet):
 
@@ -14,6 +15,12 @@ def detect_adversarial_coverage(dataset : ReiformICDataSet):
 
     # Using pre-existing embedding model, determine how many adversarial images 
     # are within the distribution of all iamges
+    reducer_obj = EmbeddingReducer(embed_path, red_path, PROJECTION_LABEL_REDUCED_EMBEDDING)
+    for method, adv_dataset in result_dataset_dict.items():
+
+        red_path, embed_path = dataset.get_reducer_metadata(PROJECTION_LABEL_REDUCED_EMBEDDING)
+        
+        reducer_obj.perform_reduction(adv_dataset)
 
     distribution_results : Any = evaluate_distribution_fit(dataset, result_dataset_dict)
 

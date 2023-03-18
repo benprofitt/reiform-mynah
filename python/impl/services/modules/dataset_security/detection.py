@@ -6,20 +6,23 @@ def detect_adversarial_coverage(dataset : ReiformICDataSet):
     candidate_dataset = get_candidates(dataset)
 
     # Create adversarial pairs (or more than pairs)
-    result_dataset_dict : Dict[AdversarialGenerationMethod, ReiformICDataSet] = generate_pairs(candidate_dataset)
+    methods : List[AdversarialGenerationMethod] = [AdversarialGenerationMethod.pixel_attack,
+                                                   AdversarialGenerationMethod.JSM_attack]
+    result_dataset_dict : Dict[AdversarialGenerationMethod, 
+                               ReiformICDataSet] = generate_pairs(candidate_dataset, methods)
 
 
     # Using pre-existing embedding model, determine how many adversarial images 
     # are within the distribution of all iamges
 
-    distribution_results : Any = evaluate_distribution_fit(dataset, )
+    distribution_results : Any = evaluate_distribution_fit(dataset, result_dataset_dict)
 
     pass
 
 def find_potential_adversarial_images():
     pass
 
-def embbed_new_images(dataset : ReiformICDataSet) -> ReiformICDataSet:
+def embed_new_images(dataset : ReiformICDataSet) -> ReiformICDataSet:
     pass
 
 def evaluate_distribution_fit(original_dataset : ReiformICDataSet, 

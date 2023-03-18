@@ -149,12 +149,20 @@ def JSM_attack(dataset : ReiformICDataSet) -> ReiformICDataSet:
 def get_candidates(dataset : ReiformICDataSet) -> ReiformICDataSet:
 
     # Select images that are in prime locations for evaluation to have adversarial pairs created and evaluated
+    new_dataset = ReiformICDataSet(dataset.classes())
+    
+    # Let's start with random selection for now and do better later
+    p = 0.1
 
-    pass
+    for c in dataset.classes():
+        for k, f in dataset.get_items(c):
+            if random.random() < p:
+                new_dataset.add_file(f)
 
+    return new_dataset
 
 def generate_pairs(dataset : ReiformICDataSet, 
-                   methods : Dict[AdversarialGenerationMethod, Callable]) -> Dict[AdversarialGenerationMethod,
+                   methods : List[AdversarialGenerationMethod]) -> Dict[AdversarialGenerationMethod,
                                                                                   ReiformICDataSet]:
     
     resulting_datasets : Dict[AdversarialGenerationMethod, ReiformICDataSet] = {}

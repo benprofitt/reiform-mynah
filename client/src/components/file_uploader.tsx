@@ -58,7 +58,7 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
       .map((file) => {
         return { file, isFinished: false };
       });
-    if (files.length == 0) return
+    if (files.length == 0) return;
     setFiles(files);
     files.forEach(({ file }, ix) => uploadFileMutation.mutate({ file, ix }));
   };
@@ -81,31 +81,41 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
         files.splice(ix, 1, { file, isFinished: true });
         return files;
       });
-      console.log(ix)
+      console.log(ix);
       setNumFinished((numFinished) => numFinished + 1);
-      const dataJson = await data.json()
-      const fileId = dataJson.file_id
-      const className = file.webkitRelativePath.split("/")[1]
-      addClassNameMutation.mutate({fileId, className})
+      const dataJson = await data.json();
+      const fileId = dataJson.file_id;
+      const className = file.webkitRelativePath.split("/")[1];
+      addClassNameMutation.mutate({ fileId, className });
     },
   });
 
   const addClassNameMutation = useMutation({
-    mutationFn: async ({ fileId, className } : { fileId: string; className: string }) => {
-        const body = {
-            assignments: {
-                [fileId]: className
-            }
+    mutationFn: async ({
+      fileId,
+      className,
+    }: {
+      fileId: string;
+      className: string;
+    }) => {
+      const body = {
+        assignments: {
+          [fileId]: className,
+        },
+      };
+      return fetch(
+        `http://localhost:8080/api/v2/dataset/${datasetId}/version/${datasetVersionId}/class`,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
         }
-        return fetch(`http://localhost:8080/api/v2/dataset/${datasetId}/version/${datasetVersionId}/file/classes`, {
-            method: "POST",
-            body: JSON.stringify(body)
-        })
-    }})
+      );
+    },
+  });
   return (
     <>
       <h1 className="text-[28px] w-full mt-[14px]">
-        Upload files to {datasetName}
+        Upload files to <u>{datasetName}</u>
       </h1>
       <form className="w-full">
         <div className="font-black w-full border-b border-grey1 pb-[10px] mt-[30px] flex justify-between">
@@ -129,7 +139,7 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
           <button
             type="button"
             className={clsx(
-              "text-sm w-full text-left mt-[10px] font-bold mb-[80px]"
+              "text-sm w-full text-left mt-[10px] font-bold mb-[80px] text-blue-500"
             )}
             onClick={() => inputRef.current?.click()}
           >
@@ -166,6 +176,18 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
             )}
           </AutoSizer>
         </ul>
+      )}
+      {files !== undefined && (
+        <p
+          className={clsx(
+            "text-grey2 my-[10px]",
+            !files && "opacity-0 select-none"
+          )}
+        >
+          {numFinished == files.length
+            ? "Upload complete"
+            : "We will let you know once all of your data sets have been uploaded"}
+        </p>
       )}
     </>
   );

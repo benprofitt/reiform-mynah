@@ -1,9 +1,10 @@
 import { Dialog, Tab } from "@headlessui/react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { FormEvent, useState } from "react";
 import { CreateDatasetBody, MynahDataset } from "../types";
 import FileUploader from "./file_uploader";
+import { ReactComponent as XOut } from '../assets/XOut.svg'
 
 export interface ImportDataProps {
   open: boolean;
@@ -12,12 +13,13 @@ export interface ImportDataProps {
 
 export default function ImportData(props: ImportDataProps): JSX.Element {
   const { open, close } = props;
+  const queryClient = useQueryClient();
   const [beganCreation, setBeganCreation] = useState(false);
   const [datasetName, setDatasetName] = useState("");
   const [datasetId, setDatasetId] = useState("");
   const [datasetVersionId, setDatasetVersionId] = useState("");
   const readyToCreateDataset = Boolean(datasetName);
-  const readyToUploadFiles = Boolean(datasetVersionId)
+  const readyToUploadFiles = Boolean(datasetId) && Boolean(datasetVersionId);
   const createDatasetMutation = useMutation({
     mutationFn: (dataset: CreateDatasetBody) => {
       return fetch("http://localhost:8080/api/v2/dataset/create", {
@@ -34,6 +36,7 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
       const versionId: string = versionJson[0].dataset_version_id;
       setDatasetId(datasetId);
       setDatasetVersionId(versionId);
+      queryClient.refetchQueries({queryKey: ['datasets']});
     },
   });
 
@@ -60,13 +63,17 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
     <Dialog
       open={open}
       onClose={onClose}
-      className="fixed inset-0 z-20 /w-full /h-full flex items-center justify-center py-[10px]"
+      className="fixed inset-0 z-20 /w-full /h-full flex items-center justify-center"
     >
       <Dialog.Overlay className="w-full h-full bg-black absolute  top-0 left-0 opacity-20 z-20" />
-      <div className="w-[752px] h-fit max-h-full mx-auto flex flex-col items-center relative z-30 bg-white px-[24px]">
+      <div className="w-[752px] h-fit max-h-full mx-auto flex flex-col items-center relative z-30 bg-white px-[24px] py-[20px]">
+        <button className="absolute right-[5px] top-[5px]" onClick={onClose}>
+          <XOut />
+        </button>
+        
         {!readyToUploadFiles ? (
           <>
-            <h1 className="text-[28px] w-full mt-[14px]">
+            <h1 className="text-[28px] w-full">
               Create new data set
             </h1>
             <form className="w-full" onSubmit={createDataset}>
@@ -82,12 +89,14 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
                 type="submit"
                 disabled={!readyToCreateDataset || beganCreation}
                 className={clsx(
-                  "w-full text-white h-[40px] font-bold text-[16px] flex justify-center items-center",
+                  "w-full text-white h-[40px] font-bold text-[16px] flex justify-center items-center mt-[10px]",
                   readyToCreateDataset ? "bg-blue-500" : "bg-gray-300"
                 )}
               >
                 Create data set and proceed to file upload
-                {beganCreation && !readyToUploadFiles && <div className="animate-spin h-[20px] aspect-square border-r-white border-2 rounded-full mr-[10px]"/>}
+                {beganCreation && !readyToUploadFiles && (
+                  <div className="animate-spin h-[20px] aspect-square border-r-white border-2 rounded-full mr-[10px]" />
+                )}
               </button>
             </form>
           </>
@@ -98,26 +107,6 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
             datasetVersionId={datasetVersionId}
           />
         )}
-
-        <button
-          className={clsx(
-            "w-full text-white h-[40px] font-bold text-[16px] shrink-0"
-            // files ? "bg-blue-500" : "bg-grey1"
-          )}
-          onClick={onClose}
-        >
-          Close window
-        </button>
-        {/* <p
-          className={clsx(
-            "text-grey2 my-[10px]",
-            !files && "opacity-0 select-none"
-          )}
-        >
-          {files !== undefined && numFinished == files.length
-            ? "Upload complete"
-            : "We will let you know once all of your data sets have been uploaded"}
-        </p> */}
       </div>
     </Dialog>
   );

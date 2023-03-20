@@ -48,11 +48,11 @@ export interface MynahDatasetVersionRef {
     ancestor_id: string
 }
 
-export interface Paginated {
+export interface Paginated<T> {
     page: number,
     page_size: number,
     total: number,
-    contents: []
+    contents: T[]
 }
 
 export interface CreateDatasetBody {

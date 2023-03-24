@@ -48,6 +48,8 @@ def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet,
     path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
     create_dataset_embedding(dataset, path_to_embeddings)
 
+    outliers : ReiformICDataSet
+
     inliers, outliers = dataset.split(0.9)
     outliers, count = outliers.mislabel(101)
 
@@ -66,8 +68,8 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
 
     # These are examples of these paths, and should be available in git...
     if data_path is None or results_path is None:
-        data_path : str = "impl/integration/test_data_small"
-        results_path : str = "impl/integration/temp_results"
+        data_path : str = "impl/test/test_data_small"
+        results_path : str = "impl/test/temp_results"
 
     if not (os.path.exists(data_path) and os.path.exists(results_path)):
         raise Exception
@@ -76,9 +78,9 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
         raise Exception
 
     do_only_detection = False
-    do_dataset_evaluation = True
+    do_dataset_evaluation = False
     do_test_detection = False
-    do_test_correction = False
+    do_test_correction = True
 
     dataset : ReiformICDataSet = dataset_from_path(data_path)
 
@@ -194,6 +196,14 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                     new_filename : str = "{}/{}/{}/{}_{}".format(results_path, prefix, c, original, name.split("/")[-1])
                     Image.open(name).save(new_filename)
 
+def running_embedding(data_path):
+
+    # read in dataset
+    dataset : ReiformICDataSet = dataset_from_path(data_path)
+
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
+
+    create_dataset_embedding(dataset, path_to_embeddings)
 
 if __name__ == '__main__':
 
@@ -207,5 +217,7 @@ if __name__ == '__main__':
         res_path=sys.argv[2]
     if len(sys.argv) > 3:
         test_path=sys.argv[3]
+
+    # running_embedding(data_path)
 
     run_tests(data_path, res_path, test_path)

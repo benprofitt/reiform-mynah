@@ -2,7 +2,6 @@ from impl.services.modules.core.resources import *
 from impl.services.modules.core.vae_auto_net import *
 from impl.services.modules.core.vae_models import *
 from impl.services.modules.core.reiform_imageclassificationdataset import *
-
 from .pretrained_embedding import *
 
 def pretrained_projection(data : ReiformICDataSet, model : torch.nn.Module, 
@@ -159,13 +158,13 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
 
     for c in dataset.classes():
         # Per-class embedding reduction -> used for class splitting
-        umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=AVAILABLE_THREADS)
-        reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
+        umap_red = cuml.UMAP(n_components=EMBEDDING_DIM_SIZE)
+        reduced_embeddings = umap_red.fit_transform(np.array(embeddings_by_class[c]))
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS, reduced_embeddings[i])
 
-        umap_red = umap.UMAP(n_jobs=AVAILABLE_THREADS)
-        reduced_embeddings = umap_red.fit_transform(embeddings_by_class[c])
+        umap_red = cuml.UMAP()
+        reduced_embeddings = umap_red.fit_transform(np.array(embeddings_by_class[c]))
         for i, name in enumerate(names_by_class[c]):
             dataset.get_file(c, name).add_projection(PROJECTION_LABEL_2D_PER_CLASS, reduced_embeddings[i])
 
@@ -173,15 +172,16 @@ def create_dataset_embedding(dataset : ReiformICDataSet, path_to_embedding_model
     start = time.time()
 
     # Entire dataset embedding reduction -> used for outlier detection
-    umap_red = umap.UMAP(n_components=EMBEDDING_DIM_SIZE, n_jobs=AVAILABLE_THREADS)
-    reduced_embeddings = umap_red.fit_transform(embeddings)
+    umap_red = cuml.UMAP(n_components=EMBEDDING_DIM_SIZE)
+    reduced_embeddings = umap_red.fit_transform(np.array(embeddings))
+    ReiformInfo("Time for 31-D dataset-level reduction: {}".format(time.time() - start))
 
     for i, file in enumerate(names):
         dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_REDUCED_EMBEDDING, reduced_embeddings[i])
 
     # 2D projections -> Used to show user what's up with these embeddings
-    umap_red = umap.UMAP(n_jobs=AVAILABLE_THREADS)
-    reduced_embeddings = umap_red.fit_transform(embeddings)
+    umap_red = cuml.UMAP()
+    reduced_embeddings = umap_red.fit_transform(np.array(embeddings))
 
     for i, file in enumerate(names):
         dataset.get_file(file[0], file[1]).add_projection(PROJECTION_LABEL_2D, reduced_embeddings[i])

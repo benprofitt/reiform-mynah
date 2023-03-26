@@ -3,6 +3,8 @@ from PIL import Image # type: ignore
 import numpy as np # type: ignore
 from .reiform_exceptions import *
 
+import cupy
+
 def get_image_channels(path : str) -> int:
 
     im : Image.Image = Image.open(path)

@@ -1,6 +1,4 @@
 from sklearn import svm # type: ignore
-# from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
-# from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 import cupy
 

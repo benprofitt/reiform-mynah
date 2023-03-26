@@ -758,6 +758,7 @@ def dataset_from_path(path_to_data : str) -> ReiformICDataSet:
     start = time.time()
 
     packages = zip(image_names, labels)
+
     with Pool(AVAILABLE_THREADS) as p:
         files = p.map(make_file, packages)
 

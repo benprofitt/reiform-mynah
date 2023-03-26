@@ -77,10 +77,10 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
     if (test_data_path is not None and not os.path.exists(test_data_path)):
         raise Exception
 
-    do_only_detection = False
+    do_only_detection = True
     do_dataset_evaluation = False
     do_test_detection = False
-    do_test_correction = True
+    do_test_correction = False
 
     dataset : ReiformICDataSet = dataset_from_path(data_path)
 
@@ -91,14 +91,16 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
         
         for path_to_embeddings in paths:
             # for percent in [0, 0, 0]:
-            for percent in [0, 0, 1, 5, 10, 20]:
+            for percent in [20]:
                 ReiformInfo("Model used: {}".format(path_to_embeddings.split("/")[-1]))
                 
                 data, count = dataset.mislabel(percent)
 
                 create_dataset_embedding(data, path_to_embeddings)
 
+                start = time.time()
                 inliers, outliers = find_outlier_consensus(data)
+                ReiformInfo("Detection runtime: {}".format(round(time.time()-start, 3)))
                 
                 ReiformInfo("Total file count : {}".format(len(dataset.all_files())))
                 out_size = len(outliers.all_files())
@@ -120,7 +122,7 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                 ReiformInfo("Correctly predicted class of true outliers: {}".format(class_predicted_correctly_from_embedding_t_o/(true_outliers+1)))
                 ReiformInfo("Actual detected outlier count : {}".format(true_outliers))
                 ReiformInfo("Found outlier percentage : {}".format(true_outliers/(count + 1)))
-                ReiformInfo("Actual detected outlier percentage : {}\n".format(true_outliers/out_size))
+                ReiformInfo("Actual detected outlier percentage : {}\n".format(round(true_outliers/out_size, 2)))
 
                 del data
 

@@ -1,6 +1,6 @@
 from sklearn import svm # type: ignore
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
-from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier # type: ignore
+# from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
+# from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
 
 def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:
@@ -58,7 +58,7 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
                            outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, 
                                                                  ReiformICDataSet]:
     # Quick "guess"
-    clf = KNeighborsClassifier(n_neighbors=min(150, inliers.file_count()//100))
+    clf = cuml.neighbors.KNeighborsClassifier(n_neighbors=min(150, inliers.file_count()//100))
 
     X_known = []
     y_known = []

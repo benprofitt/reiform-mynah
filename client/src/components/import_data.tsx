@@ -2,9 +2,14 @@ import { Dialog, Tab } from "@headlessui/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { FormEvent, useState } from "react";
-import { CreateDatasetBody, MynahDataset } from "../types";
+import {
+  CreateDatasetBody,
+  MynahDataset,
+  MynahDatasetVersionRef,
+} from "../types";
 import FileUploader from "./file_uploader";
-import { ReactComponent as XOut } from '../assets/XOut.svg'
+import { ReactComponent as XOut } from "../assets/XOut.svg";
+import makeRequest from "../utils/apiFetch";
 
 export interface ImportDataProps {
   open: boolean;
@@ -22,21 +27,22 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
   const readyToUploadFiles = Boolean(datasetId) && Boolean(datasetVersionId);
   const createDatasetMutation = useMutation({
     mutationFn: (dataset: CreateDatasetBody) => {
-      return fetch("http://localhost:8080/api/v2/dataset/create", {
-        method: "POST",
-        body: JSON.stringify(dataset),
+      return makeRequest<MynahDataset>(
+        "POST",
+        "/api/v2/dataset/create",
+        JSON.stringify(dataset)
+      ).then((res) => {
+        const { dataset_id } = res;
+        setDatasetId(dataset_id);
+        return makeRequest<MynahDatasetVersionRef>(
+          "GET",
+          `api/v2/dataset/${res.dataset_id}/version/refs`
+        );
       });
     },
-    onSuccess: async (data) => {
-      const dataJson = await data.json();
-      const datasetId: string = dataJson.dataset_id;
-      const versionJson = await fetch(
-        `http://localhost:8080/api/v2/dataset/${datasetId}/version/refs`
-      ).then((res) => res.json());
-      const versionId: string = versionJson[0].dataset_version_id;
-      setDatasetId(datasetId);
-      setDatasetVersionId(versionId);
-      queryClient.refetchQueries({queryKey: ['datasets']});
+    onSuccess: (data) => {
+      setDatasetVersionId(data.dataset_version_id);
+      queryClient.refetchQueries({ queryKey: ["datasets"] });
     },
   });
 
@@ -70,12 +76,10 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
         <button className="absolute right-[5px] top-[5px]" onClick={onClose}>
           <XOut />
         </button>
-        
+
         {!readyToUploadFiles ? (
           <>
-            <h1 className="text-[28px] w-full">
-              Create new data set
-            </h1>
+            <h1 className="text-[28px] w-full">Create new data set</h1>
             <form className="w-full" onSubmit={createDataset}>
               <h3 className="font-black">Data set name</h3>
               <input

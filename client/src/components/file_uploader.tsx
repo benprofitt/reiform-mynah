@@ -1,6 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { ChangeEvent, CSSProperties, useRef, useState } from "react";
+import { MynahFile } from "../types";
+import makeRequest from "../utils/apiFetch";
 import FileUploadList from "./file_upload_list";
 
 declare module "react" {
@@ -39,13 +41,14 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
   const uploadFileMutation = useMutation({
     mutationFn: async ({ file }: { file: File; ix: number }) => {
       const formData = new FormData();
+      const className = file.webkitRelativePath.split("/")[1];
       formData.append("file", file);
-      return fetch(
-        `http://localhost:8080/api/v2/dataset/${datasetId}/version/${datasetVersionId}/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
+      formData.append("class", className);
+      return makeRequest<MynahFile>(
+        "POST",
+        `/api/v2/dataset/${datasetId}/version/${datasetVersionId}/upload`,
+        formData,
+        "multipart/form-data"
       );
     },
     onSuccess: async (data, { file, ix }) => {
@@ -54,37 +57,10 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
         files.splice(ix, 1, { file, isFinished: true });
         return files;
       });
-      console.log(ix);
       setNumFinished((numFinished) => numFinished + 1);
-      const dataJson = await data.json();
-      const fileId = dataJson.file_id;
-      const className = file.webkitRelativePath.split("/")[1];
-      addClassNameMutation.mutate({ fileId, className });
     },
   });
 
-  const addClassNameMutation = useMutation({
-    mutationFn: async ({
-      fileId,
-      className,
-    }: {
-      fileId: string;
-      className: string;
-    }) => {
-      const body = {
-        assignments: {
-          [fileId]: className,
-        },
-      };
-      return fetch(
-        `http://localhost:8080/api/v2/dataset/${datasetId}/version/${datasetVersionId}/class`,
-        {
-          method: "POST",
-          body: JSON.stringify(body),
-        }
-      );
-    },
-  });
   return (
     <>
       <h1 className="text-[28px] w-full mt-[14px]">

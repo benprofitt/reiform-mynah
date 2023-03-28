@@ -23,22 +23,18 @@ export default function FileUploadList(
   return (
     <>
       {/* The scrollable element for your list */}
-      <div
-        className="w-full h-[500px] overflow-auto"
-        ref={parentRef}
-      >
+      <div className="w-full h-[500px] overflow-auto" ref={parentRef}>
         {/* The large inner element to hold all of the items */}
-        <div className="relative w-full"
+        <div
+          className="relative w-full"
           style={{
-            height: `${rowVirtualizer.getTotalSize()}px`
+            height: `${rowVirtualizer.getTotalSize()}px`,
           }}
         >
           {/* Only the visible items in the virtualizer, manually positioned to be in view */}
-          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
-
-            return (
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => (
             <div
-                className="absolute top-0 left-0 w-full h-[60px]"
+              className="absolute top-0 left-0 w-full h-[60px]"
               key={virtualItem.key}
               style={{
                 transform: `translateY(${virtualItem.start}px)`,
@@ -46,7 +42,7 @@ export default function FileUploadList(
             >
               <FileUploadListItem fileObj={files[Number(virtualItem.key)]} />
             </div>
-          )})}
+          ))}
         </div>
       </div>
     </>

@@ -6,7 +6,7 @@ export default async function makeRequest<T>(
   body?: any,
   contentType?: string
 ) {
-  return axios({
+  return axios<T>({
     // eslint-disable-next-line no-restricted-globals
     url: import.meta.env.DEV
       ? `http://localhost:8080${endpoint}`
@@ -18,7 +18,6 @@ export default async function makeRequest<T>(
     ...(body !== undefined ? { data: body } : {}),
   }).then((res) => {
     console.log(res);
-    const data: T = res.data;
-    return data;
+    return res.data;
   });
 }

@@ -40,7 +40,7 @@ export default function FileUploadList(
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              <FileUploadListItem fileObj={files[Number(virtualItem.key)]} />
+              <FileUploadListItem fileObj={files[virtualItem.index]} />
             </div>
           ))}
         </div>

@@ -12,7 +12,7 @@ import (
 type MynahICDatasetVersionReportPoint struct {
 	ID       int64                  `json:"-" xorm:"pk autoincr"`
 	ReportId types.MynahUuid        `json:"report_id" xorm:"varchar(36) not null index 'report_id'"`
-	FileId   types.MynahUuid        `json:"fileid" xorm:"varchar(36) not null index 'fileid'"`
+	FileId   types.MynahUuid        `json:"file_id" xorm:"varchar(36) not null index 'file_id'"`
 	Class    dataset.MynahClassName `json:"class" xorm:"TEXT not null index 'class'"`
 	Point    []float64              `json:"point" xorm:"TEXT 'point'"`
 }

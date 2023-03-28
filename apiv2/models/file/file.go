@@ -18,22 +18,25 @@ type MynahFile struct {
 	CreatedBy   types.MynahUuid `json:"created_by" xorm:"TEXT 'created_by'"`
 }
 
+// MynahICDatasetVersionFileProjections defines projections for a dataset version file
+type MynahICDatasetVersionFileProjections struct {
+	ProjectionLabelFullEmbeddingConcatenation []float64 `json:"projection_label_full_embedding_concatenation"`
+	ProjectionLabelReducedEmbedding           []float64 `json:"projection_label_reduced_embedding"`
+	ProjectionLabelReducedEmbeddingPerClass   []float64 `json:"projection_label_reduced_embedding_per_class"`
+	ProjectionLabel2dPerClass                 []float64 `json:"projection_label_2d_per_class"`
+	ProjectionLabel2d                         []float64 `json:"projection_label_2d"`
+}
+
 // MynahICDatasetVersionFile defines information relative to a file for a given image classification dataset version
 type MynahICDatasetVersionFile struct {
-	ID                int64                     `json:"-" xorm:"pk autoincr"`
-	DatasetVersionId  types.MynahUuid           `json:"dataset_version_id" xorm:"varchar(36) not null index 'dataset_version_id'"`
-	FileId            types.MynahUuid           `json:"file_id" xorm:"varchar(36) not null index 'file_id'"`
-	Class             dataset.MynahClassName    `json:"class" xorm:"TEXT 'class'"`
-	ConfidenceVectors dataset.ConfidenceVectors `json:"confidence_vectors" xorm:"TEXT 'confidence_vectors'"`
-	Projections       struct {
-		ProjectionLabelFullEmbeddingConcatenation []float64 `json:"projection_label_full_embedding_concatenation"`
-		ProjectionLabelReducedEmbedding           []float64 `json:"projection_label_reduced_embedding"`
-		ProjectionLabelReducedEmbeddingPerClass   []float64 `json:"projection_label_reduced_embedding_per_class"`
-		ProjectionLabel2dPerClass                 []float64 `json:"projection_label_2d_per_class"`
-		ProjectionLabel2d                         []float64 `json:"projection_label_2d"`
-	} `json:"projections" xorm:"TEXT 'projections'"`
-	Mean   []float64 `json:"mean" xorm:"TEXT 'mean'"`
-	StdDev []float64 `json:"std_dev" xorm:"TEXT 'std_dev'"`
+	ID                int64                                 `json:"-" xorm:"pk autoincr"`
+	DatasetVersionId  types.MynahUuid                       `json:"dataset_version_id" xorm:"varchar(36) not null index 'dataset_version_id'"`
+	FileId            types.MynahUuid                       `json:"file_id" xorm:"varchar(36) not null index 'file_id'"`
+	Class             dataset.MynahClassName                `json:"class" xorm:"TEXT 'class'"`
+	ConfidenceVectors dataset.ConfidenceVectors             `json:"confidence_vectors" xorm:"TEXT 'confidence_vectors'"`
+	Projections       *MynahICDatasetVersionFileProjections `json:"projections" xorm:"TEXT 'projections'"`
+	Mean              []float64                             `json:"mean" xorm:"TEXT 'mean'"`
+	StdDev            []float64                             `json:"std_dev" xorm:"TEXT 'std_dev'"`
 }
 
 const updateBatchSize = 500
@@ -80,6 +83,8 @@ func AssignMynahICDatasetClasses(ctx *db.Context, datasetVersionId types.MynahUu
 				Class:            className,
 			}
 		})
+
+		// TODO this is broken
 
 		// update in batches
 		for i := 0; i < len(assignments); i += updateBatchSize {

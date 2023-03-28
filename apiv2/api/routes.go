@@ -31,7 +31,8 @@ func registerRoutes(e *gin.Engine) {
 			versionDatasetGroup := specificDatasetGroup.Group("version/:version_id", middleware.DatasetVersionMiddleware)
 			versionDatasetGroup.GET("", DatasetVersionGet)
 			versionDatasetGroup.POST("upload", DatasetUploadFile)
-			versionDatasetGroup.POST("class", DatasetClasses)
+			versionDatasetGroup.POST("process", DatasetProcess)
+			// versionDatasetGroup.POST("class", DatasetClasses)
 		}
 	}
 

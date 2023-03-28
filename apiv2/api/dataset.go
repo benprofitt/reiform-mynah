@@ -27,6 +27,10 @@ type DatasetClassesBody struct {
 	Assignments map[types.MynahUuid]dataset_model.MynahClassName `json:"assignments" binding:"required"`
 }
 
+// DatasetProcessBody defines the request body for DatasetProcess
+type DatasetProcessBody struct {
+}
+
 // DatasetCreate creates a new dataset
 func DatasetCreate(ctx *gin.Context) {
 	appCtx := middleware.GetAppContext(ctx)
@@ -121,6 +125,7 @@ func DatasetUploadFile(ctx *gin.Context) {
 		DatasetVersionId: middleware.GetICDatasetVersionFromContext(ctx).DatasetVersionId,
 		FileId:           mynahFile.FileId,
 		Class:            dataset_model.MynahClassName(class[0]),
+		Projections:      &file_model.MynahICDatasetVersionFileProjections{},
 	}
 
 	err = db.NewContext().NewTransaction(func(tx *db.Context) error {
@@ -199,4 +204,14 @@ func DatasetClasses(ctx *gin.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+// DatasetProcess starts a dataset processing job
+func DatasetProcess(ctx *gin.Context) {
+	var body DatasetProcessBody
+	if err := ctx.ShouldBindJSON(&body); err != nil {
+		log.Info("DatasetClasses failed: %s", err)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
 }

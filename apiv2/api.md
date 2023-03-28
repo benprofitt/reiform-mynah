@@ -9,6 +9,15 @@
   "image_classification"
 ]
 ```
+- `MynahICProcessTaskType`
+```json
+[
+  "ic::diagnose::mislabeled_images",
+  "ic::correct::mislabeled_images",
+  "ic::diagnose::class_splitting",
+  "ic::correct::class_splitting"
+]
+```
 
 ### First-class Types
 - `MynahUser`
@@ -27,34 +36,71 @@
   "date_created": 0,
   "date_modified": 0,
   "dataset_type": MynahDatasetType,
+  "created_by": ""
 } 
 ```
 - `MynahICDatasetVersion`
 ```json
 {
   "dataset_version_id": "",
-  "version_index": 0,
+  "dataset_id": "",
+  "ancestor_id": "",
   "date_created": 0,
   "mean": [0.0],
   "std_dev": [0.0],
   "task_data": [
-    TODO
-  ]
-} 
-```
-- `MynahDatasetReport`
-```json
-{
-  "report_id": "",
-  "date_created": 0,
+    MynahICProcessTaskData
+  ],
   "created_by": ""
 } 
 ```
-- `MynahICDatasetReportContents`
+- `MynahICProcessTaskData`
 ```json
 {
-  "report_id": "",
-  TODO
+  "type": MynahICProcessTaskType,
+  "metadata": MynahICProcessTaskMetadata
+} 
+```
+- `MynahICProcessTaskMetadata`
+```json
+MynahICProcessTaskDiagnoseMislabeledImagesMetadata | MynahICProcessTaskCorrectMislabeledImagesMetadata | MynahICProcessTaskDiagnoseClassSplittingMetadata | MynahICProcessTaskCorrectClassSplittingMetadata
+```
+- `MynahICProcessTaskDiagnoseMislabeledImagesMetadata`
+```json
+{
+  "outliers": [""]
+} 
+```
+- `MynahICProcessTaskCorrectMislabeledImagesMetadata`
+```json
+{
+  "removed": [""],
+  "corrected": [""]
+} 
+```
+- `MynahICProcessTaskDiagnoseClassSplittingMetadata`
+```json
+{
+  "predicted_class_splits": {
+    "some_class_name": [[""]]
+  }
+} 
+```
+- `MynahICProcessTaskCorrectClassSplittingMetadata`
+```json
+{
+  "actual_class_splits": {
+    "some_class_name": {
+      "some_class_name": [""]
+    }
+  }
+} 
+```
+- `MynahDatasetVersionRef`
+```json
+{
+  "dataset_version_id": "",
+  "ancestor_id": "",
 } 
 ```
 - `MynahFile`
@@ -66,13 +112,98 @@
   "mime_type": ""
 } 
 ```
-
-- `MynahDatasetVersionRef`
+- `MynahICDatasetVersionFile`
 ```json
 {
+  "file_id": "",
   "dataset_version_id": "",
-  "ancestor_id": ""
-}
+  "class": "",
+  "confidence_vectors": [[0.0]],
+  "projections" : {
+    "projection_label_full_embedding_concatenation": [0.0],
+    "projection_label_reduced_embedding": [0.0],
+    "projection_label_reduced_embedding_per_class": [0.0],
+    "projection_label_2d_per_class": [0.0],
+    "projection_label_2d": [0.0],
+  },
+  "mean": [0.0],
+  "std_dev": [0.0]
+} 
+```
+- `MynahDatasetReport`
+```json
+{
+  "report_id": "",
+  "dataset_version_id": "",
+  "date_created": 0,
+  "created_by": ""
+} 
+```
+- `MynahICDatasetVersionReportData`
+```json
+{
+  "report_id": "",
+  "contents": {
+    "type": MynahICProcessTaskType,
+    "metadata": MynahICProcessTaskReportMetadata,
+  }
+} 
+```
+- `MynahICProcessTaskReportMetadata`
+```json
+MynahICProcessTaskDiagnoseMislabeledImagesReport | MynahICProcessTaskCorrectMislabeledImagesReport | MynahICProcessTaskDiagnoseClassSplittingReport | MynahICProcessTaskCorrectClassSplittingReport
+```
+- `MynahICProcessTaskDiagnoseMislabeledImagesReport`
+```json
+{
+  "class_label_errors": {
+    "some_class_name": {
+      "mislabeled": [""],
+      "correct": [""]
+    }
+  }
+} 
+```
+- `MynahICProcessTaskCorrectMislabeledImagesReport`
+```json
+{
+  "class_label_errors": {
+    "some_class_name": {
+      "mislabeled_corrected": [""],
+      "mislabeled_removed": [""],
+      "unchanged": [""]
+    }
+  }
+} 
+```
+- `MynahICProcessTaskDiagnoseClassSplittingReport`
+```json
+{
+  "classes_splitting": {
+    "some_class_name": {
+      "predicted_classes_count": 0
+    }
+  }
+} 
+```
+- `MynahICProcessTaskCorrectClassSplittingReport`
+```json
+{
+  "classes_splitting": {
+    "some_class_name": {
+      "new_classes": [""]
+    }
+  }
+} 
+```
+- `MynahICDatasetVersionReportPoint`
+```json
+{
+  "report_id": "",
+  "file_id": "",
+  "class": "",
+  "point": [0.0]
+} 
 ```
 
 ### Other Types
@@ -180,8 +311,8 @@
     ```json
     {
       "assignments" : {
-        "fileid1": "classname",
-        "fileid2": "classname",
+        "file_id1": "classname",
+        "file_id2": "classname",
       }
     }
     ```
@@ -190,13 +321,12 @@
 ### Operations
 
 #### Starting a processing job
-- `POST` `/api/v2/dataset/{dataset_id}/process`
+- `POST` `/api/v2/dataset/{dataset_id}/version/{version_id}/process`
   - Request:
     ```json
     {
-      "ancestor_version_id": "",
       "tasks" [
-        TODO
+        MynahICProcessTaskType
       ]
     }
     ```

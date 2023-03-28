@@ -56,9 +56,6 @@ func DatasetCreate(ctx *gin.Context) {
 			DatasetVersionId: types.NewMynahUuid(),
 			DatasetId:        newDataset.DatasetId,
 			DateCreated:      newDataset.DateCreated,
-			Mean:             make([]float64, 0),
-			StdDev:           make([]float64, 0),
-			TaskData:         make([]*dataset_model.MynahICProcessTaskData, 0),
 			CreatedBy:        appCtx.User.UserId,
 		})
 	})
@@ -94,7 +91,21 @@ func DatasetUploadFile(ctx *gin.Context) {
 
 	file, err := ctx.FormFile("file")
 	if err != nil {
-		log.Info("DatasetUploadFile failed: %s", err)
+		log.Info("DatasetUploadFile failed (missing file from form): %s", err)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		log.Info("DatasetUploadFile failed (failed to get form): %s", err)
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+
+	class, classExists := form.Value["class"]
+	if !classExists || len(class) == 0 {
+		log.Info("DatasetUploadFile failed (missing class from form): %s", err)
 		ctx.Status(http.StatusBadRequest)
 		return
 	}
@@ -106,10 +117,21 @@ func DatasetUploadFile(ctx *gin.Context) {
 		CreatedBy:   appCtx.User.UserId,
 	}
 
+	versionFile := file_model.MynahICDatasetVersionFile{
+		DatasetVersionId: middleware.GetICDatasetVersionFromContext(ctx).DatasetVersionId,
+		FileId:           mynahFile.FileId,
+		Class:            dataset_model.MynahClassName(class[0]),
+	}
+
 	err = db.NewContext().NewTransaction(func(tx *db.Context) error {
 		if err = file_model.CreateMynahFile(tx, &mynahFile); err != nil {
 			return err
 		}
+
+		if err = file_model.CreateMynahICDatasetVersionFile(tx, &versionFile); err != nil {
+			return err
+		}
+
 		return ctx.SaveUploadedFile(file, filepath.Join(settings.GlobalSettings.StorageSettings.LocalPath, string(mynahFile.FileId)))
 	})
 	if err != nil {

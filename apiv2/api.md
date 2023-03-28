@@ -115,7 +115,7 @@
 
 #### File Upload
 - `POST` `/api/v2/dataset/{dataset_id}/version/{version_id}/upload`
-    - Request: multipart form with `file` containing contents
+    - Request: multipart form with `file` containing contents, `class` containing initial class assignment
     - Response: `MynahFile`
 
 #### Requesting the raw contents of a file
@@ -174,7 +174,7 @@
 - `GET` `/api/v2/dataset/{dataset_id}/version/{version_id}/file/list`
   - Response: `Paginated[MynahFile]`
 
-#### Dataset file class assignment
+#### Dataset file class assignment (NOT CURRENTLY SUPPORTED)
 - `GET` `/api/v2/dataset/{dataset_id}/version/{version_id}/file/classes`
   - Request:
     ```json

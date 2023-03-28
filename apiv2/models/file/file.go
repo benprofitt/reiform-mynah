@@ -57,6 +57,20 @@ func CreateMynahFile(ctx *db.Context, file *MynahFile) error {
 	return nil
 }
 
+// CreateMynahICDatasetVersionFile creates a new dataset file version
+func CreateMynahICDatasetVersionFile(ctx *db.Context, fileVersion *MynahICDatasetVersionFile) error {
+	affected, err := ctx.Engine().Insert(fileVersion)
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return fmt.Errorf("dataset version (%s) file (%s) not created (no records affected)",
+			fileVersion.DatasetVersionId,
+			fileVersion.FileId)
+	}
+	return nil
+}
+
 // AssignMynahICDatasetClasses assigns classes for files in a given dataset version
 func AssignMynahICDatasetClasses(ctx *db.Context, datasetVersionId types.MynahUuid, assignments map[types.MynahUuid]dataset.MynahClassName) error {
 	return ctx.NewTransaction(func(tx *db.Context) error {

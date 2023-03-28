@@ -1,8 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import clsx from "clsx";
 import { ChangeEvent, CSSProperties, useRef, useState } from "react";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { FixedSizeList as List } from "react-window";
+import FileUploadList from "./file_upload_list";
 
 declare module "react" {
   interface InputHTMLAttributes<T> extends HTMLAttributes<T> {
@@ -16,32 +15,6 @@ export interface FileUploaderProps {
   datasetId: string;
   datasetVersionId: string;
   datasetName: string;
-}
-
-interface FilePreviewProps {
-  style: CSSProperties;
-  isFinished: boolean;
-  src: string;
-  fileName: string;
-}
-
-function FilePreview(props: FilePreviewProps): JSX.Element {
-  const { style, fileName, src, isFinished } = props;
-  return (
-    <li
-      className="flex w-full h-[60px] items-center border-b border-grey1"
-      style={style}
-    >
-      <img className="h-[40px] aspect-square mr-[10px]" src={src} />
-      {fileName}
-      <div
-        className={clsx(
-          "animate-spin border-t border-b border-l border-sidebarSelected h-[24px] aspect-square rounded-full ml-auto mr-[10px] my-auto",
-          isFinished && "hidden"
-        )}
-      />
-    </li>
-  );
 }
 
 export default function FileUploader(props: FileUploaderProps): JSX.Element {
@@ -149,45 +122,19 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
       </form>
 
       {files != undefined && (
-        <ul className="h-[500px] w-full">
-          <AutoSizer>
-            {({ height, width }) => (
-              <List
-                className="no-scrollbar"
-                height={height}
-                width={width}
-                itemCount={files.length}
-                itemSize={60}
-              >
-                {({ index, style }) => {
-                  const { file, isFinished } = files[index];
-                  const { name } = file;
-                  const src = URL.createObjectURL(file);
-                  return (
-                    <FilePreview
-                      style={style}
-                      fileName={name}
-                      src={src}
-                      isFinished={isFinished}
-                    />
-                  );
-                }}
-              </List>
+        <>
+          <FileUploadList files={files} />
+          <p
+            className={clsx(
+              "text-grey2 my-[10px]",
+              !files && "opacity-0 select-none"
             )}
-          </AutoSizer>
-        </ul>
-      )}
-      {files !== undefined && (
-        <p
-          className={clsx(
-            "text-grey2 my-[10px]",
-            !files && "opacity-0 select-none"
-          )}
-        >
-          {numFinished == files.length
-            ? "Upload complete"
-            : "We will let you know once all of your data sets have been uploaded"}
-        </p>
+          >
+            {numFinished == files.length
+              ? "Upload complete"
+              : "We will let you know once all of your data sets have been uploaded"}
+          </p>
+        </>
       )}
     </>
   );

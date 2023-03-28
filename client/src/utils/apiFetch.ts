@@ -17,7 +17,7 @@ export default async function makeRequest<T>(
     },
     ...(body !== undefined ? { data: body } : {}),
   }).then((res) => {
-    console.log(res);
+    console.log({endpoint, method}, res);
     return res.data;
   });
 }

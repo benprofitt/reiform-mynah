@@ -31,17 +31,15 @@ export default function ImportData(props: ImportDataProps): JSX.Element {
         "POST",
         "/api/v2/dataset/create",
         JSON.stringify(dataset)
-      ).then((res) => {
-        const { dataset_id } = res;
-        setDatasetId(dataset_id);
-        return makeRequest<MynahDatasetVersionRef>(
-          "GET",
-          `api/v2/dataset/${res.dataset_id}/version/refs`
-        );
-      });
+      );
     },
-    onSuccess: (data) => {
-      setDatasetVersionId(data.dataset_version_id);
+    onSuccess: async (data) => {
+      const { dataset_id } = data;
+      setDatasetId(dataset_id);
+      const [versionData, ...rest] = await makeRequest<
+        MynahDatasetVersionRef[]
+      >("GET", `/api/v2/dataset/${dataset_id}/version/refs`);
+      setDatasetVersionId(versionData.dataset_version_id);
       queryClient.refetchQueries({ queryKey: ["datasets"] });
     },
   });

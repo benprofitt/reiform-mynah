@@ -199,18 +199,6 @@ def perform_embedding_reduction(dataset, path_to_embedding_model):
 
     ReiformInfo("Time for dataset-level reduction: {}".format(time.time() - start))
 
-def get_embeddings_from_dataset(dataset : ReiformICDataSet, proj_label : str) -> Tuple[List[NDArray], List[Tuple[str, str]]]:
-    embeddings : List[NDArray] = []
-    names : List[Tuple[str, str]] = []
-
-    for c in dataset.classes():
-
-        for name, file in dataset.get_items(c):
-            embeddings.append(file.get_projection(proj_label))
-            names.append((c, name))
-    
-    return embeddings, names
-
 class EmbeddingReducer():
 
     def __init__(self, path_to_embedding_model : str, path_to_reducer: str, reduction_label : str) -> None:
@@ -219,11 +207,11 @@ class EmbeddingReducer():
         self.reduction_label = reduction_label
 
     def perform_reduction(self, dataset : ReiformICDataSet):
-        reducer : umap.UMAP = load_umap_model(self.path_to_reducer)
+        reducer : cuml.UMAP = load_umap_model(self.path_to_reducer)
         
         perform_dataset_embedding(dataset, self.path_to_embedding_model)
 
-        embeddings, names = get_embeddings_from_dataset(dataset, PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION)
+        embeddings, names = dataset.get_embeddings_from_dataset(PROJECTION_LABEL_FULL_EMBEDDING_CONCATENATION)
 
         reduced_embeddings = reducer.transform(embeddings)
 
@@ -231,7 +219,7 @@ class EmbeddingReducer():
             file = dataset.get_file_by_name(name)
             file.add_projection(self.reduction_label, reduced_embeddings[i])
 
-def save_embedding_model(model : umap.UMAP, dataset : ReiformICDataSet, projection_label: str, path_to_embed_model: str):
+def save_embedding_model(model : cuml.UMAP, dataset : ReiformICDataSet, projection_label: str, path_to_embed_model: str):
     # Saves the embedding model and it's relationship to the dataset
 
     uuid_path = "{}{}.pkl".format(LOCAL_TMP_MODEL_FOLDER, uuid.uuid4())
@@ -242,16 +230,16 @@ def save_embedding_model(model : umap.UMAP, dataset : ReiformICDataSet, projecti
 
     return
 
-def save_umap_model(reducer : umap.UMAP, path : str):
+def save_umap_model(reducer : cuml.UMAP, path : str):
 
     # Save the trained UMAP model to a file
     with open(path, "wb") as f:
         pickle.dump(reducer, f)
 
-def load_umap_model(path: str) -> umap.UMAP:
+def load_umap_model(path: str) -> cuml.UMAP:
 
     # Load the UMAP model from the file
-    loaded_reducer : umap.UMAP
+    loaded_reducer : cuml.UMAP
 
     with open(path, "rb") as f:
         loaded_reducer = pickle.load(f)

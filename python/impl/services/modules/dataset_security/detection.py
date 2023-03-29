@@ -1,5 +1,6 @@
 from image_generation import *
 from impl.services.modules.core.embeddings.latent_projection import EmbeddingReducer
+from cuml.cluster import HDBSCAN
 
 def detect_adversarial_coverage(dataset : ReiformICDataSet):
 
@@ -15,6 +16,7 @@ def detect_adversarial_coverage(dataset : ReiformICDataSet):
 
     # Using pre-existing embedding model, determine how many adversarial images 
     # are within the distribution of all iamges
+    # TODO : Rewrite to use the per-class embeddings. The whole point is to tell if the model will be tricked into swapping classes!
     reducer_obj = EmbeddingReducer(embed_path, red_path, PROJECTION_LABEL_REDUCED_EMBEDDING)
     for method, adv_dataset in result_dataset_dict.items():
 
@@ -38,6 +40,30 @@ def evaluate_distribution_fit(original_dataset : ReiformICDataSet,
                                                                                ReiformICDataSet,
                                                                                ReiformICDataSet]:
     # Get the distribution of the original image set embeddings
+    # TODO : Rewrite to use the per-class embeddings. The whole point is to tell if the model will be tricked into swapping classes!
+    origin_embeddings = original_dataset.get_embeddings_from_dataset(PROJECTION_LABEL_REDUCED_EMBEDDING)
+
+    # Convert your data points to a cuDF dataframe
+    origin_emb_df = cudf.DataFrame(origin_embeddings)
+
+    # Set the minimum cluster size
+    min_cluster_size = 10
+
+    # Initialize the HDBSCAN algorithm with the desired parameters
+    clusterer = HDBSCAN(min_samples=max(min_cluster_size, len(origin_embeddings)//10))
+
+    # Convert the data points to a cuML matrix
+    origin_emb_matrix = cuml.DataFrame.as_gpu_matrix(origin_emb_df)
+
+    # Fit the HDBSCAN algorithm to your data
+    cluster_assignments, strengths = clusterer.fit_predict(origin_emb_matrix)
+
+    # Compare the distribution of each cluster to your known data points using a statistical test
+    unique_clusters = cudf.unique(cluster_assignments)
+    for i in unique_clusters:
+        cluster_data = origin_emb_df[cluster_assignments == i]
+        # perform a statistical test of your choice, e.g. Kolmogorov-Smirnov test
+
 
     # Check to see where embeddings of the images from each adversarial dataset land.
     

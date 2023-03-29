@@ -143,6 +143,18 @@ class ReiformICDataSet(ReiformImageDataset):
     def get_reducer_metadata(self, proj_label : str) -> Tuple[str, str]:
         return self.embedding_reducer_paths[proj_label]
 
+    def get_embeddings_from_dataset(self, proj_label : str) -> Tuple[List[NDArray], List[Tuple[str, str]]]:
+        embeddings : List[NDArray] = []
+        names : List[Tuple[str, str]] = []
+
+        for c in self.classes():
+
+            for name, file in self.get_items(c):
+                embeddings.append(file.get_projection(proj_label))
+                names.append((c, name))
+        
+        return embeddings, names
+
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, ReiformICDataSet):
             return False

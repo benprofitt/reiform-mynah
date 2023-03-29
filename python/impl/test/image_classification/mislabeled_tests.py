@@ -48,6 +48,8 @@ def test_label_correction(dataset : ReiformICDataSet) -> Tuple[ReiformICDataSet,
     path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
     create_dataset_embedding_reduce(dataset, path_to_embeddings)
 
+    outliers : ReiformICDataSet
+
     inliers, outliers = dataset.split(0.9)
     outliers, count = outliers.mislabel(101)
 
@@ -66,8 +68,8 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
 
     # These are examples of these paths, and should be available in git...
     if data_path is None or results_path is None:
-        data_path : str = "impl/integration/test_data_small"
-        results_path : str = "impl/integration/temp_results"
+        data_path : str = "impl/test/test_data_small"
+        results_path : str = "impl/test/temp_results"
 
     if not (os.path.exists(data_path) and os.path.exists(results_path)):
         raise Exception
@@ -75,8 +77,8 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
     if (test_data_path is not None and not os.path.exists(test_data_path)):
         raise Exception
 
-    do_only_detection = False
-    do_dataset_evaluation = True
+    do_only_detection = True
+    do_dataset_evaluation = False
     do_test_detection = False
     do_test_correction = False
 
@@ -89,14 +91,16 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
         
         for path_to_embeddings in paths:
             # for percent in [0, 0, 0]:
-            for percent in [0, 0, 1, 5, 10, 20]:
+            for percent in [20]:
                 ReiformInfo("Model used: {}".format(path_to_embeddings.split("/")[-1]))
                 
                 data, count = dataset.mislabel(percent)
 
                 create_dataset_embedding_reduce(data, path_to_embeddings)
 
+                start = time.time()
                 inliers, outliers = find_outlier_consensus(data)
+                ReiformInfo("Detection runtime: {}".format(round(time.time()-start, 3)))
                 
                 ReiformInfo("Total file count : {}".format(len(dataset.all_files())))
                 out_size = len(outliers.all_files())
@@ -118,7 +122,7 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                 ReiformInfo("Correctly predicted class of true outliers: {}".format(class_predicted_correctly_from_embedding_t_o/(true_outliers+1)))
                 ReiformInfo("Actual detected outlier count : {}".format(true_outliers))
                 ReiformInfo("Found outlier percentage : {}".format(true_outliers/(count + 1)))
-                ReiformInfo("Actual detected outlier percentage : {}\n".format(true_outliers/out_size))
+                ReiformInfo("Actual detected outlier percentage : {}\n".format(round(true_outliers/out_size, 2)))
 
                 del data
 
@@ -194,6 +198,14 @@ def run_tests(data_path=None, results_path=None, test_data_path=None):
                     new_filename : str = "{}/{}/{}/{}_{}".format(results_path, prefix, c, original, name.split("/")[-1])
                     Image.open(name).save(new_filename)
 
+def running_embedding(data_path):
+
+    # read in dataset
+    dataset : ReiformICDataSet = dataset_from_path(data_path)
+
+    path_to_embeddings = LOCAL_EMBEDDING_PATH_DENSENET201
+
+    create_dataset_embedding(dataset, path_to_embeddings)
 
 if __name__ == '__main__':
 
@@ -207,5 +219,7 @@ if __name__ == '__main__':
         res_path=sys.argv[2]
     if len(sys.argv) > 3:
         test_path=sys.argv[3]
+
+    # running_embedding(data_path)
 
     run_tests(data_path, res_path, test_path)

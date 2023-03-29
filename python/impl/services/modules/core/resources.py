@@ -25,6 +25,8 @@ import torchvision.transforms as transforms # type: ignore
 import torch.nn as nn # type: ignore
 import torch.nn.functional as F # type: ignore
 
+import cuml
+
 import typing
 from typing import List, Tuple, Dict, Any, Callable, Optional
 from nptyping import NDArray # type: ignore

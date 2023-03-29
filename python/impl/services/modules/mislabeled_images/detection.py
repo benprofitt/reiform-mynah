@@ -1,7 +1,6 @@
 from sklearn import svm # type: ignore
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
-from sklearn.neighbors import KNeighborsClassifier, RadiusNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
+import cupy
 
 def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:
     
@@ -10,7 +9,7 @@ def estimate_outlier_ratio(projected_data : List[NDArray]) -> float:
     mean = np.mean(arr, 0)
     std_dev = np.std(arr, 0)
 
-    sigma_count = 2.0
+    sigma_count = 1.5
 
     plus_three_sigma = mean + sigma_count * std_dev
     minus_three_sigma = mean - sigma_count * std_dev
@@ -34,8 +33,6 @@ def find_outliers_loda(projected_data : ReiformICDataSet, label : str, cuts : in
     
     for class_key in projected_data.classes():
 
-        # ReiformInfo("Starting detection round for {} with {}".format(class_key, label))
-
         X : List[NDArray] = []
         files : List[ReiformICFile] = []
 
@@ -44,13 +41,24 @@ def find_outliers_loda(projected_data : ReiformICDataSet, label : str, cuts : in
             files.append(file)
 
         outlier_ratio : float = max(estimate_outlier_ratio(X), 0.005)
-        detector = LODA(outlier_ratio, "auto", cuts)
+        
+        detector = LODA(None, cuts)
 
+        start = time.time()
+        X = cupy.array(np.array(X))
         detector.fit(X)
-        outlier_labels = detector.labels_
+        scores = detector.score(X)
+        
+        ReiformInfo("Detection fit: {}".format(round(time.time()-start, 3)))
 
-        for file, l in zip(files, outlier_labels):
-            detection_results[l].add_file(file)
+        order = cupy.argsort(scores)
+
+        for pos, file in zip(order, files):
+            if pos > len(files) * (1-(outlier_ratio)):
+                detection_results[1].add_file(file)
+            else:
+                detection_results[0].add_file(file)
+
 
     return detection_results
 
@@ -58,7 +66,7 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
                            outliers : ReiformICDataSet) -> Tuple[ReiformICDataSet, 
                                                                  ReiformICDataSet]:
     # Quick "guess"
-    clf = KNeighborsClassifier(n_neighbors=min(150, inliers.file_count()//100))
+    clf = cuml.neighbors.KNeighborsClassifier(n_neighbors=max(5, min(150, inliers.file_count()//100)))
 
     X_known = []
     y_known = []
@@ -72,35 +80,39 @@ def predict_outlier_labels(inliers : ReiformICDataSet,
             X_known.append(file.get_projection(PROJECTION_LABEL_REDUCED_EMBEDDING))
             y_known.append(i)
 
-    clf.fit(X_known, y_known)
+    clf.fit(np.array(X_known), np.array(y_known))
     for i, c in enumerate(outliers.classes()):
         for name, file in outliers.get_items(c):
             X_unknown.append(file.get_projection(PROJECTION_LABEL_REDUCED_EMBEDDING))
             y_unknown.append(c)
             name_unknown.append(name)
 
-    preds = clf.predict(X_unknown)
+    preds = clf.predict(np.array(X_unknown))
 
-    prob_preds = clf.predict_proba(X_unknown)
+    prob_preds = clf.predict_proba(np.array(X_unknown))
     
     for name, p_class, c_probs, o_class in zip(name_unknown, preds, prob_preds, y_unknown):
         
-        outliers.get_file(o_class, name).add_projection(NEW_LABEL_PREDICTION, np.array([p_class]))
-        outliers.get_file(o_class, name).add_projection(NEW_LABEL_PREDICTION_PROBABILITIES, c_probs)
+        file = outliers.get_file(o_class, name)
+        if inliers.classes()[p_class] == o_class and c_probs[p_class] > 0.75:
+            outliers.remove_file(o_class, name)
+            inliers.add_file(file)
+        else:
+            file.add_projection(NEW_LABEL_PREDICTION, np.array([p_class]))
+            file.add_projection(NEW_LABEL_PREDICTION_PROBABILITIES, c_probs)
 
     return inliers, outliers
 
 def find_outlier_consensus(dataset : ReiformICDataSet):
     
     projections : List[str] = [
-                               PROJECTION_LABEL_REDUCED_EMBEDDING,
                                PROJECTION_LABEL_REDUCED_EMBEDDING_PER_CLASS
                               ]
 
     possible_detectors : List[Callable] = [
                                            find_outliers_loda
                                           ]
-    possible_cuts : List[int] = [1251, 1103, 1009, 931, 871, 767]
+    possible_cuts : List[int] = [1251, 1103, 1009, 931, 871, 767, 1133, 1039, 921, 831, 737, 1143, 1549, 951, 541, 567]
 
     # Keeps track of the "votes" for various files to be inliers vs outliers.... 
     votes : Dict[str, Dict[str, int]] = {}

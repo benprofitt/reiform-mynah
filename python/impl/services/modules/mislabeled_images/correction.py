@@ -2,6 +2,9 @@ from sklearn import svm # type: ignore
 from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, RandomForestClassifier # type: ignore
 from sklearn.neighbors import KNeighborsClassifier # type: ignore
 from impl.services.modules.mislabeled_images.mislabeled_resources import *
+# import rmm
+# rmm.reinitialize(pool_allocator=False, initial_pool_size=None)
+import gc
 
 def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : Any):
 
@@ -12,7 +15,12 @@ def train_classic_model(dataset : ReiformICDataSet, label : str, classifier : An
         for _, file in dataset.get_items(c):
             y_known.append(i)
             X_known.append(file.get_projection(label))
-    classifier.fit(X_known, y_known)
+
+    gc.collect()
+
+    start = time.time()
+    classifier.fit(np.array(X_known), np.array(y_known))
+    print("Time to train {} model: {}".format(str(classifier), round(time.time()-start, 3)))
 
     return classifier
 
@@ -26,12 +34,15 @@ def train_correction_model_ensemble(dataset : ReiformICDataSet) -> Tuple[List[An
     labels : List[str] = []
     for embedding_label in [PROJECTION_LABEL_REDUCED_EMBEDDING]:
         models_to_train : List[Any] = [
-            AdaBoostClassifier(n_estimators=661),
-            KNeighborsClassifier(n_neighbors=min(100, dataset.file_count()//100), weights='distance'),
-            GradientBoostingClassifier(n_estimators=421, max_depth=4, min_samples_leaf=4),
-            RandomForestClassifier(n_estimators=450, min_samples_leaf=4)
+            cuml.neighbors.KNeighborsClassifier(n_neighbors=min(100, dataset.file_count()//100)), #, weights='distance'),
+            # KNeighborsClassifier(n_neighbors=min(100, dataset.file_count()//100), weights='distance'),
+            cuml.ensemble.RandomForestClassifier(n_estimators=450, min_samples_leaf=4),
+            # RandomForestClassifier(n_estimators=450, min_samples_leaf=4)
+            cuml.svm.SVC(kernel='rbf', gamma='auto', C=1, probability=True),
+            svm.SVC(kernel='rbf', gamma='auto', C=1, probability=True)
+            # AdaBoostClassifier(n_estimators=661),
+            # GradientBoostingClassifier(n_estimators=421, max_depth=4, min_samples_leaf=4)
         ]
-        
         for model_num, clf in enumerate(models_to_train):
             start = time.time()
             labels.append(embedding_label)
@@ -53,7 +64,10 @@ def predict_correct_label(outliers : ReiformICDataSet, classifier : Any, label :
             y_unknown.append(c)
             name_unknown.append(name)
 
-    preds = classifier.predict_proba(X_unknown)
+    start = time.time()
+    preds = classifier.predict_proba(np.array(X_unknown))
+    print("Time to inference with {} model: {}".format(str(classifier), round(time.time()-start, 3)))
+
 
     return name_unknown, y_unknown, preds
 
@@ -96,6 +110,8 @@ def monte_carlo_label_correction(simulations: int,
 
     packages : List[Tuple[ReiformICDataSet, ReiformICDataSet]] = []
 
+    results = []
+
     for i in range(simulations):
         # ReiformInfo("Simulation: {}".format(i+1))
 
@@ -104,10 +120,13 @@ def monte_carlo_label_correction(simulations: int,
         if outliers.file_count() == 0:
             to_correct = dinc
 
-        packages.append((incl, to_correct))
+        results.append(monte_carlo_parallel((incl, to_correct)))
 
-    with Pool(AVAILABLE_THREADS) as p:
-        results = p.map(monte_carlo_parallel, packages)
+    #     packages.append((incl, to_correct))
+
+    # with Pool(AVAILABLE_THREADS) as p:
+    #     results = p.map(monte_carlo_parallel, packages)
+
 
     for _, result_list in results:
         for result in result_list:

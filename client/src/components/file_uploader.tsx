@@ -64,7 +64,7 @@ export default function FileUploader(props: FileUploaderProps): JSX.Element {
   return (
     <>
       <h1 className="text-[28px] w-full mt-[14px]">
-        Upload files to <u>{datasetName}</u>
+        Upload files to <strong>{datasetName}</strong>
       </h1>
       <form className="w-full">
         <div className="font-black w-full border-b border-grey1 pb-[10px] mt-[30px] flex justify-between">
